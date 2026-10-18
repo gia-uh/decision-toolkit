@@ -1,0 +1,369 @@
+"""Command-line interface: ``dtk models|decide|classify|serve|doctor``.
+
+The CLI is a thin adapter over the public library API: it contains no
+inference logic of its own. Model references are resolved through the
+toolkit's own model cache (:mod:`decision_toolkit.models`).
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any, Sequence
+
+from . import __version__, catalog
+from .decision_model import DecisionModel
+from .errors import DecisionToolkitError, InvalidQuestionError
+from .models import ModelStore
+from .schema import parse_question_spec
+
+PROG = "dtk"
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog=PROG,
+        description=(
+            "decision-toolkit: local typed decisions (choice / yes-no / score) with "
+            "open-weights models, on CPU. Library-first; this CLI and `dtk serve` are "
+            "thin adapters over the same API."
+        ),
+    )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument(
+        "--home",
+        metavar="DIR",
+        help="Toolkit home (models cache + config). Default: ~/.local/share/decision-toolkit.",
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # ----------------------------------------------------------------- models
+    models = sub.add_parser("models", help="Model cache and curated catalog.")
+    models_sub = models.add_subparsers(dest="models_command")
+    models_list = models_sub.add_parser("list", help="The curated catalog (status, license, backend).")
+    models_list.add_argument("--all", action="store_true", help="Include the waitlist.")
+    models_download = models_sub.add_parser("download", help="Download a model into the toolkit cache (network).")
+    models_download.add_argument("model", help="Catalog id or hub repo 'org/name'.")
+    models_download.add_argument("--revision", help="Pin a revision.")
+    models_use = models_sub.add_parser("use", help="Set the model in use (persistent).")
+    models_use.add_argument("model")
+    models_sub.add_parser("current", help="Print the model in use.")
+    models_delete = models_sub.add_parser("delete", help="Delete a cached model.")
+    models_delete.add_argument("model")
+    models_import = models_sub.add_parser("import", help="Copy a local model directory into the cache.")
+    models_import.add_argument("path")
+    models_import.add_argument("--name", help="Identifier to store it under.")
+
+    # ----------------------------------------------------------------- decide
+    decide = sub.add_parser("decide", help="Answer typed questions about a state (System One).")
+    _add_model_args(decide)
+    group = decide.add_mutually_exclusive_group(required=True)
+    group.add_argument("-s", "--state", help="The state text.")
+    group.add_argument("--state-file", help="Read the state from a file ('-' for stdin; .json files are sent as JSON).")
+    decide.add_argument(
+        "--q",
+        action="append",
+        required=True,
+        metavar="NAME=SPEC",
+        help=(
+            "A question: NAME='choice:a|b', NAME='choice:a=desc|b', "
+            "NAME='noul:Does it need a reply today?' or NAME='score:calm|annoyed|furious'. Repeatable."
+        ),
+    )
+    decide.add_argument("--pretty", action="store_true", help="Indent the JSON output.")
+
+    # --------------------------------------------------------------- classify
+    classify = sub.add_parser("classify", help="One-label classification with a threshold.")
+    _add_model_args(classify)
+    classify_group = classify.add_mutually_exclusive_group(required=True)
+    classify_group.add_argument("-t", "--text", help="The text to classify.")
+    classify_group.add_argument("--text-file", help="Read the text from a file ('-' for stdin).")
+    classify.add_argument("--labels", help="Comma-separated labels: 'reminder,task,idea'.")
+    classify.add_argument(
+        "--labels-file",
+        help="YAML file shaped 'labels: {name: description}' (descriptions help; recommended).",
+    )
+    classify.add_argument("--instructions", help="Custom question ('Which category fits best?').")
+    classify.add_argument("--threshold", type=float, default=0.5, help="Flag answers below it (default 0.5).")
+    classify.add_argument("--top-k", type=int, default=3, help="Show this many ranked labels (default 3).")
+    classify.add_argument("--json", action="store_true", dest="as_json", help="Print JSON.")
+
+    # ------------------------------------------------------------------ serve
+    serve = sub.add_parser("serve", help="Run the REST server (needs the [server] extra).")
+    _add_model_args(serve)
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8000)
+
+    # ----------------------------------------------------------------- doctor
+    doctor = sub.add_parser("doctor", help="Environment and cache diagnostics.")
+    doctor.add_argument("--json", action="store_true", dest="as_json")
+
+    return parser
+
+
+def _add_model_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--model",
+        help="Catalog id, cached model, local path or 'org/name' (default: the model in use).",
+    )
+    parser.add_argument("--device", help="Device: auto (default), cpu, cuda, mps...")
+
+
+# --------------------------------------------------------------------- helpers
+
+
+def _read_text(source: str | None) -> str:
+    if source is None:
+        raise InvalidQuestionError("provide --state / --state-file")
+    if source == "-":
+        return sys.stdin.read()
+    return Path(source).expanduser().read_text(encoding="utf-8")
+
+
+def _read_state(args: argparse.Namespace) -> Any:
+    raw = args.state if args.state is not None else _read_text(args.state_file)
+    if args.state_file and str(args.state_file).endswith(".json"):
+        return json.loads(raw)
+    return raw
+
+
+def _parse_questions(items: Sequence[str]) -> dict[str, dict]:
+    questions: dict[str, dict] = {}
+    for item in items:
+        name, separator, spec = item.partition("=")
+        if not separator:
+            raise InvalidQuestionError(f"--q needs NAME=SPEC, got {item!r}")
+        name = name.strip()
+        question = parse_question_spec(spec.strip())
+        if question["type"] != "noul" and "instructions" not in question:
+            readable = name.replace("_", " ").replace("-", " ")
+            question["instructions"] = (
+                f"Which {readable} fits the state best?"
+                if question["type"] == "choice"
+                else f"Rate the {readable} on the given levels."
+            )
+        questions[name] = question
+    return questions
+
+
+def _load_categories(args: argparse.Namespace) -> Any:
+    if args.labels_file:
+        import yaml
+
+        data = yaml.safe_load(Path(args.labels_file).expanduser().read_text(encoding="utf-8"))
+        if not isinstance(data, dict) or not isinstance(data.get("labels"), dict):
+            raise InvalidQuestionError(
+                f"{args.labels_file}: expected a top-level mapping 'labels: {{name: description}}'"
+            )
+        return {str(k): str(v) for k, v in data["labels"].items()}
+    if args.labels:
+        return [label.strip() for label in args.labels.split(",") if label.strip()]
+    raise InvalidQuestionError("provide --labels or --labels-file")
+
+
+def _human_bytes(size: int) -> str:
+    value = float(size)
+    for unit in ("B", "KB", "MB", "GB"):
+        if value < 1024 or unit == "GB":
+            return f"{value:.1f} {unit}" if unit != "B" else f"{int(value)} B"
+        value /= 1024
+    return f"{value:.1f} GB"  # pragma: no cover
+
+
+# ------------------------------------------------------------------ commands
+
+
+def _cmd_models(args: argparse.Namespace) -> int:
+    store = ModelStore(home=args.home)
+    command = getattr(args, "models_command", None)
+
+    if command is None or command == "current":
+        if command == "current":
+            print(store.current() or "(none)")
+            return 0
+        entries = store.entries()
+        if not entries:
+            print("The toolkit cache is empty. `dtk models list` shows the catalog.")
+            return 0
+        current = store.current()
+        for entry in entries:
+            mark = "★" if entry.identifier == current else " "
+            print(f"{mark} {entry.identifier:28s} {_human_bytes(entry.size_bytes):>10s}  {entry.origin}")
+        return 0
+
+    if command == "list":
+        cached = {entry.identifier for entry in store.entries()}
+        current = store.current()
+        print(f"{'':2s} {'id':26s} {'status':9s} {'params':7s} {'license':26s} {'backend':12s} cache")
+        for model in catalog.CATALOG:
+            if model.status == "waitlist" and not args.all:
+                continue
+            mark = "★" if model.id == current else " "
+            have = "✓" if model.id in cached else ""
+            print(
+                f"{mark} {model.id:26s} {model.status:9s} {model.params:7s} "
+                f"{model.license:26s} {model.backend:12s} {have}"
+            )
+        if not args.all:
+            print("\n(waitlist hidden; `dtk models list --all` shows it)")
+        return 0
+
+    if command == "download":
+        entry = store.download(args.model, revision=args.revision)
+        print(f"downloaded {entry.identifier} -> {entry.path}")
+        return 0
+
+    if command == "use":
+        store.use(args.model)
+        print(f"model in use: {args.model}")
+        return 0
+
+    if command == "delete":
+        store.delete(args.model)
+        print(f"deleted {args.model}")
+        return 0
+
+    if command == "import":
+        entry = store.import_model(args.path, name=args.name)
+        print(f"imported {entry.identifier} -> {entry.path}")
+        return 0
+
+    raise InvalidQuestionError(f"unknown models command: {command}")  # pragma: no cover
+
+
+def _cmd_decide(args: argparse.Namespace) -> int:
+    model = DecisionModel(args.model, home=args.home, device=args.device)
+    decision = model.decide(_read_state(args), _parse_questions(args.q))
+    print(json.dumps(decision.to_dict(), indent=2 if args.pretty else None, ensure_ascii=False))
+    return 0
+
+
+def _cmd_classify(args: argparse.Namespace) -> int:
+    model = DecisionModel(args.model, home=args.home, device=args.device)
+    text = args.text if args.text is not None else _read_text(args.text_file)
+    result = model.classify(
+        text,
+        _load_categories(args),
+        instructions=args.instructions,
+        threshold=args.threshold,
+    )
+    if getattr(args, "as_json", False):
+        print(json.dumps(
+            {
+                "label": result.label,
+                "confidence": result.confidence,
+                "below_threshold": result.below_threshold,
+                "ranked": result.ranked(args.top_k),
+            },
+            ensure_ascii=False,
+        ))
+    else:
+        print(f"{result.label}  {result.confidence:.3f}" + ("  (below threshold)" if result.below_threshold else ""))
+        for label, score in result.ranked(args.top_k):
+            print(f"  {label:24s} {score:.3f}")
+    return 0
+
+
+def _cmd_serve(args: argparse.Namespace) -> int:
+    try:
+        import uvicorn
+
+        from .server import create_app
+    except ImportError:
+        print(
+            'the REST server needs the [server] extra: pip install "decision-toolkit[server]"',
+            file=sys.stderr,
+        )
+        return 2
+
+    model = DecisionModel(args.model, home=args.home, device=args.device)
+    try:
+        app = create_app(model=model)
+    except ImportError:
+        print(
+            'the REST server needs the [server] extra: pip install "decision-toolkit[server]"',
+            file=sys.stderr,
+        )
+        return 2
+    uvicorn.run(app, host=args.host, port=args.port)
+    return 0
+
+
+def _cmd_doctor(args: argparse.Namespace) -> int:
+    store = ModelStore(home=args.home)
+    entries = store.entries()
+    optional = {
+        "laya (Laya runtime)": "laya",
+        "von (Von SDK)": "von",
+        "fastapi (REST server)": "fastapi",
+        "onnxruntime (ONNX backends, M1)": "onnxruntime",
+        "llama_cpp (GGUF backends, M1)": "llama_cpp",
+    }
+    available: dict[str, bool] = {}
+    for label, module in optional.items():
+        try:
+            __import__(module)
+            available[label] = True
+        except ImportError:
+            available[label] = False
+
+    report = {
+        "toolkit": __version__,
+        "python": sys.version.split()[0],
+        "home": str(store.config.home),
+        "cache_dir": str(store.models_dir),
+        "current": store.current(),
+        "device": store.config.device,
+        "cached_models": [entry.identifier for entry in entries],
+        "catalog": {
+            status: sum(1 for model in catalog.CATALOG if model.status == status)
+            for status in ("m0", "variant", "planned", "waitlist")
+        },
+        "optional_runtimes": available,
+    }
+    if args.as_json:
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+    else:
+        print(f"decision-toolkit {report['toolkit']} (python {report['python']})")
+        print(f"home:       {report['home']}")
+        print(f"cache_dir:  {report['cache_dir']}")
+        print(f"current:    {report['current'] or '(none)'}")
+        print(f"device:     {report['device']}")
+        print(f"cached:     {', '.join(report['cached_models']) or '(empty)'}")
+        print("catalog:    " + ", ".join(f"{k}={v}" for k, v in report["catalog"].items()))
+        print("runtimes:")
+        for label, ok in available.items():
+            print(f"  {'✓' if ok else '·'} {label}: {'installed' if ok else 'not installed'}")
+    return 0
+
+
+# ---------------------------------------------------------------------- main
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    try:
+        if args.command == "models":
+            return _cmd_models(args)
+        if args.command == "decide":
+            return _cmd_decide(args)
+        if args.command == "classify":
+            return _cmd_classify(args)
+        if args.command == "serve":
+            return _cmd_serve(args)
+        if args.command == "doctor":
+            return _cmd_doctor(args)
+        parser.error(f"unknown command {args.command!r}")  # pragma: no cover
+        return 2
+    except DecisionToolkitError as error:
+        print(f"{PROG}: error: {error}", file=sys.stderr)
+        return 2
+    except KeyboardInterrupt:  # pragma: no cover
+        return 130
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())

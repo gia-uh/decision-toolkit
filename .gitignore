@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+
+# Test caches
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Local data
+*.local
+home/
+models/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
