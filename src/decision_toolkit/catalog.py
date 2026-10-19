@@ -73,10 +73,10 @@ CATALOG: tuple[CatalogModel, ...] = (
         params="287M",
         architecture="GLiNER2.5 multi-v1",
         languages="multi",
-        status="m1",
-        notes="Base v1 export with classifier head. Adapter validated locally with the "
-              "mininvox ONNX build (9/15 routing, 215 ms CPU); this public export still "
-              "needs its download + parity run.",
+        status="m0",
+        notes="Base v1 export with classifier head, verified end-to-end: public fp16 export "
+              "downloaded and run (9/15 routing, 353 ms CPU), same accuracy as the local "
+              "int8 build.",
         variants=(
             Variant(
                 name="fp16",
@@ -128,17 +128,16 @@ CATALOG: tuple[CatalogModel, ...] = (
         notes="Decide fine-tune; no compatible split export identified yet.",
     ),
     CatalogModel(
-        id="laya-multilingual",
-        name="Laya multilingual",
+        id="laya",
+        name="Laya (English)",
         adapter="laya",
         license="apache-2.0",
         params="421M",
         architecture="ModernBERT-large",
-        languages="100+",
-        status="planned",
-        notes="Split encoder+head export. The adapter pipeline was validated with the "
-              "equivalent mininvox build (same answers as the torch runtime); the public "
-              "q8 export still needs its parity run.",
+        status="m0",
+        notes="English checkpoint. Split q8 export verified: billing 0.9612 vs torch 0.9598, "
+              "urgent 0.056 vs 0.061, tone 1.025 vs 1.026 (within the export's stated "
+              "≤0.0158 probability shift); 514 ms/decision on CPU.",
         variants=(
             Variant(
                 name="q8",
@@ -157,14 +156,17 @@ CATALOG: tuple[CatalogModel, ...] = (
         ),
     ),
     CatalogModel(
-        id="laya",
-        name="Laya (English)",
+        id="laya-multilingual",
+        name="Laya multilingual",
         adapter="laya",
         license="apache-2.0",
-        params="421M",
-        architecture="ModernBERT-large",
+        params="~150M",
+        architecture="mmBERT-base",
+        languages="100+",
         status="planned",
-        notes="English checkpoint; no verified split ONNX export identified yet.",
+        notes="No split multilingual export is published yet (mizchi 681 MB and androidli "
+              "int4 428 MB are fused single-file layouts). The split multilingual build was "
+              "validated locally (same answers as the torch runtime).",
     ),
     CatalogModel(
         id="julia-1",
@@ -375,7 +377,7 @@ CATALOG: tuple[CatalogModel, ...] = (
 CATALOG_BY_ID: dict[str, CatalogModel] = {model.id: model for model in CATALOG}
 
 #: Adapters that ship with the toolkit today.
-IMPLEMENTED_ADAPTERS = frozenset({"gliner2"})
+IMPLEMENTED_ADAPTERS = frozenset({"gliner2", "laya"})
 
 
 def get(model_id: str) -> CatalogModel | None:

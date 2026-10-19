@@ -97,11 +97,11 @@ adapters (there is no generic "any ONNX" adapter).
 
 | id | adapter | status | default variant |
 | --- | --- | --- | --- |
-| `gliner2.5-multi` | `gliner2` | **m1** — adapter validated locally, public export to verify | `fp16` (577 MB) |
+| `gliner2.5-multi` | `gliner2` | **m0** — verified end-to-end (9/15, 353 ms) | `fp16` (577 MB) |
 | `gliner2.5-decide` | `gliner2` | planned — fused export to verify | — |
 | `gliner2.5-multi-decide` | `gliner2` | planned — no compatible export yet | — |
-| `laya-multilingual` | `laya` | planned — adapter pipeline validated locally | `q8` (528 MB) |
-| `laya` | `laya` | planned — no verified split export | — |
+| `laya` | `laya` | **m0** — verified against torch (Δp ≤ 0.005) | `q8` (528 MB) |
+| `laya-multilingual` | `laya` | planned — no split export published | — |
 | `julia-1` | `julia` | planned — official ONNX export | `fp32` (618 MB) |
 | `opendecider-nano` | `opendecider` | planned — official ONNX build | `q8f16` (469 MB) |
 | `intern-decision-0.8b` | `decoder` | planned — community export | `fp16` (1.35 GB) |

@@ -13,9 +13,11 @@ from typing import Any
 from ..errors import AdapterNotAvailableError
 from .base import Adapter
 from .gliner2 import Gliner2Adapter
+from .laya import LayaAdapter
 
 ADAPTERS: dict[str, type] = {
     "gliner2": Gliner2Adapter,
+    "laya": LayaAdapter,
 }
 
 

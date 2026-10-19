@@ -48,7 +48,7 @@ def test_download_explicit_variant(store, fake_snapshot):
 
 
 def test_download_laya_variant_includes_external_data(store, fake_snapshot):
-    store.download("laya-multilingual")
+    store.download("laya")
     patterns = fake_snapshot[0]["allow_patterns"]
     assert "v1/encoder_q8.onnx" in patterns
     assert "v1/encoder_q8.onnx.data" in patterns
@@ -68,7 +68,7 @@ def test_download_unknown_variant_is_rejected(store, fake_snapshot):
 
 def test_download_without_variants_is_rejected(store, fake_snapshot):
     with pytest.raises(ModelNotFoundError):
-        store.download("laya")  # planned, no variant yet
+        store.download("laya-multilingual")  # planned, no split export yet
 
 
 def test_download_is_idempotent_guarded(store, fake_snapshot):

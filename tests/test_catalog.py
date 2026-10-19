@@ -31,6 +31,19 @@ def test_m1_entries_use_an_implemented_adapter():
             assert model.adapter in catalog.IMPLEMENTED_ADAPTERS, model.id
 
 
+def test_m0_entries_use_an_implemented_adapter():
+    for model in catalog.CATALOG:
+        if model.status == "m0":
+            assert model.adapter in catalog.IMPLEMENTED_ADAPTERS, model.id
+            assert model.default_variant is not None, model.id
+
+
+def test_laya_q8_is_verified_m0():
+    model = catalog.get("laya")
+    assert model.status == "m0"
+    assert model.default_variant.repo == "nvkudva/laya-onnx-q8"
+
+
 def test_variants_are_real_and_complete():
     for model in catalog.CATALOG:
         for variant in model.variants:
@@ -52,7 +65,7 @@ def test_gliner2_multi_has_two_real_variants():
 
 
 def test_laya_q8_variant_declares_split_files_and_external_data():
-    model = catalog.get("laya-multilingual")
+    model = catalog.get("laya")
     variant = model.default_variant
     assert variant.name == "q8"
     assert set(variant.files) == {"encoder", "head", "tokenizer", "config"}
