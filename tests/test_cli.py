@@ -54,6 +54,8 @@ def test_models_variants_lists_quantizations(home, capsys):
     output = capsys.readouterr().out
     assert "fp16" in output and "fp32" in output
     assert "577.1" in output and "1131.9" in output
+    assert "latency p50" in output
+    assert "parity:" in output and "baseline=" in output
 
 
 def test_models_empty_cache_message(home, capsys):

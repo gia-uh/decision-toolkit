@@ -91,3 +91,7 @@ def test_models_endpoint_lists_catalog_with_variants(client):
     entry = next(item for item in payload["catalog"] if item["id"] == "gliner2.5-multi")
     assert entry["adapter"] == "gliner2"
     assert {variant["name"] for variant in entry["variants"]} == {"fp16", "fp32"}
+    default = next(variant for variant in entry["variants"] if variant["role"] == "default")
+    assert default["latency_ms_p50"] == 353.0
+    assert default["parity"]["baseline"] == "mininvox int8 build"
+    assert default["verified_at"] == "2026-10-19"

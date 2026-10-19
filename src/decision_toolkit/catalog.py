@@ -20,14 +20,20 @@ Status values:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Mapping
+from typing import Any, Mapping
 
 from .errors import ModelNotFoundError
 
 
 @dataclass(frozen=True)
 class Variant:
-    """One downloadable build of a model (quantization + layout)."""
+    """One downloadable build of a model (quantization + layout).
+
+    ``parity`` holds the measured correctness evidence against a baseline, e.g.
+    ``{"baseline": "torch ...", "cases": 100, "top1": 1.0,
+    "max_abs_logit_error": 8.5e-05}``. It is data, not prose: the default choice
+    and its audit trail live in the catalog.
+    """
 
     name: str
     repo: str
@@ -38,6 +44,9 @@ class Variant:
     revision: str | None = None
     extra_files: tuple[str, ...] = ()   # external data (.onnx.data), checksums...
     notes: str = ""
+    verified_at: str | None = None
+    latency_ms_p50: float | None = None
+    parity: Mapping[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -89,6 +98,14 @@ CATALOG: tuple[CatalogModel, ...] = (
                 quant="fp16",
                 size_mb=577.1,
                 role="default",
+                verified_at="2026-10-19",
+                latency_ms_p50=353.0,
+                parity={
+                    "baseline": "mininvox int8 build",
+                    "cases": 15,
+                    "accuracy": 0.6,
+                    "note": "same 9/15 routing accuracy as the local int8 build; per-case agreement not recorded",
+                },
             ),
             Variant(
                 name="fp32",
@@ -128,6 +145,13 @@ CATALOG: tuple[CatalogModel, ...] = (
                 quant="q4/fp16",
                 size_mb=523.5,
                 role="default",
+                verified_at="2026-10-19",
+                latency_ms_p50=912.0,
+                parity={
+                    "baseline": "model card examples",
+                    "cases": 2,
+                    "note": "refund 0.944 matches the card; seat_change 0.593 vs card's change; sentiment positive vs card's mixed",
+                },
             ),
         ),
     ),
@@ -167,6 +191,14 @@ CATALOG: tuple[CatalogModel, ...] = (
                 quant="int8",
                 size_mb=527.9,
                 role="default",
+                verified_at="2026-10-19",
+                latency_ms_p50=514.0,
+                parity={
+                    "baseline": "torch convaiinnovations/laya",
+                    "cases": 3,
+                    "max_probability_delta": 0.005,
+                    "choices_match": True,
+                },
             ),
         ),
     ),
@@ -206,6 +238,14 @@ CATALOG: tuple[CatalogModel, ...] = (
                 quant="fp32",
                 size_mb=618.2,
                 role="default",
+                verified_at="2026-10-19",
+                latency_ms_p50=329.0,
+                parity={
+                    "baseline": "pytorch logits (official parity-cases)",
+                    "cases": 100,
+                    "top1": 1.0,
+                    "max_abs_logit_error": 8.5e-05,
+                },
             ),
         ),
     ),
@@ -233,6 +273,13 @@ CATALOG: tuple[CatalogModel, ...] = (
                 quant="int8/fp16",
                 size_mb=468.8,
                 role="default",
+                verified_at="2026-10-19",
+                latency_ms_p50=530.0,
+                parity={
+                    "baseline": "pinned packaging code",
+                    "cases": 0,
+                    "note": "official benchmark inputs are hashed; prompt/readout ported from the pinned code",
+                },
             ),
             Variant(
                 name="fp16",

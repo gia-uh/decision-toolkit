@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from decision_toolkit import catalog
@@ -42,6 +44,24 @@ def test_laya_q8_is_verified_m0():
     model = catalog.get("laya")
     assert model.status == "m0"
     assert model.default_variant.repo == "nvkudva/laya-onnx-q8"
+
+
+def test_m0_variants_have_measured_evidence():
+    for model in catalog.CATALOG:
+        if model.status != "m0":
+            continue
+        for variant in model.variants:
+            if variant.role != "default":
+                continue
+            assert variant.verified_at, (model.id, variant.name)
+            assert variant.latency_ms_p50 is not None, (model.id, variant.name)
+            assert variant.parity and variant.parity.get("baseline"), (model.id, variant.name)
+
+
+def test_every_m0_model_has_a_card():
+    for model in catalog.CATALOG:
+        if model.status == "m0":
+            assert Path("docs/models", f"{model.id}.md").is_file(), model.id
 
 
 def test_variants_are_real_and_complete():

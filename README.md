@@ -112,6 +112,9 @@ adapters (there is no generic "any ONNX" adapter).
 `planned` real export, adapter pending · `phase2` conversion planned · `waitlist`
 license pending.
 
+Per-model cards with the contract, measured evidence and known limitations:
+[docs/models](docs/models/).
+
 ## Variants and quantization
 
 A quantization is a **variant** of a model, with its real repo, files and role:

@@ -109,6 +109,9 @@ def create_app(
                             "quant": variant.quant,
                             "size_mb": variant.size_mb,
                             "role": variant.role,
+                            "latency_ms_p50": variant.latency_ms_p50,
+                            "verified_at": variant.verified_at,
+                            "parity": dict(variant.parity) if variant.parity else None,
                             "cached": (entry.id, variant.name) in cached,
                         }
                         for variant in entry.variants

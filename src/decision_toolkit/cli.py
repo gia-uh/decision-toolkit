@@ -226,6 +226,12 @@ def _cmd_models(args: argparse.Namespace) -> int:
         for variant in model.variants:
             print(f"  {variant.name:8s} {variant.quant:10s} {variant.size_mb:7.1f} MB  "
                   f"role={variant.role:8s} repo={variant.repo}")
+            if variant.latency_ms_p50 is not None:
+                verified = f" · verified {variant.verified_at}" if variant.verified_at else ""
+                print(f"           latency p50: {variant.latency_ms_p50:.0f} ms{verified}")
+            if variant.parity:
+                summary = ", ".join(f"{key}={value}" for key, value in variant.parity.items())
+                print(f"           parity: {summary}")
         if not model.variants:
             print("  (no downloadable ONNX variant yet)")
         return 0
