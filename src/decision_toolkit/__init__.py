@@ -1,28 +1,19 @@
 """decision-toolkit — local-first toolkit for open-weights decision models.
 
-Decisions, not text: typed ``choice`` / yes-no (``noul``) / ``score`` questions
-over a state, answered with a calibrated probability for every option, on CPU.
-Library-first, with CLI (``dtk``) and REST interfaces as thin adapters.
-
->>> from decision_toolkit import DecisionModel, choice, noul
->>> model = DecisionModel("laya")                       # doctest: +SKIP
->>> answer = model.decide("Refund the duplicate charge.", {   # doctest: +SKIP
-...     "team": choice("Which team?", {"billing": "refunds", "tech": "bugs"}),
-...     "urgent": noul("Does it need a reply today?"),
-... })
->>> answer["team"].choice, answer["urgent"].noul       # doctest: +SKIP
-('billing', 0.91)
+One ONNX engine, one adapter per model contract, three surfaces (library, CLI,
+REST). Decisions, not text: typed ``choice`` / yes-no (``noul``) / ``score``
+questions with a calibrated probability for every option, on CPU.
 """
 
 from __future__ import annotations
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 
 from .calibration import brier_score, expected_calibration_error, threshold_sweep
 from .decision_model import DecisionModel
 from .errors import (
-    BackendError,
-    BackendNotAvailableError,
+    AdapterError,
+    AdapterNotAvailableError,
     DecisionToolkitError,
     InvalidQuestionError,
     ModelNotFoundError,
@@ -54,7 +45,7 @@ __all__ = [
     # errors
     "DecisionToolkitError",
     "ModelNotFoundError",
-    "BackendNotAvailableError",
+    "AdapterNotAvailableError",
+    "AdapterError",
     "InvalidQuestionError",
-    "BackendError",
 ]

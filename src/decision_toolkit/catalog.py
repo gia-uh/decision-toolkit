@@ -1,252 +1,364 @@
-"""`decision_toolkit.catalog` — the curated, versioned model list.
+"""`decision_toolkit.catalog` — the curated model list.
 
-The toolkit never picks a model for you: this catalog is the informational,
-tested shortlist of open-weights decision models that fit the project's
-requirements (commercial-friendly license, CPU-viable, System One-compatible or
-with a public adapter). It grows the way ``fastembed`` grows: a few well-tested
-entries per release, not an unfiltered mirror of the ecosystem.
+The catalog is **ours**, not a mirror of HuggingFace. A model enters only when
+it is understood and verified: clean license, and adapter whose contract we can
+implement, a real ONNX export on the Hub, measured parity against the original,
+and CPU-viable latency. If any of those is missing, the model stays out.
+
+Every variant points to files that **exist on the Hub** (no placeholders). A
+variant is written only when there is a real export that demands it.
 
 Status values:
 
-``m0``        runnable now (its backend ships with the toolkit)
-``planned``   catalogued, backend arrives in a later milestone
-``variant``   an alternate checkpoint/subfolder of a runnable entry
-``waitlist``  meets most requirements; pending license confirmation or CPU recipe
+``m0``        runnable today (adapter + verified export)
+``m1``        adapter validated; the public export is identified but still to verify
+``planned``   real export identified; its adapter is not written yet
+``phase2``    no ONNX yet: conversion from the original weights is planned
+``waitlist``  meets most requirements; pending license confirmation or recipe
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Mapping
+
+from .errors import ModelNotFoundError
+
+
+@dataclass(frozen=True)
+class Variant:
+    """One downloadable build of a model (quantization + layout)."""
+
+    name: str
+    repo: str
+    files: Mapping[str, str]      # role -> path inside the repo
+    quant: str                    # fp32 | fp16 | int8 | q4 ...
+    size_mb: float
+    role: str = "default"         # default | quality | edge
+    revision: str | None = None
+    extra_files: tuple[str, ...] = ()   # external data (.onnx.data), checksums...
+    notes: str = ""
 
 
 @dataclass(frozen=True)
 class CatalogModel:
-    """One curated model (or variant) of the catalog."""
+    """One curated model, with its real downloadable variants."""
 
     id: str
     name: str
-    repo: str
-    backend: str
+    adapter: str
     license: str
     params: str
-    approx_size: str
-    architecture: str = ""
+    architecture: str
     languages: str = "en"
-    tasks: str = "choice / noul / score"
     status: str = "planned"
-    subfolder: str | None = None
+    variants: tuple[Variant, ...] = ()
     notes: str = ""
+
+    @property
+    def default_variant(self) -> Variant | None:
+        for variant in self.variants:
+            if variant.role == "default":
+                return variant
+        return self.variants[0] if self.variants else None
 
 
 CATALOG: tuple[CatalogModel, ...] = (
-    # ------------------------------------------------------------------ M0
+    # ------------------------------------------------------------------ ONNX
     CatalogModel(
-        id="laya",
-        name="Laya",
-        repo="convaiinnovations/laya",
-        backend="laya",
+        id="gliner2.5-multi",
+        name="GLiNER2.5 multi (v1 + classifier)",
+        adapter="gliner2",
         license="apache-2.0",
-        params="421M",
-        approx_size="≈0.7 GB",
-        architecture="ModernBERT-large",
-        tasks="choice / noul / score",
-        status="m0",
-        notes="English checkpoint (repo root); see laya-multilingual and laya-typed-decisions.",
-    ),
-    CatalogModel(
-        id="laya-multilingual",
-        name="Laya multilingual",
-        repo="convaiinnovations/laya",
-        backend="laya",
-        license="apache-2.0",
-        params="421M",
-        approx_size="≈0.7 GB",
-        architecture="ModernBERT-large",
-        languages="100+",
-        status="variant",
-        subfolder="multilingual",
-        notes="Same repo, multilingual checkpoint; 100+ languages.",
-    ),
-    CatalogModel(
-        id="laya-typed-decisions",
-        name="Laya typed-decisions",
-        repo="convaiinnovations/laya",
-        backend="laya",
-        license="apache-2.0",
-        params="421M",
-        approx_size="≈0.7 GB",
-        architecture="ModernBERT-large",
-        status="variant",
-        subfolder="typed-decisions",
-        notes="Fine-tuned on the typed-decisions benchmark split.",
-    ),
-    CatalogModel(
-        id="julia-1",
-        name="Julia 1",
-        repo="SupersonicLabs/Julia-1",
-        backend="julia",
-        license="apache-2.0",
-        params="141M",
-        approx_size="≈0.55 GB",
-        architecture="mmBERT-small",
-        languages="52 locales (MASSIVE)",
-        status="m0",
-        notes="Ships its own Python runtime (pip install -e the model repo).",
-    ),
-    CatalogModel(
-        id="von",
-        name="Von 1.3",
-        repo="wfzyx/von",
-        backend="von",
-        license="apache-2.0",
-        params="395M",
-        approx_size="≈3 GB",
-        architecture="ModernBERT-large",
-        status="m0",
-        notes="von-sdk (pip install von-sdk); weights/SDK frozen — repo archived 2026-10-17.",
-    ),
-    # ------------------------------------------------------------- planned (M1)
-    CatalogModel(
-        id="thx-01",
-        name="THX-01",
-        repo="doofz/THX-01",
-        backend="transformers",
-        license="apache-2.0",
-        params="322M",
-        approx_size="≈0.6 GB",
-        architecture="mmBERT-base",
-        languages="az / ru / en / tr",
-        status="planned",
-        notes="'Provisional' release; tiny multilingual classifier.",
+        params="287M",
+        architecture="GLiNER2.5 multi-v1",
+        languages="multi",
+        status="m1",
+        notes="Base v1 export with classifier head. Adapter validated locally with the "
+              "mininvox ONNX build (9/15 routing, 215 ms CPU); this public export still "
+              "needs its download + parity run.",
+        variants=(
+            Variant(
+                name="fp16",
+                repo="jugaadsrl/gliner2.5-multi-v1-onnx",
+                files={
+                    "encoder": "fp16_25/encoder_fp16.onnx",
+                    "classifier": "fp32_25/classifier_fp32.onnx",
+                    "tokenizer": "fp16_25/tokenizer.json",
+                },
+                quant="fp16",
+                size_mb=577.1,
+                role="default",
+            ),
+            Variant(
+                name="fp32",
+                repo="jugaadsrl/gliner2.5-multi-v1-onnx",
+                files={
+                    "encoder": "fp32_25/encoder_fp32.onnx",
+                    "classifier": "fp32_25/classifier_fp32.onnx",
+                    "tokenizer": "fp32_25/tokenizer.json",
+                },
+                quant="fp32",
+                size_mb=1131.9,
+                role="quality",
+            ),
+        ),
     ),
     CatalogModel(
         id="gliner2.5-decide",
         name="GLiNER2.5-Decide",
-        repo="fastino/GLiNER2.5-Decide",
-        backend="gliner2",
+        adapter="gliner2",
         license="apache-2.0",
         params="340M",
-        approx_size="≈0.5 GB",
         architecture="DeBERTa-v3-large",
         status="planned",
-        notes="Labels at request time; single and multi-label classification.",
+        notes="Fused export exists (onnx-community/GLiNER2.5-Decide-ONNX; fp32 1.74 GB, "
+              "fp16 872 MB, q4 888 MB, q4f16 523 MB) but its signature is not verified against "
+              "the gliner2 adapter; if it differs, it needs its own adapter.",
     ),
     CatalogModel(
         id="gliner2.5-multi-decide",
         name="GLiNER2.5-multi-Decide",
-        repo="fastino/GLiNER2.5-multi-Decide",
-        backend="gliner2",
+        adapter="gliner2",
         license="apache-2.0",
         params="287M",
-        approx_size="≈0.5 GB",
         architecture="GLiNER2.5 multi",
         languages="multi",
         status="planned",
-        notes="Multilingual sibling of GLiNER2.5-Decide.",
+        notes="Decide fine-tune; no compatible split export identified yet.",
     ),
     CatalogModel(
-        id="d3-lite",
-        name="Decision 3.0 lite",
-        repo="vllm-sr/d3-lite",
-        backend="gguf",
+        id="laya-multilingual",
+        name="Laya multilingual",
+        adapter="laya",
         license="apache-2.0",
-        params="0.85B",
-        approx_size="≈1.7 GB (bf16)",
-        architecture="Qwen3.5-0.8B",
+        params="421M",
+        architecture="ModernBERT-large",
+        languages="100+",
         status="planned",
-        notes="vLLM Semantic Router Decision 3.0 family.",
+        notes="Split encoder+head export. The adapter pipeline was validated with the "
+              "equivalent mininvox build (same answers as the torch runtime); the public "
+              "q8 export still needs its parity run.",
+        variants=(
+            Variant(
+                name="q8",
+                repo="nvkudva/laya-onnx-q8",
+                files={
+                    "encoder": "v1/encoder_q8.onnx",
+                    "head": "v1/head_q8.onnx",
+                    "tokenizer": "v1/tokenizer.json",
+                    "config": "v1/rl_agent_config.json",
+                },
+                extra_files=("v1/encoder_q8.onnx.data", "v1/head_q8.onnx.data"),
+                quant="int8",
+                size_mb=527.9,
+                role="default",
+            ),
+        ),
     ),
     CatalogModel(
-        id="intern-decision-0.8b",
-        name="Intern-Decision 0.8B",
-        repo="internlm/Intern-Decision-0.8B",
-        backend="gguf",
+        id="laya",
+        name="Laya (English)",
+        adapter="laya",
         license="apache-2.0",
-        params="0.85B",
-        approx_size="≈1.7 GB (bf16)",
-        architecture="Qwen3.5-0.8B",
+        params="421M",
+        architecture="ModernBERT-large",
         status="planned",
+        notes="English checkpoint; no verified split ONNX export identified yet.",
     ),
     CatalogModel(
-        id="kev-0.8b",
-        name="Kev 0.8B",
-        repo="jaredpalmer/kev-0.8b",
-        backend="gguf",
+        id="julia-1",
+        name="Julia 1",
+        adapter="julia",
         license="apache-2.0",
-        params="~0.8B",
-        approx_size="≈1.6 GB (bf16)",
-        architecture="Qwen3.5-0.8B (LoRA)",
+        params="141M",
+        architecture="mmBERT-small",
+        languages="52 locales",
         status="planned",
-        notes="Training recipe published alongside the weights.",
-    ),
-    CatalogModel(
-        id="sieve-0.8b",
-        name="Sieve 0.8B",
-        repo="sthanika-ai/Sieve-0.8B",
-        backend="gguf",
-        license="apache-2.0",
-        params="~0.8B",
-        approx_size="≈1.6 GB (bf16)",
-        architecture="Qwen3.5-0.8B",
-        status="planned",
-    ),
-    CatalogModel(
-        id="strands-decider-2b",
-        name="Strands Decider 2B (hobson-v21)",
-        repo="StrandsAgents/strands-decider-2B-hobson-v21",
-        backend="gguf",
-        license="apache-2.0",
-        params="2B",
-        approx_size="≈4 GB (bf16)",
-        architecture="Qwen3.5-2B (adapter)",
-        status="planned",
-        notes="Agent-oriented decider (tool calls, guardrails).",
+        notes="Official ONNX export with external data and parity cases.",
+        variants=(
+            Variant(
+                name="fp32",
+                repo="SupersonicLabs/Julia-1-ONNX",
+                files={
+                    "model": "model.onnx",
+                    "tokenizer": "tokenizer.json",
+                },
+                extra_files=("model.onnx.data",),
+                quant="fp32",
+                size_mb=618.2,
+                role="default",
+            ),
+        ),
     ),
     CatalogModel(
         id="opendecider-nano",
         name="OpenDecider nano",
-        repo="manjunathshiva/opendecider-nano",
-        backend="onnx",
+        adapter="opendecider",
         license="apache-2.0",
         params="395M",
-        approx_size="≈0.8 GB",
         architecture="Ettin encoder 400M",
         status="planned",
-        notes="Distilled encoder; ONNX builds proven in-browser.",
+        notes="Official ONNX build with its own config; adapter to be written from the real "
+              "export.",
+        variants=(
+            Variant(
+                name="q8f16",
+                repo="manjunathshiva/opendecider-nano-ONNX",
+                files={
+                    "model": "onnx/model_q8f16.onnx",
+                    "tokenizer": "tokenizer.web.json",
+                    "config": "opendecider.json",
+                },
+                quant="int8/fp16",
+                size_mb=468.8,
+                role="default",
+            ),
+            Variant(
+                name="fp16",
+                repo="manjunathshiva/opendecider-nano-ONNX",
+                files={
+                    "model": "onnx/model_fp16.onnx",
+                    "tokenizer": "tokenizer.web.json",
+                    "config": "opendecider.json",
+                },
+                quant="fp16",
+                size_mb=791.9,
+                role="quality",
+            ),
+        ),
+    ),
+    CatalogModel(
+        id="intern-decision-0.8b",
+        name="Intern-Decision 0.8B",
+        adapter="decoder",
+        license="apache-2.0",
+        params="0.85B",
+        architecture="Qwen3.5-0.8B",
+        status="planned",
+        notes="Community ONNX export; decoder-style readout, external data is gzip-compressed.",
+        variants=(
+            Variant(
+                name="fp16",
+                repo="Wortou/Intern-Decision-0.8B-ONNX-FP16",
+                files={
+                    "model": "onnx/decoder_model_merged_fp16.onnx",
+                    "tokenizer": "tokenizer.json",
+                    "config": "decision-manifest.json",
+                },
+                extra_files=(
+                    "onnx/decoder_model_merged_fp16.onnx_data.gz",
+                    "onnx/embed_tokens_fp16.onnx_data.gz",
+                ),
+                quant="fp16",
+                size_mb=1350.7,
+                role="default",
+            ),
+        ),
+    ),
+    CatalogModel(
+        id="jevk5-lite",
+        name="JevK5-Lite",
+        adapter="jevk5",
+        license="apache-2.0",
+        params="~0.1B",
+        architecture="JevK5 Lite",
+        status="planned",
+        notes="Tiny single-file export (9 MB repo) with SHA256SUMS and a reference "
+              "classify_onnx.py; ideal first download test.",
+        variants=(
+            Variant(
+                name="int8",
+                repo="maxious/JevK5-Lite-onnx",
+                files={
+                    "model": "model_int8.onnx",
+                    "tokenizer": "tokenizer.json",
+                },
+                quant="int8",
+                size_mb=9.3,
+                role="default",
+            ),
+        ),
+    ),
+    # -------------------------------------------------------------- phase 2
+    CatalogModel(
+        id="d3-lite",
+        name="Decision 3.0 lite",
+        adapter="decoder",
+        license="apache-2.0",
+        params="0.85B",
+        architecture="Qwen3.5-0.8B",
+        status="phase2",
+        notes="No ONNX published yet; conversion from the original weights is planned for v2.",
+    ),
+    CatalogModel(
+        id="kev-0.8b",
+        name="Kev 0.8B",
+        adapter="decoder",
+        license="apache-2.0",
+        params="~0.8B",
+        architecture="Qwen3.5-0.8B (LoRA)",
+        status="phase2",
+        notes="No ONNX published yet; v2 conversion planned.",
+    ),
+    CatalogModel(
+        id="sieve-0.8b",
+        name="Sieve 0.8B",
+        adapter="decoder",
+        license="apache-2.0",
+        params="~0.8B",
+        architecture="Qwen3.5-0.8B",
+        status="phase2",
+        notes="No ONNX published yet; v2 conversion planned.",
+    ),
+    CatalogModel(
+        id="strands-decider-2b",
+        name="Strands Decider 2B (hobson-v21)",
+        adapter="decoder",
+        license="apache-2.0",
+        params="2B",
+        architecture="Qwen3.5-2B (adapter)",
+        status="phase2",
+        notes="Agent-oriented decider; no ONNX yet — v2 conversion.",
+    ),
+    CatalogModel(
+        id="thx-01",
+        name="THX-01",
+        adapter="encoder-readout",
+        license="apache-2.0",
+        params="322M",
+        architecture="mmBERT-base",
+        languages="az / ru / en / tr",
+        status="phase2",
+        notes="No ONNX published; export planned for v2.",
     ),
     # --------------------------------------------------------------- waitlist
     CatalogModel(
         id="bosun-0.6b",
         name="Bosun v3.1 0.6B",
-        repo="Hanno-Labs/bosun-v3.1-0.6b",
-        backend="gguf",
+        adapter="decoder",
         license="apache-2.0",
         params="0.6B",
-        approx_size="≈0.4 GB (Q4)",
         architecture="Qwen3-0.6B (adapter)",
         status="waitlist",
-        notes="Tiny decoder; ready to promote once the GGUF backend lands.",
+        notes="Tiny decoder; no ONNX yet — v2 conversion planned.",
     ),
     CatalogModel(
         id="d3-edge",
         name="Decision 3.0 edge",
-        repo="vllm-sr/d3-edge",
-        backend="gguf",
+        adapter="decoder",
         license="apache-2.0",
         params="0.6B",
-        approx_size="≈1.2 GB (bf16)",
         architecture="Qwen3.5-0.8B",
         status="waitlist",
-        notes="Same family as d3-lite; waiting on the GGUF backend (M1), not on licensing.",
+        notes="Same family as d3-lite; no ONNX yet — v2 conversion. Not a licensing issue.",
     ),
     CatalogModel(
         id="tev1-0.8b",
         name="Tev1 0.8B",
-        repo="togethercomputer/Tev1-0.8B-experimental",
-        backend="gguf",
+        adapter="decoder",
         license="unverified",
         params="0.87B",
-        approx_size="≈1.7 GB (bf16)",
         architecture="Qwen3.5-0.8B",
         status="waitlist",
         notes="License not declared on the model card; experimental.",
@@ -254,11 +366,9 @@ CATALOG: tuple[CatalogModel, ...] = (
     CatalogModel(
         id="d1-omni-600m",
         name="Liquid d1-omni 600M",
-        repo="LiquidAI/d1-omni-600M",
-        backend="transformers",
+        adapter="decoder",
         license="other (LFM Open License)",
         params="587M",
-        approx_size="≈2.4 GB (F32)",
         architecture="LFM2.5-Encoder-350M",
         status="waitlist",
         notes="Text + image + audio decisions; license needs review before core.",
@@ -266,24 +376,19 @@ CATALOG: tuple[CatalogModel, ...] = (
     CatalogModel(
         id="bekko-400m",
         name="bekko system-one 400M",
-        repo="hotchpotch/bekko-system-one-v0-400m",
-        backend="onnx",
+        adapter="encoder-readout",
         license="unverified",
         params="400M",
-        approx_size="≈1.6 GB",
+        architecture="Ettin reranker 400M",
         status="waitlist",
-        notes="Tiny Japanese-authored family (17M / 68M / 400M); license pending.",
+        notes="Tiny Japanese-authored family; license pending.",
     ),
 )
 
 CATALOG_BY_ID: dict[str, CatalogModel] = {model.id: model for model in CATALOG}
-CATALOG_BY_REPO: dict[str, CatalogModel] = {}
-for _model in CATALOG:
-    # first entry wins: repo-level defaults (laya -> English root entry)
-    CATALOG_BY_REPO.setdefault(_model.repo, _model)
 
-#: Backends shipped by the toolkit today. Everything else is catalogued only.
-IMPLEMENTED_BACKENDS = frozenset({"laya", "julia", "von", "systemone"})
+#: Adapters that ship with the toolkit today.
+IMPLEMENTED_ADAPTERS = frozenset({"gliner2"})
 
 
 def get(model_id: str) -> CatalogModel | None:
@@ -291,17 +396,29 @@ def get(model_id: str) -> CatalogModel | None:
     return CATALOG_BY_ID.get(model_id)
 
 
-def find_by_repo(repo: str) -> CatalogModel | None:
-    """Return the catalog entry for an ``org/name`` repo (or ``None``)."""
-    return CATALOG_BY_REPO.get(repo)
+def select_variant(model: CatalogModel, name: str | None = None) -> Variant:
+    """Choose a variant by name, or the model's default."""
+    if name is None:
+        variant = model.default_variant
+        if variant is None:
+            raise ModelNotFoundError(
+                f"{model.id!r} has no downloadable ONNX variant yet "
+                f"(status {model.status}); see `dtk models list`"
+            )
+        return variant
+    for variant in model.variants:
+        if variant.name == name:
+            return variant
+    available = ", ".join(variant.name for variant in model.variants) or "(none)"
+    raise ModelNotFoundError(f"{model.id!r} has no variant {name!r}; available: {available}")
 
 
 __all__ = [
     "CatalogModel",
+    "Variant",
     "CATALOG",
     "CATALOG_BY_ID",
-    "CATALOG_BY_REPO",
-    "IMPLEMENTED_BACKENDS",
+    "IMPLEMENTED_ADAPTERS",
     "get",
-    "find_by_repo",
+    "select_variant",
 ]

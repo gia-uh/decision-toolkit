@@ -1,4 +1,4 @@
-"""The model cache: download (faked), import, use/current, delete, resolve."""
+"""The model cache: variants, allow_patterns, provenance, resolve."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ import json
 
 import pytest
 
-import decision_toolkit.models as models_module
 from decision_toolkit.errors import ModelNotFoundError
 from decision_toolkit.models import ModelStore
 
@@ -16,90 +15,95 @@ def store(home) -> ModelStore:
     return ModelStore(home=home)
 
 
-@pytest.fixture
-def fake_snapshot(monkeypatch):
-    """Replace the hub download with a local fake; record its arguments."""
-    calls: list[dict] = []
-
-    def _fake(repo_id, local_dir, revision=None, allow_patterns=None):
-        calls.append(
-            {"repo_id": repo_id, "local_dir": local_dir, "revision": revision, "allow_patterns": allow_patterns}
-        )
-        local_dir.mkdir(parents=True, exist_ok=True)
-        (local_dir / "config.json").write_text("{}")
-        return str(local_dir)
-
-    monkeypatch.setattr(models_module, "_snapshot_download", _fake)
-    return calls
-
-
 def test_empty_cache(store):
     assert store.entries() == []
     assert store.current() is None
 
 
-def test_download_writes_provenance(store, fake_snapshot):
-    entry = store.download("laya")
-    assert entry.identifier == "laya"
-    assert entry.repo == "convaiinnovations/laya"
-    assert entry.subfolder is None
-    assert fake_snapshot[0]["repo_id"] == "convaiinnovations/laya"
-    assert fake_snapshot[0]["allow_patterns"] is None
+def test_download_default_variant_only_fetches_declared_files(store, fake_snapshot):
+    entry = store.download("gliner2.5-multi")
+    assert entry.identifier == "gliner2.5-multi"
+    assert entry.variant == "fp16"
+    assert entry.path.name == "gliner2.5-multi@fp16"
+    call = fake_snapshot[0]
+    assert call["repo_id"] == "jugaadsrl/gliner2.5-multi-v1-onnx"
+    assert call["allow_patterns"] == [
+        "fp16_25/encoder_fp16.onnx",
+        "fp32_25/classifier_fp32.onnx",
+        "fp16_25/tokenizer.json",
+    ]
     meta = json.loads((entry.path / "model.json").read_text())
-    assert meta["source"] == "download"
-    assert meta["origin"].startswith("huggingface:convaiinnovations/laya@")
+    assert meta["variant"] == "fp16"
+    assert meta["repo"] == "jugaadsrl/gliner2.5-multi-v1-onnx"
 
 
-def test_download_subfolder_variant_uses_allow_patterns(store, fake_snapshot):
-    entry = store.download("laya-multilingual")
-    assert entry.subfolder == "multilingual"
-    assert fake_snapshot[0]["allow_patterns"] == ["multilingual/*"]
+def test_download_explicit_variant(store, fake_snapshot):
+    entry = store.download("gliner2.5-multi", variant="fp32")
+    assert entry.variant == "fp32"
+    assert fake_snapshot[0]["allow_patterns"] == [
+        "fp32_25/encoder_fp32.onnx",
+        "fp32_25/classifier_fp32.onnx",
+        "fp32_25/tokenizer.json",
+    ]
 
 
-def test_download_is_idempotent_guarded(store, fake_snapshot):
-    store.download("von")
-    with pytest.raises(ModelNotFoundError):
-        store.download("von")
+def test_download_laya_variant_includes_external_data(store, fake_snapshot):
+    store.download("laya-multilingual")
+    patterns = fake_snapshot[0]["allow_patterns"]
+    assert "v1/encoder_q8.onnx" in patterns
+    assert "v1/encoder_q8.onnx.data" in patterns
+    assert "v1/head_q8.onnx.data" in patterns
 
 
-def test_download_unknown_identifier(store, fake_snapshot):
+def test_download_unknown_model_is_rejected(store, fake_snapshot):
     with pytest.raises(ModelNotFoundError):
         store.download("nope")
 
 
-def test_download_hub_reference(store, fake_snapshot):
-    entry = store.download("hf:someorg/somemodel")
-    assert entry.repo == "someorg/somemodel"
-    assert fake_snapshot[0]["repo_id"] == "someorg/somemodel"
+def test_download_unknown_variant_is_rejected(store, fake_snapshot):
+    with pytest.raises(ModelNotFoundError) as excinfo:
+        store.download("gliner2.5-multi", variant="q4")
+    assert "fp16" in str(excinfo.value)
+
+
+def test_download_without_variants_is_rejected(store, fake_snapshot):
+    with pytest.raises(ModelNotFoundError):
+        store.download("laya")  # planned, no variant yet
+
+
+def test_download_is_idempotent_guarded(store, fake_snapshot):
+    store.download("gliner2.5-multi")
+    with pytest.raises(ModelNotFoundError):
+        store.download("gliner2.5-multi")
 
 
 def test_import_and_delete(store, tmp_path):
     source = tmp_path / "my-model"
     source.mkdir()
-    (source / "weights.bin").write_bytes(b"1234")
+    (source / "weights.onnx").write_bytes(b"1234")
 
     entry = store.import_model(source, name="my-finetune")
     assert entry.identifier == "my-finetune"
-    assert (entry.path / "weights.bin").read_bytes() == b"1234"
-    assert store.get("my-finetune") is not None
+    assert entry.variant == "local"
+    assert (entry.path / "weights.onnx").read_bytes() == b"1234"
 
     store.delete("my-finetune")
     assert store.get("my-finetune") is None
 
 
 def test_delete_refuses_the_model_in_use(store, fake_snapshot):
-    store.download("laya")
-    store.use("laya")
+    store.download("gliner2.5-multi")
+    store.use("gliner2.5-multi")
     with pytest.raises(ModelNotFoundError):
-        store.delete("laya")
+        store.delete("gliner2.5-multi")
 
 
 def test_use_accepts_catalog_and_cache_ids(store, fake_snapshot):
     store.use("julia-1")  # catalog id, not downloaded
     assert store.current() == "julia-1"
-    store.download("laya")
-    store.use("laya")
-    assert store.current() == "laya"
+    store.download("gliner2.5-multi")
+    store.use("gliner2.5-multi")
+    assert store.current() == "gliner2.5-multi"
 
 
 def test_use_rejects_unknown(store):
@@ -107,16 +111,27 @@ def test_use_rejects_unknown(store):
         store.use("nope")
 
 
-def test_resolve_prefers_cache_then_catalog(store, fake_snapshot):
-    resolved = store.resolve("julia-1")
+def test_resolve_catalog_before_download(store):
+    resolved = store.resolve("gliner2.5-multi")
     assert resolved.origin == "catalog"
-    assert resolved.repo == "SupersonicLabs/Julia-1"
     assert resolved.path is None
+    assert resolved.variant.name == "fp16"
+    assert set(resolved.files) == {"encoder", "classifier", "tokenizer"}
 
-    store.download("julia-1")
-    resolved = store.resolve("julia-1")
+
+def test_resolve_cache_after_download(store, fake_snapshot):
+    store.download("gliner2.5-multi")
+    resolved = store.resolve("gliner2.5-multi")
     assert resolved.origin == "cache"
     assert resolved.path is not None
+    assert resolved.variant.name == "fp16"
+    assert (resolved.path / "fp16_25/encoder_fp16.onnx").is_file()
+
+
+def test_resolve_variant_override(store, fake_snapshot):
+    store.download("gliner2.5-multi", variant="fp32")
+    resolved = store.resolve("gliner2.5-multi", variant="fp32")
+    assert resolved.variant.name == "fp32"
 
 
 def test_resolve_accepts_local_paths_and_hub_refs(store, tmp_path):
@@ -127,18 +142,19 @@ def test_resolve_accepts_local_paths_and_hub_refs(store, tmp_path):
     assert resolved.path == local.resolve()
 
     resolved = store.resolve("hf:org/name")
-    assert resolved.repo == "org/name"
+    assert resolved.catalog is None
+    assert resolved.path is None
 
 
 def test_resolve_unknown_gives_suggestions(store):
     with pytest.raises(ModelNotFoundError) as excinfo:
         store.resolve("definitely-not-a-model")
-    assert "laya" in str(excinfo.value)
+    assert "gliner2.5-multi" in str(excinfo.value)
 
 
 def test_resolve_none_uses_current(store, fake_snapshot):
     with pytest.raises(ModelNotFoundError):
         store.resolve(None)
-    store.download("laya")
-    store.use("laya")
-    assert store.resolve(None).identifier == "laya"
+    store.download("gliner2.5-multi")
+    store.use("gliner2.5-multi")
+    assert store.resolve(None).identifier == "gliner2.5-multi"

@@ -16,22 +16,29 @@ class ModelNotFoundError(DecisionToolkitError):
     """An identifier is neither in the catalog, nor the cache, nor a local path."""
 
 
-class BackendNotAvailableError(DecisionToolkitError):
-    """The backend for a model is not implemented yet, or its runtime is missing."""
+class AdapterNotAvailableError(DecisionToolkitError):
+    """The adapter for a model is not implemented yet, or its runtime is missing."""
 
 
 class InvalidQuestionError(DecisionToolkitError, ValueError):
     """A question violates the System One contract (type, criteria, limits...)."""
 
 
-class BackendError(DecisionToolkitError):
-    """The inference backend failed (server error, malformed answer...)."""
+class AdapterError(DecisionToolkitError):
+    """The inference adapter failed (server error, malformed answer...)."""
+
+
+#: Backwards-compatible aliases (the first scaffold used "backend" names).
+BackendNotAvailableError = AdapterNotAvailableError
+BackendError = AdapterError
 
 
 __all__ = [
     "DecisionToolkitError",
     "ModelNotFoundError",
-    "BackendNotAvailableError",
+    "AdapterNotAvailableError",
+    "AdapterError",
     "InvalidQuestionError",
+    "BackendNotAvailableError",
     "BackendError",
 ]

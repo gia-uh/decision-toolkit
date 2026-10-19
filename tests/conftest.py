@@ -1,4 +1,4 @@
-"""Shared fixtures: a fake backend so the fast suite needs no models, network or GPU."""
+"""Shared fixtures: a fake adapter so the fast suite needs no models or runtime."""
 
 from __future__ import annotations
 
@@ -9,19 +9,19 @@ import pytest
 from decision_toolkit.decision_model import DecisionModel
 
 
-class FakeBackend:
+class FakeAdapter:
     """Deterministic System One answers built from the questions themselves."""
 
     name = "fake"
 
     def __init__(self, error: Exception | None = None) -> None:
-        self.calls: list[tuple[Any, dict[str, dict[str, Any]]]] = []
+        self.calls: list[tuple[Any, Any, dict[str, dict[str, Any]]]] = []
         self._error = error
 
     def system_one(
-        self, state: Any, questions: Mapping[str, Mapping[str, Any]]
+        self, engine: Any, state: Any, questions: Mapping[str, Mapping[str, Any]]
     ) -> Mapping[str, Mapping[str, Any]]:
-        self.calls.append((state, {k: dict(v) for k, v in questions.items()}))
+        self.calls.append((engine, state, {k: dict(v) for k, v in questions.items()}))
         if self._error is not None:
             raise self._error
 
@@ -51,13 +51,13 @@ class FakeBackend:
 
 
 @pytest.fixture
-def fake_backend() -> FakeBackend:
-    return FakeBackend()
+def fake_adapter() -> FakeAdapter:
+    return FakeAdapter()
 
 
 @pytest.fixture
-def fake_model(fake_backend: FakeBackend) -> DecisionModel:
-    return DecisionModel(backend=fake_backend)
+def fake_model(fake_adapter: FakeAdapter) -> DecisionModel:
+    return DecisionModel(adapter=fake_adapter)
 
 
 @pytest.fixture
@@ -66,15 +66,23 @@ def home(tmp_path):
 
 
 @pytest.fixture
-def fake_snapshot_from_models(monkeypatch, home):
-    """A ModelStore whose hub download is faked (no network)."""
+def fake_snapshot(monkeypatch):
+    """Replace the hub download with a local fake; record its arguments."""
     import decision_toolkit.models as models_module
-    from decision_toolkit.models import ModelStore
+
+    calls: list[dict] = []
 
     def _fake(repo_id, local_dir, revision=None, allow_patterns=None):
+        calls.append(
+            {"repo_id": repo_id, "local_dir": local_dir, "revision": revision,
+             "allow_patterns": allow_patterns}
+        )
         local_dir.mkdir(parents=True, exist_ok=True)
-        (local_dir / "config.json").write_text("{}")
+        for pattern in allow_patterns or ["model.json"]:
+            target = local_dir / pattern
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b"x")
         return str(local_dir)
 
     monkeypatch.setattr(models_module, "_snapshot_download", _fake)
-    return ModelStore(home=home)
+    return calls

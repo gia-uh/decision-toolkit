@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from . import __version__, catalog
+from .adapters import ADAPTERS
 from .decision_model import DecisionModel
 from .errors import DecisionToolkitError, InvalidQuestionError
 from .models import ModelStore
@@ -27,8 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog=PROG,
         description=(
             "decision-toolkit: local typed decisions (choice / yes-no / score) with "
-            "open-weights models, on CPU. Library-first; this CLI and `dtk serve` are "
-            "thin adapters over the same API."
+            "open-weights ONNX models, on CPU. One engine, one adapter per model contract."
         ),
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -42,16 +42,20 @@ def build_parser() -> argparse.ArgumentParser:
     # ----------------------------------------------------------------- models
     models = sub.add_parser("models", help="Model cache and curated catalog.")
     models_sub = models.add_subparsers(dest="models_command")
-    models_list = models_sub.add_parser("list", help="The curated catalog (status, license, backend).")
+    models_list = models_sub.add_parser("list", help="The curated catalog (adapter, status, variants).")
     models_list.add_argument("--all", action="store_true", help="Include the waitlist.")
-    models_download = models_sub.add_parser("download", help="Download a model into the toolkit cache (network).")
-    models_download.add_argument("model", help="Catalog id or hub repo 'org/name'.")
+    models_variants = models_sub.add_parser("variants", help="Variants of a catalog model.")
+    models_variants.add_argument("model")
+    models_download = models_sub.add_parser("download", help="Download one variant (the only network command).")
+    models_download.add_argument("model", help="Catalog id.")
+    models_download.add_argument("--variant", help="Variant name (default: the catalog default).")
     models_download.add_argument("--revision", help="Pin a revision.")
     models_use = models_sub.add_parser("use", help="Set the model in use (persistent).")
     models_use.add_argument("model")
     models_sub.add_parser("current", help="Print the model in use.")
-    models_delete = models_sub.add_parser("delete", help="Delete a cached model.")
+    models_delete = models_sub.add_parser("delete", help="Delete a cached variant.")
     models_delete.add_argument("model")
+    models_delete.add_argument("--variant", help="Variant name (default: any cached variant).")
     models_import = models_sub.add_parser("import", help="Copy a local model directory into the cache.")
     models_import.add_argument("path")
     models_import.add_argument("--name", help="Identifier to store it under.")
@@ -106,9 +110,10 @@ def build_parser() -> argparse.ArgumentParser:
 def _add_model_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--model",
-        help="Catalog id, cached model, local path or 'org/name' (default: the model in use).",
+        help="Catalog id, cached variant, local path or 'org/name' (default: the model in use).",
     )
-    parser.add_argument("--device", help="Device: auto (default), cpu, cuda, mps...")
+    parser.add_argument("--variant", help="Variant name (default: the catalog default).")
+    parser.add_argument("--threads", type=int, default=4, help="ONNX Runtime threads (default 4).")
 
 
 # --------------------------------------------------------------------- helpers
@@ -190,29 +195,41 @@ def _cmd_models(args: argparse.Namespace) -> int:
         current = store.current()
         for entry in entries:
             mark = "★" if entry.identifier == current else " "
-            print(f"{mark} {entry.identifier:28s} {_human_bytes(entry.size_bytes):>10s}  {entry.origin}")
+            print(f"{mark} {entry.identifier + '@' + entry.variant:34s} "
+                  f"{_human_bytes(entry.size_bytes):>10s}  {entry.origin}")
         return 0
 
     if command == "list":
-        cached = {entry.identifier for entry in store.entries()}
+        cached = {(entry.identifier, entry.variant) for entry in store.entries()}
         current = store.current()
-        print(f"{'':2s} {'id':26s} {'status':9s} {'params':7s} {'license':26s} {'backend':12s} cache")
+        print(f"{'':2s} {'id':28s} {'adapter':15s} {'status':8s} {'default':10s} cache")
         for model in catalog.CATALOG:
             if model.status == "waitlist" and not args.all:
                 continue
             mark = "★" if model.id == current else " "
-            have = "✓" if model.id in cached else ""
-            print(
-                f"{mark} {model.id:26s} {model.status:9s} {model.params:7s} "
-                f"{model.license:26s} {model.backend:12s} {have}"
-            )
+            default = model.default_variant
+            label = f"{default.name} ({default.quant})" if default else "—"
+            have = "✓" if default and (model.id, default.name) in cached else ""
+            print(f"{mark} {model.id:28s} {model.adapter:15s} {model.status:8s} {label:10s} {have}")
         if not args.all:
             print("\n(waitlist hidden; `dtk models list --all` shows it)")
         return 0
 
+    if command == "variants":
+        model = catalog.get(args.model)
+        if model is None:
+            raise InvalidQuestionError(f"unknown catalog model: {args.model}")
+        print(f"{model.id} · adapter={model.adapter} · status={model.status}")
+        for variant in model.variants:
+            print(f"  {variant.name:8s} {variant.quant:10s} {variant.size_mb:7.1f} MB  "
+                  f"role={variant.role:8s} repo={variant.repo}")
+        if not model.variants:
+            print("  (no downloadable ONNX variant yet)")
+        return 0
+
     if command == "download":
-        entry = store.download(args.model, revision=args.revision)
-        print(f"downloaded {entry.identifier} -> {entry.path}")
+        entry = store.download(args.model, variant=args.variant, revision=args.revision)
+        print(f"downloaded {entry.identifier}@{entry.variant} -> {entry.path}")
         return 0
 
     if command == "use":
@@ -221,27 +238,31 @@ def _cmd_models(args: argparse.Namespace) -> int:
         return 0
 
     if command == "delete":
-        store.delete(args.model)
-        print(f"deleted {args.model}")
+        store.delete(args.model, variant=args.variant)
+        print(f"deleted {args.model}" + (f"@{args.variant}" if args.variant else ""))
         return 0
 
     if command == "import":
         entry = store.import_model(args.path, name=args.name)
-        print(f"imported {entry.identifier} -> {entry.path}")
+        print(f"imported {entry.identifier}@{entry.variant} -> {entry.path}")
         return 0
 
     raise InvalidQuestionError(f"unknown models command: {command}")  # pragma: no cover
 
 
 def _cmd_decide(args: argparse.Namespace) -> int:
-    model = DecisionModel(args.model, home=args.home, device=args.device)
+    model = DecisionModel(
+        args.model, variant=args.variant, home=args.home, threads=args.threads
+    )
     decision = model.decide(_read_state(args), _parse_questions(args.q))
     print(json.dumps(decision.to_dict(), indent=2 if args.pretty else None, ensure_ascii=False))
     return 0
 
 
 def _cmd_classify(args: argparse.Namespace) -> int:
-    model = DecisionModel(args.model, home=args.home, device=args.device)
+    model = DecisionModel(
+        args.model, variant=args.variant, home=args.home, threads=args.threads
+    )
     text = args.text if args.text is not None else _read_text(args.text_file)
     result = model.classify(
         text,
@@ -278,7 +299,9 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         )
         return 2
 
-    model = DecisionModel(args.model, home=args.home, device=args.device)
+    model = DecisionModel(
+        args.model, variant=args.variant, home=args.home, threads=args.threads
+    )
     try:
         app = create_app(model=model)
     except ImportError:
@@ -294,20 +317,13 @@ def _cmd_serve(args: argparse.Namespace) -> int:
 def _cmd_doctor(args: argparse.Namespace) -> int:
     store = ModelStore(home=args.home)
     entries = store.entries()
-    optional = {
-        "laya (Laya runtime)": "laya",
-        "von (Von SDK)": "von",
-        "fastapi (REST server)": "fastapi",
-        "onnxruntime (ONNX backends, M1)": "onnxruntime",
-        "llama_cpp (GGUF backends, M1)": "llama_cpp",
-    }
-    available: dict[str, bool] = {}
-    for label, module in optional.items():
+
+    def probe(module: str) -> bool:
         try:
             __import__(module)
-            available[label] = True
+            return True
         except ImportError:
-            available[label] = False
+            return False
 
     report = {
         "toolkit": __version__,
@@ -316,12 +332,17 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         "cache_dir": str(store.models_dir),
         "current": store.current(),
         "device": store.config.device,
-        "cached_models": [entry.identifier for entry in entries],
+        "cached_models": [f"{entry.identifier}@{entry.variant}" for entry in entries],
         "catalog": {
             status: sum(1 for model in catalog.CATALOG if model.status == status)
-            for status in ("m0", "variant", "planned", "waitlist")
+            for status in ("m0", "m1", "planned", "phase2", "waitlist")
         },
-        "optional_runtimes": available,
+        "adapters": sorted(ADAPTERS),
+        "runtimes": {
+            "onnxruntime": probe("onnxruntime"),
+            "tokenizers": probe("tokenizers"),
+            "fastapi (REST)": probe("fastapi"),
+        },
     }
     if args.as_json:
         print(json.dumps(report, indent=2, ensure_ascii=False))
@@ -333,8 +354,9 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         print(f"device:     {report['device']}")
         print(f"cached:     {', '.join(report['cached_models']) or '(empty)'}")
         print("catalog:    " + ", ".join(f"{k}={v}" for k, v in report["catalog"].items()))
+        print(f"adapters:   {', '.join(report['adapters'])}")
         print("runtimes:")
-        for label, ok in available.items():
+        for label, ok in report["runtimes"].items():
             print(f"  {'✓' if ok else '·'} {label}: {'installed' if ok else 'not installed'}")
     return 0
 

@@ -1,8 +1,8 @@
 """`decision_toolkit.decision_model` — the public, library-first surface.
 
-``DecisionModel`` resolves an identifier (catalog id, cache entry, local path or
-``org/name`` repo), picks the right backend, and answers System One requests:
-typed questions in, calibrated probabilities out, on CPU.
+``DecisionModel`` resolves a curated model (or a custom local directory), picks
+the catalog's adapter, opens the one ONNX engine, and answers System One
+requests: typed questions in, calibrated probabilities out, on CPU.
 
 The CLI and the REST server are thin adapters over this class; nothing here
 knows about argparse or FastAPI.
@@ -14,8 +14,9 @@ import logging
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from .backends import Backend, create_backend
-from .errors import BackendNotAvailableError
+from .adapters import Adapter, create_adapter
+from .engine import OnnxEngine
+from .errors import AdapterNotAvailableError
 from .models import ModelStore, ResolvedModel
 from .results import Answer, Classification, Decision, wrap_answers
 from .schema import Choice, normalize_questions
@@ -24,43 +25,50 @@ logger = logging.getLogger(__name__)
 
 
 class DecisionModel:
-    """A local decision model, loaded lazily on first use.
+    """A local ONNX decision model, loaded lazily on first use.
 
     Parameters
     ----------
     identifier:
-        A catalog id (``laya``, ``julia-1``, ``von``...), a model in the
-        toolkit cache, a local directory, or a hub repo (``org/name``). When
-        omitted, the model in use from ``config.json`` is taken.
-    backend:
-        Backend name (``laya``, ``julia``, ``von``, ``systemone``) or a
-        ready-made backend instance (useful for tests and custom runtimes).
-    backend_options:
-        Extra keyword arguments for the backend (e.g. ``{"subfolder": ...}``,
-        ``{"base_url": "http://localhost:8000"}`` for the ``systemone``
-        backend).
-    home:
-        Toolkit home override (models cache + config).
-    device:
-        ``auto`` (default), ``cpu``, ``cuda``, ``mps``... Backends interpret it.
+        A catalog id (``gliner2.5-multi``...), a cached variant, a local
+        directory, or a hub repo (``org/name``). When omitted, the model in
+        use from ``config.json`` is taken.
+    adapter:
+        Adapter name (``gliner2``...) or a ready-made adapter instance (tests,
+        custom runtimes). When omitted, the catalog's adapter is used.
+    adapter_options:
+        Extra keyword arguments for the adapter (e.g. ``{"task": "categoria"}``).
+    variant:
+        Quantization variant (``fp16``, ``fp32``, ``q8``...). Defaults to the
+        catalog's ``default`` variant.
+    files:
+        Role -> file mapping for **custom** local models (``encoder``,
+        ``classifier``, ``tokenizer``...). Catalog models come with their map.
+    home / threads:
+        Toolkit home override and ONNX Runtime thread count.
     """
 
     def __init__(
         self,
         identifier: str | None = None,
         *,
-        backend: Backend | str | None = None,
-        backend_options: Mapping[str, Any] | None = None,
+        adapter: Adapter | str | None = None,
+        adapter_options: Mapping[str, Any] | None = None,
+        variant: str | None = None,
+        files: Mapping[str, str] | None = None,
         home: str | Path | None = None,
-        device: str | None = None,
+        threads: int = 4,
     ) -> None:
         self._identifier = identifier
         self._store = ModelStore(home=home)
-        self._device = device or self._store.config.device
-        self._backend: Backend | None = backend if backend is not None and not isinstance(backend, str) else None
-        self._backend_name: str | None = backend if isinstance(backend, str) else None
-        self._backend_options = dict(backend_options or {})
+        self._variant = variant
+        self._files_override = dict(files or {})
+        self._adapter: Adapter | None = adapter if adapter is not None and not isinstance(adapter, str) else None
+        self._adapter_name: str | None = adapter if isinstance(adapter, str) else None
+        self._adapter_options = dict(adapter_options or {})
+        self._threads = int(threads)
         self._resolved: ResolvedModel | None = None
+        self._engine: OnnxEngine | None = None
 
     # ------------------------------------------------------------------ info
     @property
@@ -68,16 +76,22 @@ class DecisionModel:
         return self._identifier or self._store.current() or "(none)"
 
     @property
-    def backend_name(self) -> str:
-        if self._backend is not None:
-            return getattr(self._backend, "name", type(self._backend).__name__)
-        if self._backend_name:
-            return self._backend_name
+    def variant(self) -> str | None:
+        if self._resolved is not None and self._resolved.variant is not None:
+            return self._resolved.variant.name
+        return self._variant
+
+    @property
+    def adapter_name(self) -> str:
+        if self._adapter is not None:
+            return getattr(self._adapter, "name", type(self._adapter).__name__)
+        if self._adapter_name:
+            return self._adapter_name
         resolved = self._resolve()
         if resolved.catalog is not None:
-            return resolved.catalog.backend
-        raise BackendNotAvailableError(
-            f"cannot infer a backend for {self.identifier!r}; pass backend=<name>"
+            return resolved.catalog.adapter
+        raise AdapterNotAvailableError(
+            f"cannot infer an adapter for {self.identifier!r}; pass adapter=<name>"
         )
 
     @property
@@ -87,67 +101,66 @@ class DecisionModel:
     # ------------------------------------------------------------- lifecycle
     def _resolve(self) -> ResolvedModel:
         if self._resolved is None:
-            self._resolved = self._store.resolve(self._identifier)
+            self._resolved = self._store.resolve(self._identifier, self._variant)
         return self._resolved
 
-    def _ensure_backend(self) -> Backend:
-        if self._backend is None:
-            name = self._backend_name or self._infer_backend_name()
-            if name == "systemone":
-                # a server backend owns the model; no local resolution is needed
-                resolved = ResolvedModel(
-                    identifier=self._identifier or "(server)",
-                    path=None,
-                    repo=None,
-                    subfolder=None,
-                    catalog=None,
-                    origin="path",
-                )
-            else:
-                resolved = self._resolve()
-                if name is None:
-                    name = resolved.catalog.backend if resolved.catalog else None
-            if name is None:
-                raise BackendNotAvailableError(
-                    f"cannot infer a backend for {self.identifier!r}; pass backend=<name>"
-                )
-            logger.info("loading model=%s backend=%s device=%s", self.identifier, name, self._device)
-            self._backend = create_backend(
-                name, resolved, device=self._device, options=self._backend_options
-            )
-        return self._backend
+    def _ensure(self) -> tuple[OnnxEngine | None, Adapter]:
+        if self._adapter is not None:
+            return self._engine, self._adapter
 
-    def _infer_backend_name(self) -> str | None:
-        if self._identifier is None:
-            return None
         resolved = self._resolve()
-        return resolved.catalog.backend if resolved.catalog else None
+        name = self._adapter_name or (resolved.catalog.adapter if resolved.catalog else None)
+        if name is None:
+            raise AdapterNotAvailableError(
+                f"cannot infer an adapter for {self.identifier!r}; pass adapter=<name>"
+            )
+        files = self._files_override or dict(resolved.files)
+        if resolved.path is None:
+            if resolved.origin == "catalog":
+                model = resolved.catalog
+                variant = resolved.variant
+                hint = f"dtk models download {resolved.identifier}"
+                if variant is not None:
+                    hint += f" --variant {variant.name}"
+                raise AdapterNotAvailableError(
+                    f"{resolved.identifier!r} is not downloaded yet; run `{hint}` "
+                    f"(status: {model.status if model else 'custom'})"
+                )
+            raise AdapterNotAvailableError(
+                "custom ONNX models need a local directory plus adapter and files="
+            )
+        if not files:
+            raise AdapterNotAvailableError(
+                "the model does not declare its files; pass files={'encoder': ..., 'tokenizer': ...}"
+            )
+
+        if self._engine is None:
+            self._engine = OnnxEngine(resolved.path, files, threads=self._threads)
+        logger.info(
+            "loading model=%s variant=%s adapter=%s", self.identifier, self.variant, name
+        )
+        self._adapter = create_adapter(name, **self._adapter_options)
+        return self._engine, self._adapter
 
     def warmup(self) -> None:
-        """Load the model (and its runtime) ahead of the first request."""
-        backend = self._ensure_backend()
-        warmup = getattr(backend, "warmup", None)
+        """Load the adapter (and, through it, the ONNX sessions) ahead of use."""
+        engine, adapter = self._ensure()
+        warmup = getattr(adapter, "warmup", None)
         if callable(warmup):
-            warmup()
+            warmup(engine)
 
     def close(self) -> None:
-        """Release the backend (and any server it owns)."""
-        if self._backend is not None:
-            close = getattr(self._backend, "close", None)
-            if callable(close):
-                close()
-            self._backend = None
+        if self._engine is not None:
+            self._engine.close()
+            self._engine = None
+        self._adapter = None
 
     # ------------------------------------------------------------ inference
-    def decide(
-        self,
-        state: Any,
-        questions: Mapping[str, Any],
-    ) -> Decision:
+    def decide(self, state: Any, questions: Mapping[str, Any]) -> Decision:
         """Answer typed questions about ``state`` (System One, in and out)."""
         normalized = normalize_questions(questions)
-        backend = self._ensure_backend()
-        raw_answers = dict(backend.system_one(state, normalized))
+        engine, adapter = self._ensure()
+        raw_answers = dict(adapter.system_one(engine, state, normalized))
         answers: dict[str, Answer] = wrap_answers(raw_answers, normalized)
         return Decision(answers=answers, model=self.identifier, raw=raw_answers)
 
@@ -159,12 +172,7 @@ class DecisionModel:
         instructions: str | None = None,
         threshold: float = 0.5,
     ) -> Classification:
-        """Pick the best-fitting label for ``text`` with a calibrated confidence.
-
-        ``categories`` is either ``{label: description}`` or a sequence of
-        labels (the label doubles as its description). The call always returns
-        the best label plus ``below_threshold`` — informative, not prescriptive.
-        """
+        """Pick the best-fitting label for ``text`` with a calibrated confidence."""
         if not isinstance(text, str) or not text.strip():
             raise ValueError("cannot classify an empty text")
         if isinstance(categories, Mapping):
@@ -185,7 +193,7 @@ class DecisionModel:
             chosen = answer.choice
             confidence = answer.confidence
             if chosen is None or confidence is None:
-                raise ValueError(f"backend returned no probabilities for choice: {answer.data!r}")
+                raise ValueError(f"adapter returned no probabilities for choice: {answer.data!r}")
             scores = {label: (confidence if label == chosen else 0.0) for label in criteria}
 
         label, confidence = max(scores.items(), key=lambda item: item[1])

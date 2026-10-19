@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "decision-toolkit"
-version = "0.0.1"
-description = "Local-first toolkit for open-weights decision models: typed choice/yes-no/score decisions with probabilities, on CPU. Library-first, with CLI and REST interfaces."
+version = "0.1.0"
+description = "Local-first toolkit for open-weights decision models: one ONNX engine, one adapter per model contract, typed choice/yes-no/score decisions with probabilities on CPU."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
@@ -17,11 +17,11 @@ keywords = [
     "decision-models",
     "system-one",
     "jev",
+    "onnx",
     "local-first",
     "cpu",
     "classification",
     "routing",
-    "llm",
 ]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
@@ -40,16 +40,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+onnx = [
+    "onnxruntime>=1.18",
+    "tokenizers>=0.19",
+    "numpy>=1.26",
+]
 server = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
     "python-multipart>=0.0.9",
-]
-laya = [
-    "laya>=0.3.23",
-]
-von = [
-    "von-sdk",
 ]
 dev = [
     "pytest>=8",

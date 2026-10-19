@@ -1,15 +1,18 @@
-"""DecisionModel: decide/classify over an injected backend, resolution and errors."""
+"""DecisionModel: decide/classify with an injected adapter, resolution and errors."""
 
 from __future__ import annotations
 
 import pytest
 
 from decision_toolkit.decision_model import DecisionModel
-from decision_toolkit.errors import BackendNotAvailableError, ModelNotFoundError
-from decision_toolkit.models import ResolvedModel
+from decision_toolkit.errors import (
+    AdapterNotAvailableError,
+    InvalidQuestionError,
+    ModelNotFoundError,
+)
 from decision_toolkit.schema import choice, noul, score
 
-from .conftest import FakeBackend
+from .conftest import FakeAdapter
 
 
 def test_decide_returns_typed_answers(fake_model):
@@ -29,16 +32,14 @@ def test_decide_returns_typed_answers(fake_model):
     assert decision["tone"].level == 1
 
 
-def test_decide_sends_normalized_questions(fake_backend, fake_model):
+def test_decide_sends_normalized_questions(fake_adapter, fake_model):
     fake_model.decide("state", {"urgent": noul("Urgent?")})
-    state, questions = fake_backend.calls[0]
+    _, state, questions = fake_adapter.calls[0]
     assert state == "state"
     assert questions == {"urgent": {"type": "noul", "instructions": "Urgent?"}}
 
 
 def test_decide_rejects_bad_questions(fake_model):
-    from decision_toolkit.errors import InvalidQuestionError
-
     with pytest.raises(InvalidQuestionError):
         fake_model.decide("state", {})
 
@@ -73,77 +74,49 @@ def test_unknown_model_raises(home):
         DecisionModel("nope", home=home).decide("state", {"q": noul("x")})
 
 
-def test_planned_backend_is_catalogued_but_not_runnable(home):
-    model = DecisionModel("thx-01", home=home)
-    with pytest.raises(BackendNotAvailableError) as excinfo:
+def test_catalog_model_not_downloaded_explains_the_command(home):
+    model = DecisionModel("gliner2.5-multi", home=home)
+    with pytest.raises(AdapterNotAvailableError) as excinfo:
         model.decide("state", {"q": noul("x")})
-    assert "M1" in str(excinfo.value)
+    assert "dtk models download gliner2.5-multi" in str(excinfo.value)
 
 
-def test_systemone_backend_requires_base_url(home):
-    with pytest.raises(BackendNotAvailableError):
-        DecisionModel(backend="systemone", home=home).decide("state", {"q": noul("x")})
-
-
-def test_systemone_backend_posts_and_normalizes(home, monkeypatch):
-    calls = []
-
-    def fake_post(url, payload, headers=None, timeout=120):
-        calls.append((url, payload, headers))
-        return {"answers": {"q": {"type": "noul", "noul": 0.42}}}
-
-    monkeypatch.setattr("decision_toolkit.backends.systemone._post_json", fake_post)
-    model = DecisionModel(
-        backend="systemone",
-        backend_options={"base_url": "http://localhost:9999/", "api_key": "secret"},
-        home=home,
-    )
-    decision = model.decide("state", {"q": noul("x")})
-    assert decision["q"].noul == 0.42
-    url, payload, headers = calls[0]
-    assert url == "http://localhost:9999/v1/systemone"
-    assert payload["state"] == "state"
-    assert headers == {"Authorization": "Bearer secret"}
-
-
-def test_systemone_backend_raises_on_missing_answers(home, monkeypatch):
-    monkeypatch.setattr(
-        "decision_toolkit.backends.systemone._post_json",
-        lambda url, payload, headers=None, timeout=120: {"oops": True},
-    )
-    model = DecisionModel(backend="systemone", backend_options={"base_url": "http://x"}, home=home)
-    from decision_toolkit.errors import BackendError
-
-    with pytest.raises(BackendError):
+def test_catalog_model_without_variant_explains_status(home):
+    model = DecisionModel("gliner2.5-decide", home=home)
+    with pytest.raises(AdapterNotAvailableError) as excinfo:
         model.decide("state", {"q": noul("x")})
+    assert "planned" in str(excinfo.value)
 
 
-def test_default_uses_model_in_use(home, fake_snapshot_from_models):
-    store = fake_snapshot_from_models
-    store.download("laya")
-    store.use("laya")
-    model = DecisionModel(backend=FakeBackend(), home=home)
-    assert model.identifier == "laya"
+def test_wrong_variant_is_rejected(home):
+    with pytest.raises(ModelNotFoundError):
+        DecisionModel("gliner2.5-multi", variant="q4", home=home).decide("state", {"q": noul("x")})
 
 
 def test_identifier_without_anything(home):
-    model = DecisionModel(backend=FakeBackend(), home=home)
+    model = DecisionModel(adapter=FakeAdapter(), home=home)
     assert model.identifier == "(none)"
 
 
-def test_resolved_exposes_catalog(home):
-    model = DecisionModel("julia-1", home=home)
-    assert model.resolved.catalog.id == "julia-1"
-    assert model.backend_name == "julia"
+def test_adapter_name_from_instance_and_catalog(fake_model, home):
+    assert fake_model.adapter_name == "fake"
+    assert DecisionModel("gliner2.5-multi", home=home).adapter_name == "gliner2"
+
+
+def test_resolved_exposes_catalog_and_variant(home):
+    model = DecisionModel("gliner2.5-multi", home=home)
+    assert model.resolved.catalog.id == "gliner2.5-multi"
+    assert model.resolved.variant.name == "fp16"
+
+
+def test_custom_path_requires_files(home, tmp_path):
+    model = DecisionModel(str(tmp_path), adapter="gliner2", home=home)
+    with pytest.raises(AdapterNotAvailableError) as excinfo:
+        model.decide("state", {"q": noul("x")})
+    assert "files=" in str(excinfo.value)
 
 
 def test_close_releases_backend(fake_model):
-    fake_model.warmup()  # no-op for the fake backend, exercises the hook
+    fake_model.warmup()
     fake_model.close()
-    assert fake_model._backend is None  # noqa: SLF001 - white-box lifecycle check
-
-
-def test_resolved_model_dataclass_is_frozen():
-    resolved = ResolvedModel("x", None, "org/name", None, None, "catalog")
-    with pytest.raises(Exception):
-        resolved.identifier = "y"  # type: ignore[misc]
+    assert fake_model._adapter is None  # noqa: SLF001 - white-box lifecycle check

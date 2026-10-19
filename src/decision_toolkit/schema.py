@@ -267,7 +267,7 @@ def systemone_answers_to_openai(
             if isinstance(probabilities, Mapping):
                 entries = [{"value": label, "probability": float(p)}
                            for label, p in probabilities.items()]
-            else:  # pragma: no cover - defensive for odd backends
+            else:  # pragma: no cover - defensive for odd adapters
                 entries = [{"value": label, "probability": float(p)}
                            for label, p in dict(probabilities or {}).items()]
             result.append({"type": "choice", "name": name,

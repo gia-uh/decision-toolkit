@@ -10,12 +10,12 @@ from decision_toolkit.server import create_app
 fastapi = pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
-from .conftest import FakeBackend  # noqa: E402
+from .conftest import FakeAdapter  # noqa: E402
 
 
 @pytest.fixture
 def client():
-    app = create_app(model=DecisionModel(backend=FakeBackend()))
+    app = create_app(model=DecisionModel(adapter=FakeAdapter()))
     return TestClient(app)
 
 
@@ -23,13 +23,14 @@ def test_health_and_ready(client):
     assert client.get("/v1/health").json() == {"status": "ok"}
     ready = client.get("/v1/ready").json()
     assert ready["ready"] is True
-    assert ready["backend"] == "fake"
+    assert ready["adapter"] == "fake"
 
 
 def test_info(client):
     info = client.get("/v1/info").json()
     assert info["name"] == "decision-toolkit"
     assert info["model"] == "(none)"
+    assert info["adapter"] == "fake"
 
 
 def test_systemone_endpoint(client):
@@ -85,7 +86,8 @@ def test_decisions_rejects_bad_body(client):
     assert client.post("/v1/decisions", json={"input": "x", "questions": "nope"}).status_code == 400
 
 
-def test_models_endpoint(client):
+def test_models_endpoint_lists_catalog_with_variants(client):
     payload = client.get("/v1/models").json()
-    assert payload["current"] is None
-    assert any(entry["id"] == "laya" for entry in payload["catalog"])
+    entry = next(item for item in payload["catalog"] if item["id"] == "gliner2.5-multi")
+    assert entry["adapter"] == "gliner2"
+    assert {variant["name"] for variant in entry["variants"]} == {"fp16", "fp32"}

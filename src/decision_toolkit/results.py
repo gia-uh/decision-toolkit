@@ -1,6 +1,6 @@
 """`decision_toolkit.results` — typed views over System One answers.
 
-Backends return raw System One answer dictionaries; these dataclasses give
+Adapters return raw System One answer dictionaries; these dataclasses give
 Python callers (and the server) a stable, typed way to read them without
 touching vendor-specific key spellings.
 """
