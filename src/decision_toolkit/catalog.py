@@ -201,9 +201,11 @@ CATALOG: tuple[CatalogModel, ...] = (
         license="apache-2.0",
         params="395M",
         architecture="Ettin encoder 400M",
-        status="planned",
-        notes="Official ONNX build with its own config; adapter to be written from the real "
-              "export.",
+        status="m0",
+        notes="Official ONNX build. Prompt/readout ported from the pinned packaging code "
+              "(nano_ids + softmax over [MASK]); runs on CPU: billing 0.907, urgent 0.572, "
+              "tone 1.235, 530 ms/decision. The official benchmark inputs are hashed, so no "
+              "per-case torch parity is possible.",
         variants=(
             Variant(
                 name="q8f16",
@@ -378,7 +380,7 @@ CATALOG: tuple[CatalogModel, ...] = (
 CATALOG_BY_ID: dict[str, CatalogModel] = {model.id: model for model in CATALOG}
 
 #: Adapters that ship with the toolkit today.
-IMPLEMENTED_ADAPTERS = frozenset({"gliner2", "julia", "laya"})
+IMPLEMENTED_ADAPTERS = frozenset({"gliner2", "julia", "laya", "opendecider"})
 
 
 def get(model_id: str) -> CatalogModel | None:

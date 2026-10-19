@@ -15,11 +15,13 @@ from .base import Adapter
 from .gliner2 import Gliner2Adapter
 from .julia import JuliaAdapter
 from .laya import LayaAdapter
+from .opendecider import OpendeciderAdapter
 
 ADAPTERS: dict[str, type] = {
     "gliner2": Gliner2Adapter,
     "julia": JuliaAdapter,
     "laya": LayaAdapter,
+    "opendecider": OpendeciderAdapter,
 }
 
 
