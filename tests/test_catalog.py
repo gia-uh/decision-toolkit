@@ -58,7 +58,7 @@ def test_variants_are_real_and_complete():
 
 def test_gliner2_multi_has_two_real_variants():
     model = catalog.get("gliner2.5-multi")
-    assert model is not None and model.status == "m1"
+    assert model is not None and model.status == "m0"
     assert {variant.name for variant in model.variants} == {"fp16", "fp32"}
     assert model.default_variant.name == "fp16"
     assert model.default_variant.quant == "fp16"
