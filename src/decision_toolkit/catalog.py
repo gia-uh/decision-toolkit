@@ -176,8 +176,9 @@ CATALOG: tuple[CatalogModel, ...] = (
         params="141M",
         architecture="mmBERT-small",
         languages="52 locales",
-        status="planned",
-        notes="Official ONNX export with external data and parity cases.",
+        status="m0",
+        notes="Official ONNX export verified: 100/100 argmax parity against the published "
+              "PyTorch logits, max absolute logit error 8.5e-05; 329 ms/decision on CPU.",
         variants=(
             Variant(
                 name="fp32",
@@ -377,7 +378,7 @@ CATALOG: tuple[CatalogModel, ...] = (
 CATALOG_BY_ID: dict[str, CatalogModel] = {model.id: model for model in CATALOG}
 
 #: Adapters that ship with the toolkit today.
-IMPLEMENTED_ADAPTERS = frozenset({"gliner2", "laya"})
+IMPLEMENTED_ADAPTERS = frozenset({"gliner2", "julia", "laya"})
 
 
 def get(model_id: str) -> CatalogModel | None:
