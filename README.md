@@ -104,7 +104,7 @@ adapters (there is no generic "any ONNX" adapter).
 | `laya-multilingual` | `laya` | planned — no split export published | — |
 | `julia-1` | `julia` | **m0** — verified: 100/100 argmax parity, 329 ms | `fp32` (618 MB) |
 | `opendecider-nano` | `opendecider` | **m0** — official build; prompt ported from pinned code (530 ms) | `q8f16` (469 MB) |
-| `intern-decision-0.8b` | `decoder` | planned — community export | `fp16` (1.35 GB) |
+| `intern-decision-0.8b` | `decoder` | planned — 3-graph export; needs upstream prompt compiler; parity unverified | — |
 | `jevk5-lite` | `jevk5` | planned — tiny 9 MB export | `int8` (9 MB) |
 | `d3-lite`, `kev-0.8b`, `sieve-0.8b`, `strands-decider-2b`, `thx-01` | — | phase 2 (conversion) | — |
 

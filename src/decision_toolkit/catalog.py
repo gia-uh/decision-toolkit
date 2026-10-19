@@ -239,27 +239,13 @@ CATALOG: tuple[CatalogModel, ...] = (
         adapter="decoder",
         license="apache-2.0",
         params="0.85B",
-        architecture="Qwen3.5-0.8B",
+        architecture="Qwen3.5-0.8B (multimodal)",
         status="planned",
-        notes="Community ONNX export; decoder-style readout, external data is gzip-compressed.",
-        variants=(
-            Variant(
-                name="fp16",
-                repo="Wortou/Intern-Decision-0.8B-ONNX-FP16",
-                files={
-                    "model": "onnx/decoder_model_merged_fp16.onnx",
-                    "tokenizer": "tokenizer.json",
-                    "config": "decision-manifest.json",
-                },
-                extra_files=(
-                    "onnx/decoder_model_merged_fp16.onnx_data.gz",
-                    "onnx/embed_tokens_fp16.onnx_data.gz",
-                ),
-                quant="fp16",
-                size_mb=1350.7,
-                role="default",
-            ),
-        ),
+        notes="Community ONNX export, split into embed_tokens + decoder (final hidden states) + "
+              "candidate_projection; requires the upstream prompt compiler (system prompt, chat "
+              "template, JSON skeleton with <decision> placeholders) and candidate-symbol "
+              "scoring. The export itself declares parityVerified=false. Not adopted until a "
+              "faithful compiler and parity are in place.",
     ),
     CatalogModel(
         id="jevk5-lite",
