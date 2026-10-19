@@ -263,22 +263,9 @@ CATALOG: tuple[CatalogModel, ...] = (
         license="apache-2.0",
         params="~0.1B",
         architecture="JevK5 Lite",
-        status="planned",
-        notes="Tiny single-file export (9 MB repo) with SHA256SUMS and a reference "
-              "classify_onnx.py; ideal first download test.",
-        variants=(
-            Variant(
-                name="int8",
-                repo="maxious/JevK5-Lite-onnx",
-                files={
-                    "model": "model_int8.onnx",
-                    "tokenizer": "tokenizer.json",
-                },
-                quant="int8",
-                size_mb=9.3,
-                role="default",
-            ),
-        ),
+        status="waitlist",
+        notes="Export broken upstream: the .onnx files reference external model*.onnx.data files "
+              "that are not published (only listed in SHA256SUMS). Not adoptable until fixed.",
     ),
     # -------------------------------------------------------------- phase 2
     CatalogModel(

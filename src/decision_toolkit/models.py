@@ -149,6 +149,40 @@ class ModelStore:
         shutil.rmtree(entry.path)
         logger.info("deleted %s (%d bytes)", entry.path, entry.size_bytes)
 
+    def verify(self, identifier: str, variant: str | None = None) -> dict:
+        """Check a cached variant: declared files exist and, if onnxruntime is
+        installed, every declared ``.onnx`` opens (catching missing external data)."""
+        entry = self.get(identifier, variant)
+        if entry is None:
+            raise ModelNotFoundError(f"{identifier!r} is not in the toolkit cache")
+        missing = [path for path in entry.files.values() if not (entry.path / path).is_file()]
+        report: dict = {
+            "identifier": entry.identifier,
+            "variant": entry.variant,
+            "files": dict(entry.files),
+            "missing": missing,
+            "sessions": {},
+            "ok": not missing,
+        }
+        try:
+            import onnxruntime  # noqa: F401
+        except ImportError:
+            report["note"] = "onnxruntime not installed; sessions not checked"
+            return report
+
+        from .engine import open_session
+
+        for role, relative in entry.files.items():
+            if not relative.endswith(".onnx"):
+                continue
+            try:
+                open_session(entry.path / relative, threads=1)
+                report["sessions"][role] = "ok"
+            except Exception as error:  # noqa: BLE001 - report the real runtime error
+                report["sessions"][role] = f"error: {error}"
+                report["ok"] = False
+        return report
+
     # -------------------------------------------------------------- network
     def download(
         self, identifier: str, variant: str | None = None, revision: str | None = None

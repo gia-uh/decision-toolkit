@@ -98,6 +98,18 @@ def test_delete_refuses_the_model_in_use(store, fake_snapshot):
         store.delete("gliner2.5-multi")
 
 
+def test_verify_reports_files_and_session_note(store, fake_snapshot):
+    store.download("gliner2.5-multi")
+    report = store.verify("gliner2.5-multi")
+    assert report["identifier"] == "gliner2.5-multi"
+    assert report["variant"] == "fp16"
+    assert report["missing"] == []
+    assert report["ok"] is True
+    # the fake files are not real ONNX graphs; without onnxruntime the sessions are not checked
+    if "note" in report:
+        assert "onnxruntime" in report["note"]
+
+
 def test_use_accepts_catalog_and_cache_ids(store, fake_snapshot):
     store.use("julia-1")  # catalog id, not downloaded
     assert store.current() == "julia-1"

@@ -56,6 +56,9 @@ def build_parser() -> argparse.ArgumentParser:
     models_delete = models_sub.add_parser("delete", help="Delete a cached variant.")
     models_delete.add_argument("model")
     models_delete.add_argument("--variant", help="Variant name (default: any cached variant).")
+    models_verify = models_sub.add_parser("verify", help="Check a cached variant (files + ONNX sessions).")
+    models_verify.add_argument("model")
+    models_verify.add_argument("--variant", help="Variant name (default: any cached variant).")
     models_import = models_sub.add_parser("import", help="Copy a local model directory into the cache.")
     models_import.add_argument("path")
     models_import.add_argument("--name", help="Identifier to store it under.")
@@ -241,6 +244,11 @@ def _cmd_models(args: argparse.Namespace) -> int:
         store.delete(args.model, variant=args.variant)
         print(f"deleted {args.model}" + (f"@{args.variant}" if args.variant else ""))
         return 0
+
+    if command == "verify":
+        report = store.verify(args.model, variant=args.variant)
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        return 0 if report["ok"] else 1
 
     if command == "import":
         entry = store.import_model(args.path, name=args.name)

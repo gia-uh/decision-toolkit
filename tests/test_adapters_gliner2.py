@@ -40,21 +40,25 @@ class FakeEncoderSession:
 
 
 class FakeClassifierSession:
-    def __init__(self, logits):
+    def __init__(self, logits, input_name="hidden_state"):
         self.logits = list(logits)
+        self.input_name = input_name
         self.queries = None
+
+    def get_inputs(self):
+        return [type("Input", (), {"name": self.input_name})()]
 
     def run(self, output_names, feeds):
         numpy = pytest.importorskip("numpy")
-        self.queries = feeds["hidden_state"]
-        return [numpy.asarray(self.logits, dtype=numpy.float32).reshape(-1, 1)]
+        self.queries = feeds[self.input_name]
+        return [numpy.asarray(self.logits, dtype=numpy.float32).reshape(-1)]
 
 
 class FakeEngine:
-    def __init__(self, logits, tokenizer=None):
+    def __init__(self, logits, tokenizer=None, classifier_input="hidden_state"):
         self.tokenizer = tokenizer or FakeTokenizer()
         self.encoder = FakeEncoderSession()
-        self.classifier = FakeClassifierSession(logits)
+        self.classifier = FakeClassifierSession(logits, input_name=classifier_input)
 
     def session(self, role):
         assert role in {"encoder", "classifier"}
@@ -120,3 +124,12 @@ def test_option_count_mismatch_is_explained():
     with pytest.raises(Exception) as excinfo:
         adapter.system_one(FakeEngine([1.0]), "state", {"team": CHOICE_Q})
     assert "1 scores" in str(excinfo.value)
+
+
+def test_classifier_input_name_is_read_from_the_graph():
+    pytest.importorskip("numpy")
+    engine = FakeEngine([2.0, 0.0], classifier_input="choice_states")
+    adapter = Gliner2Adapter()
+    answers = adapter.system_one(engine, "state", {"team": CHOICE_Q})
+    assert answers["team"]["choice"] == "billing"
+    assert engine.classifier.queries.shape[0] == 2

@@ -98,7 +98,11 @@ class Gliner2Adapter:
             None, {"input_ids": ids, "attention_mask": np.ones_like(ids)}
         )[0]
         queries = hidden[0][positions].astype(np.float32)
-        logits = engine.session("classifier").run(None, {"hidden_state": queries})[0].reshape(-1)
+        classifier = engine.session("classifier")
+        # the input name varies between exports (hidden_state, choice_states...);
+        # read it from the graph instead of assuming one spelling
+        input_name = classifier.get_inputs()[0].name
+        logits = classifier.run(None, {input_name: queries})[0].reshape(-1)
         return [float(value) for value in logits]
 
     def system_one(
