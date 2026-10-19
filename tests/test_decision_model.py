@@ -81,13 +81,6 @@ def test_catalog_model_not_downloaded_explains_the_command(home):
     assert "dtk models download gliner2.5-multi" in str(excinfo.value)
 
 
-def test_catalog_model_without_variant_explains_status(home):
-    model = DecisionModel("laya-multilingual", home=home)
-    with pytest.raises(AdapterNotAvailableError) as excinfo:
-        model.decide("state", {"q": noul("x")})
-    assert "planned" in str(excinfo.value)
-
-
 def test_wrong_variant_is_rejected(home):
     with pytest.raises(ModelNotFoundError):
         DecisionModel("gliner2.5-multi", variant="q4", home=home).decide("state", {"q": noul("x")})

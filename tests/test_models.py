@@ -68,7 +68,7 @@ def test_download_unknown_variant_is_rejected(store, fake_snapshot):
 
 def test_download_without_variants_is_rejected(store, fake_snapshot):
     with pytest.raises(ModelNotFoundError):
-        store.download("laya-multilingual")  # planned, no split export yet
+        store.download("not-a-catalog-model")
 
 
 def test_download_is_idempotent_guarded(store, fake_snapshot):

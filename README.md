@@ -99,18 +99,13 @@ adapters (there is no generic "any ONNX" adapter).
 | --- | --- | --- | --- |
 | `gliner2.5-multi` | `gliner2` | **m0** — verified end-to-end (9/15, 353 ms) | `fp16` (577 MB) |
 | `gliner2.5-decide` | `gliner2-decide` | **m0** — fused export verified (refund 0.944, 912 ms; English-only) | `q4f16` (524 MB) |
-| `gliner2.5-multi-decide` | `gliner2` | planned — no compatible export yet | — |
 | `laya` | `laya` | **m0** — verified against torch (Δp ≤ 0.005) | `q8` (528 MB) |
-| `laya-multilingual` | `laya` | planned — no split export published | — |
 | `julia-1` | `julia` | **m0** — verified: 100/100 argmax parity, 329 ms | `fp32` (618 MB) |
 | `opendecider-nano` | `opendecider` | **m0** — official build; prompt ported from pinned code (530 ms) | `q8f16` (469 MB) |
-| `intern-decision-0.8b` | `decoder` | planned — 3-graph export; needs upstream prompt compiler; parity unverified | — |
-| `jevk5-lite` | `jevk5` | planned — tiny 9 MB export | `int8` (9 MB) |
-| `d3-lite`, `kev-0.8b`, `sieve-0.8b`, `strands-decider-2b`, `thx-01` | — | phase 2 (conversion) | — |
 
-**Statuses**: `m0` runnable today · `m1` adapter validated, export to verify ·
-`planned` real export, adapter pending · `phase2` conversion planned · `waitlist`
-license pending.
+**Only `m0` models are in the catalog.** Researched-but-unavailable models
+(planned, conversion pending, broken exports) are listed in
+[docs/ROADMAP.md](docs/ROADMAP.md) and are not downloadable through the toolkit.
 
 Per-model cards with the contract, measured evidence and known limitations:
 [docs/models](docs/models/).

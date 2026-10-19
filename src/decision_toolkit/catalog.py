@@ -1,25 +1,15 @@
-"""`decision_toolkit.catalog` — the curated model list.
+"""`decision_toolkit.catalog` — the curated library of runnable models.
 
-The catalog is **ours**, not a mirror of HuggingFace. A model enters only when
-it is understood and verified: clean license, and adapter whose contract we can
-implement, a real ONNX export on the Hub, measured parity against the original,
-and CPU-viable latency. If any of those is missing, the model stays out.
-
-Every variant points to files that **exist on the Hub** (no placeholders). A
-variant is written only when there is a real export that demands it.
-
-Status values:
-
-``m0``        runnable today (adapter + verified export)
-``m1``        adapter validated; the public export is identified but still to verify
-``planned``   real export identified; its adapter is not written yet
-``phase2``    no ONNX yet: conversion from the original weights is planned
-``waitlist``  meets most requirements; pending license confirmation or recipe
+The catalog contains **only models that are runnable today** (`m0`): a clean
+license, an adapter whose contract we implement from a real export, a verified
+ONNX build on the Hub, and measured parity/latency. Researched-but-unavailable
+models (planned, conversion pending, broken exports) live in ``docs/ROADMAP.md``
+and are deliberately absent here.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Mapping
 
 from .errors import ModelNotFoundError
@@ -51,7 +41,7 @@ class Variant:
 
 @dataclass(frozen=True)
 class CatalogModel:
-    """One curated model, with its real downloadable variants."""
+    """One runnable model, with its real downloadable variants."""
 
     id: str
     name: str
@@ -60,7 +50,7 @@ class CatalogModel:
     params: str
     architecture: str
     languages: str = "en"
-    status: str = "planned"
+    status: str = "m0"
     variants: tuple[Variant, ...] = ()
     notes: str = ""
 
@@ -73,7 +63,6 @@ class CatalogModel:
 
 
 CATALOG: tuple[CatalogModel, ...] = (
-    # ------------------------------------------------------------------ ONNX
     CatalogModel(
         id="gliner2.5-multi",
         name="GLiNER2.5 multi (v1 + classifier)",
@@ -156,17 +145,6 @@ CATALOG: tuple[CatalogModel, ...] = (
         ),
     ),
     CatalogModel(
-        id="gliner2.5-multi-decide",
-        name="GLiNER2.5-multi-Decide",
-        adapter="gliner2",
-        license="apache-2.0",
-        params="287M",
-        architecture="GLiNER2.5 multi",
-        languages="multi",
-        status="planned",
-        notes="Decide fine-tune; no compatible split export identified yet.",
-    ),
-    CatalogModel(
         id="laya",
         name="Laya (English)",
         adapter="laya",
@@ -201,19 +179,6 @@ CATALOG: tuple[CatalogModel, ...] = (
                 },
             ),
         ),
-    ),
-    CatalogModel(
-        id="laya-multilingual",
-        name="Laya multilingual",
-        adapter="laya",
-        license="apache-2.0",
-        params="~150M",
-        architecture="mmBERT-base",
-        languages="100+",
-        status="planned",
-        notes="No split multilingual export is published yet (mizchi 681 MB and androidli "
-              "int4 428 MB are fused single-file layouts). The split multilingual build was "
-              "validated locally (same answers as the torch runtime).",
     ),
     CatalogModel(
         id="julia-1",
@@ -295,134 +260,6 @@ CATALOG: tuple[CatalogModel, ...] = (
             ),
         ),
     ),
-    CatalogModel(
-        id="intern-decision-0.8b",
-        name="Intern-Decision 0.8B",
-        adapter="decoder",
-        license="apache-2.0",
-        params="0.85B",
-        architecture="Qwen3.5-0.8B (multimodal)",
-        status="planned",
-        notes="Community ONNX export, split into embed_tokens + decoder (final hidden states) + "
-              "candidate_projection; requires the upstream prompt compiler (system prompt, chat "
-              "template, JSON skeleton with <decision> placeholders) and candidate-symbol "
-              "scoring. The export itself declares parityVerified=false. Not adopted until a "
-              "faithful compiler and parity are in place.",
-    ),
-    CatalogModel(
-        id="jevk5-lite",
-        name="JevK5-Lite",
-        adapter="jevk5",
-        license="apache-2.0",
-        params="~0.1B",
-        architecture="JevK5 Lite",
-        status="waitlist",
-        notes="Export broken upstream: the .onnx files reference external model*.onnx.data files "
-              "that are not published (only listed in SHA256SUMS). Not adoptable until fixed.",
-    ),
-    # -------------------------------------------------------------- phase 2
-    CatalogModel(
-        id="d3-lite",
-        name="Decision 3.0 lite",
-        adapter="decoder",
-        license="apache-2.0",
-        params="0.85B",
-        architecture="Qwen3.5-0.8B",
-        status="phase2",
-        notes="No ONNX published yet; conversion from the original weights is planned for v2.",
-    ),
-    CatalogModel(
-        id="kev-0.8b",
-        name="Kev 0.8B",
-        adapter="decoder",
-        license="apache-2.0",
-        params="~0.8B",
-        architecture="Qwen3.5-0.8B (LoRA)",
-        status="phase2",
-        notes="No ONNX published yet; v2 conversion planned.",
-    ),
-    CatalogModel(
-        id="sieve-0.8b",
-        name="Sieve 0.8B",
-        adapter="decoder",
-        license="apache-2.0",
-        params="~0.8B",
-        architecture="Qwen3.5-0.8B",
-        status="phase2",
-        notes="No ONNX published yet; v2 conversion planned.",
-    ),
-    CatalogModel(
-        id="strands-decider-2b",
-        name="Strands Decider 2B (hobson-v21)",
-        adapter="decoder",
-        license="apache-2.0",
-        params="2B",
-        architecture="Qwen3.5-2B (adapter)",
-        status="phase2",
-        notes="Agent-oriented decider; no ONNX yet — v2 conversion.",
-    ),
-    CatalogModel(
-        id="thx-01",
-        name="THX-01",
-        adapter="encoder-readout",
-        license="apache-2.0",
-        params="322M",
-        architecture="mmBERT-base",
-        languages="az / ru / en / tr",
-        status="phase2",
-        notes="No ONNX published; export planned for v2.",
-    ),
-    # --------------------------------------------------------------- waitlist
-    CatalogModel(
-        id="bosun-0.6b",
-        name="Bosun v3.1 0.6B",
-        adapter="decoder",
-        license="apache-2.0",
-        params="0.6B",
-        architecture="Qwen3-0.6B (adapter)",
-        status="waitlist",
-        notes="Tiny decoder; no ONNX yet — v2 conversion planned.",
-    ),
-    CatalogModel(
-        id="d3-edge",
-        name="Decision 3.0 edge",
-        adapter="decoder",
-        license="apache-2.0",
-        params="0.6B",
-        architecture="Qwen3.5-0.8B",
-        status="waitlist",
-        notes="Same family as d3-lite; no ONNX yet — v2 conversion. Not a licensing issue.",
-    ),
-    CatalogModel(
-        id="tev1-0.8b",
-        name="Tev1 0.8B",
-        adapter="decoder",
-        license="unverified",
-        params="0.87B",
-        architecture="Qwen3.5-0.8B",
-        status="waitlist",
-        notes="License not declared on the model card; experimental.",
-    ),
-    CatalogModel(
-        id="d1-omni-600m",
-        name="Liquid d1-omni 600M",
-        adapter="decoder",
-        license="other (LFM Open License)",
-        params="587M",
-        architecture="LFM2.5-Encoder-350M",
-        status="waitlist",
-        notes="Text + image + audio decisions; license needs review before core.",
-    ),
-    CatalogModel(
-        id="bekko-400m",
-        name="bekko system-one 400M",
-        adapter="encoder-readout",
-        license="unverified",
-        params="400M",
-        architecture="Ettin reranker 400M",
-        status="waitlist",
-        notes="Tiny Japanese-authored family; license pending.",
-    ),
 )
 
 CATALOG_BY_ID: dict[str, CatalogModel] = {model.id: model for model in CATALOG}
@@ -443,7 +280,7 @@ def select_variant(model: CatalogModel, name: str | None = None) -> Variant:
         if variant is None:
             raise ModelNotFoundError(
                 f"{model.id!r} has no downloadable ONNX variant yet "
-                f"(status {model.status}); see `dtk models list`"
+                f"(available today: {sorted(CATALOG_BY_ID)})"
             )
         return variant
     for variant in model.variants:

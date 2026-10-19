@@ -35,18 +35,14 @@ def test_parse_questions_requires_name_spec():
         _parse_questions(["team"])
 
 
-def test_models_list_shows_catalog_and_hides_waitlist(home, capsys):
+def test_models_list_shows_only_available_models(home, capsys):
     assert main(["--home", str(home), "models", "list"]) == 0
     output = capsys.readouterr().out
-    assert "gliner2.5-multi" in output
-    assert "gliner2" in output
+    for model_id in ("gliner2.5-multi", "gliner2.5-decide", "laya", "julia-1", "opendecider-nano"):
+        assert model_id in output
+    assert "d3-lite" not in output
     assert "bosun" not in output
-    assert "waitlist hidden" in output
-
-
-def test_models_list_all_includes_waitlist(home, capsys):
-    assert main(["--home", str(home), "models", "list", "--all"]) == 0
-    assert "bosun-0.6b" in capsys.readouterr().out
+    assert "waitlist" not in output
 
 
 def test_models_variants_lists_quantizations(home, capsys):
@@ -96,6 +92,7 @@ def test_doctor_json(home, capsys):
     assert report["adapters"] == ["gliner2", "gliner2-decide", "julia", "laya", "opendecider"]
     assert report["catalog"]["m0"] == 5
     assert report["catalog"]["m1"] == 0
+    assert report["catalog"]["waitlist"] == 0
     assert "onnxruntime" in report["runtimes"]
 
 

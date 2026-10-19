@@ -7,7 +7,7 @@ access in the whole toolkit is :meth:`ModelStore.download`.
 A downloaded model is stored **per variant**, so quantizations coexist::
 
     <home>/models/
-        laya-multilingual@q8/
+        laya@q8/
             model.json          # identifier, variant, repo, role -> file map
             encoder.onnx ...    # only the files the variant declares
 

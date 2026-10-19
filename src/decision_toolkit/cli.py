@@ -42,8 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
     # ----------------------------------------------------------------- models
     models = sub.add_parser("models", help="Model cache and curated catalog.")
     models_sub = models.add_subparsers(dest="models_command")
-    models_list = models_sub.add_parser("list", help="The curated catalog (adapter, status, variants).")
-    models_list.add_argument("--all", action="store_true", help="Include the waitlist.")
+    models_list = models_sub.add_parser("list", help="The curated library (adapter, variants).")
     models_variants = models_sub.add_parser("variants", help="Variants of a catalog model.")
     models_variants.add_argument("model")
     models_download = models_sub.add_parser("download", help="Download one variant (the only network command).")
@@ -205,17 +204,13 @@ def _cmd_models(args: argparse.Namespace) -> int:
     if command == "list":
         cached = {(entry.identifier, entry.variant) for entry in store.entries()}
         current = store.current()
-        print(f"{'':2s} {'id':28s} {'adapter':15s} {'status':8s} {'default':10s} cache")
+        print(f"{'':2s} {'id':28s} {'adapter':15s} {'default':10s} cache")
         for model in catalog.CATALOG:
-            if model.status == "waitlist" and not args.all:
-                continue
             mark = "★" if model.id == current else " "
             default = model.default_variant
             label = f"{default.name} ({default.quant})" if default else "—"
             have = "✓" if default and (model.id, default.name) in cached else ""
-            print(f"{mark} {model.id:28s} {model.adapter:15s} {model.status:8s} {label:10s} {have}")
-        if not args.all:
-            print("\n(waitlist hidden; `dtk models list --all` shows it)")
+            print(f"{mark} {model.id:28s} {model.adapter:15s} {label:10s} {have}")
         return 0
 
     if command == "variants":

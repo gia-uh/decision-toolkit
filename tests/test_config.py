@@ -23,9 +23,9 @@ def test_first_use_creates_home_and_config(home):
 
 def test_roundtrip_persists_changes(home):
     load_config(home)
-    update_config(home, current="laya-multilingual", device="cpu")
+    update_config(home, current="laya", device="cpu")
     reloaded = load_config(home)
-    assert reloaded.current == "laya-multilingual"
+    assert reloaded.current == "laya"
     assert reloaded.device == "cpu"
 
 
