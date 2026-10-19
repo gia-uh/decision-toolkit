@@ -13,12 +13,14 @@ from typing import Any
 from ..errors import AdapterNotAvailableError
 from .base import Adapter
 from .gliner2 import Gliner2Adapter
+from .gliner2_decide import Gliner2DecideAdapter
 from .julia import JuliaAdapter
 from .laya import LayaAdapter
 from .opendecider import OpendeciderAdapter
 
 ADAPTERS: dict[str, type] = {
     "gliner2": Gliner2Adapter,
+    "gliner2-decide": Gliner2DecideAdapter,
     "julia": JuliaAdapter,
     "laya": LayaAdapter,
     "opendecider": OpendeciderAdapter,

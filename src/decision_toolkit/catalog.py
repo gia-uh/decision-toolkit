@@ -107,14 +107,29 @@ CATALOG: tuple[CatalogModel, ...] = (
     CatalogModel(
         id="gliner2.5-decide",
         name="GLiNER2.5-Decide",
-        adapter="gliner2",
+        adapter="gliner2-decide",
         license="apache-2.0",
         params="340M",
         architecture="DeBERTa-v3-large",
-        status="planned",
-        notes="Fused export exists (onnx-community/GLiNER2.5-Decide-ONNX; fp32 1.74 GB, "
-              "fp16 872 MB, q4 888 MB, q4f16 523 MB) but its signature is not verified against "
-              "the gliner2 adapter; if it differs, it needs its own adapter.",
+        status="m0",
+        notes="Fused ONNX export verified on CPU: refund example → refund_request 0.944; "
+              "flight change → seat_change 0.593 (change second, 0.334); the sentiment example "
+              "resolves positive (the card's potential output said mixed — documented, not "
+              "hidden). English-only; q4f16 build; 912 ms/decision.",
+        variants=(
+            Variant(
+                name="q4f16",
+                repo="onnx-community/GLiNER2.5-Decide-ONNX",
+                files={
+                    "model": "onnx/model_q4f16.onnx",
+                    "tokenizer": "tokenizer.json",
+                },
+                extra_files=("onnx/model_q4f16.onnx_data",),
+                quant="q4/fp16",
+                size_mb=523.5,
+                role="default",
+            ),
+        ),
     ),
     CatalogModel(
         id="gliner2.5-multi-decide",
@@ -366,7 +381,7 @@ CATALOG: tuple[CatalogModel, ...] = (
 CATALOG_BY_ID: dict[str, CatalogModel] = {model.id: model for model in CATALOG}
 
 #: Adapters that ship with the toolkit today.
-IMPLEMENTED_ADAPTERS = frozenset({"gliner2", "julia", "laya", "opendecider"})
+IMPLEMENTED_ADAPTERS = frozenset({"gliner2", "gliner2-decide", "julia", "laya", "opendecider"})
 
 
 def get(model_id: str) -> CatalogModel | None:

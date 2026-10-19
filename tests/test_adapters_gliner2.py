@@ -59,10 +59,45 @@ class FakeEngine:
         self.tokenizer = tokenizer or FakeTokenizer()
         self.encoder = FakeEncoderSession()
         self.classifier = FakeClassifierSession(logits, input_name=classifier_input)
+        self.files = {"encoder": "encoder.onnx", "classifier": "classifier.onnx",
+                      "tokenizer": "tokenizer.json"}
 
     def session(self, role):
         assert role in {"encoder", "classifier"}
         return self.encoder if role == "encoder" else self.classifier
+
+
+class FakeFusedSession:
+    def __init__(self, logits):
+        self.logits = list(logits)
+        self.feeds = None
+
+    def get_inputs(self):
+        def item(name, shape):
+            return type("Input", (), {"name": name, "shape": shape})()
+
+        return [
+            item("input_ids", [1, "L"]),
+            item("attention_mask", [1, "L"]),
+            item("marker_positions", [1, "K"]),
+        ]
+
+    def run(self, output_names, feeds):
+        numpy = pytest.importorskip("numpy")
+        self.feeds = feeds
+        markers = len(feeds["marker_positions"][0])
+        return [numpy.asarray([self.logits[:markers]], dtype=numpy.float32)]
+
+
+class FakeFusedEngine:
+    def __init__(self, logits):
+        self.tokenizer = FakeTokenizer()
+        self.model = FakeFusedSession(logits)
+        self.files = {"model": "model.onnx", "tokenizer": "tokenizer.json"}
+
+    def session(self, role):
+        assert role == "model"
+        return self.model
 
 
 def test_choice_schema_and_probabilities():
@@ -133,3 +168,14 @@ def test_classifier_input_name_is_read_from_the_graph():
     answers = adapter.system_one(engine, "state", {"team": CHOICE_Q})
     assert answers["team"]["choice"] == "billing"
     assert engine.classifier.queries.shape[0] == 2
+
+
+def test_fused_graph_uses_marker_positions():
+    pytest.importorskip("numpy")
+    engine = FakeFusedEngine([2.0, 0.0])
+    adapter = Gliner2Adapter()
+    answers = adapter.system_one(engine, "the state", {"team": CHOICE_Q})
+    assert answers["team"]["choice"] == "billing"
+    assert answers["team"]["probabilities"]["billing"] == pytest.approx(0.880797, abs=1e-5)
+    assert engine.model.feeds["marker_positions"].shape[1] == 2
+    assert engine.model.feeds["input_ids"].shape[0] == 1

@@ -82,7 +82,7 @@ def test_catalog_model_not_downloaded_explains_the_command(home):
 
 
 def test_catalog_model_without_variant_explains_status(home):
-    model = DecisionModel("gliner2.5-decide", home=home)
+    model = DecisionModel("laya-multilingual", home=home)
     with pytest.raises(AdapterNotAvailableError) as excinfo:
         model.decide("state", {"q": noul("x")})
     assert "planned" in str(excinfo.value)

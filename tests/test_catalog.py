@@ -82,7 +82,7 @@ def test_select_variant_by_name_and_default():
 
 def test_select_variant_without_variants_errors():
     with pytest.raises(ModelNotFoundError):
-        catalog.select_variant(catalog.get("gliner2.5-decide"))
+        catalog.select_variant(catalog.get("laya-multilingual"))
 
 
 def test_waitlist_entries_flag_their_issue():

@@ -98,7 +98,7 @@ adapters (there is no generic "any ONNX" adapter).
 | id | adapter | status | default variant |
 | --- | --- | --- | --- |
 | `gliner2.5-multi` | `gliner2` | **m0** — verified end-to-end (9/15, 353 ms) | `fp16` (577 MB) |
-| `gliner2.5-decide` | `gliner2` | planned — fused export to verify | — |
+| `gliner2.5-decide` | `gliner2-decide` | **m0** — fused export verified (refund 0.944, 912 ms; English-only) | `q4f16` (524 MB) |
 | `gliner2.5-multi-decide` | `gliner2` | planned — no compatible export yet | — |
 | `laya` | `laya` | **m0** — verified against torch (Δp ≤ 0.005) | `q8` (528 MB) |
 | `laya-multilingual` | `laya` | planned — no split export published | — |

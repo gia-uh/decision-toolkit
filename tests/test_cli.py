@@ -91,8 +91,8 @@ def test_doctor_json(home, capsys):
     assert report["toolkit"]
     assert report["home"] == str(home.resolve())
     assert report["cached_models"] == []
-    assert report["adapters"] == ["gliner2", "julia", "laya", "opendecider"]
-    assert report["catalog"]["m0"] == 4
+    assert report["adapters"] == ["gliner2", "gliner2-decide", "julia", "laya", "opendecider"]
+    assert report["catalog"]["m0"] == 5
     assert report["catalog"]["m1"] == 0
     assert "onnxruntime" in report["runtimes"]
 

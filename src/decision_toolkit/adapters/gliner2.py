@@ -94,13 +94,25 @@ class Gliner2Adapter:
             input_ids.extend(self._tokenize(tokenizer, word))
 
         ids = np.asarray([input_ids], dtype=np.int64)
+        attention = np.ones_like(ids)
+
+        # Fused export (e.g. onnx-community/GLiNER2.5-Decide-ONNX): one graph with
+        # marker_positions and one logit per marker. Split export (e.g. the multi-v1
+        # repo): encoder + classifier, with the classifier input name read from the graph.
+        if "model" in engine.files:
+            session = engine.session("model")
+            input_names = {item.name for item in session.get_inputs()}
+            feeds = {"input_ids": ids, "attention_mask": attention}
+            if "marker_positions" in input_names:
+                feeds["marker_positions"] = np.asarray([positions], dtype=np.int64)
+            logits = session.run(None, feeds)[0]
+            return [float(value) for value in np.asarray(logits)[0][: len(options)]]
+
         hidden = engine.session("encoder").run(
-            None, {"input_ids": ids, "attention_mask": np.ones_like(ids)}
+            None, {"input_ids": ids, "attention_mask": attention}
         )[0]
         queries = hidden[0][positions].astype(np.float32)
         classifier = engine.session("classifier")
-        # the input name varies between exports (hidden_state, choice_states...);
-        # read it from the graph instead of assuming one spelling
         input_name = classifier.get_inputs()[0].name
         logits = classifier.run(None, {input_name: queries})[0].reshape(-1)
         return [float(value) for value in logits]
