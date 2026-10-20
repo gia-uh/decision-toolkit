@@ -1,7 +1,7 @@
 # Release
 
 The package name is `decision-toolkit` (PyPI/TestPyPI returned 404 when this
-file was written, so the name was available). The first release is `0.1.0`.
+file was written, so the name was available). The first release was `0.1.0`; `0.1.1` is a metadata-only refresh.
 
 ## Local build and verification
 
@@ -24,7 +24,7 @@ Clean install test (no `PYTHONPATH`):
 ```bash
 python -m venv /tmp/dtk-wheel
 . /tmp/dtk-wheel/bin/activate
-pip install dist/decision_toolkit-0.1.0-py3-none-any.whl
+pip install dist/decision_toolkit-0.1.1-py3-none-any.whl
 dtk --version
 dtk models list --json
 dtk doctor --json
@@ -33,7 +33,7 @@ dtk doctor --json
 With inference and server extras:
 
 ```bash
-pip install "decision_toolkit-0.1.0-py3-none-any.whl[onnx,server,tracing]"
+pip install "decision_toolkit-0.1.1-py3-none-any.whl[onnx,server,tracing]"
 dtk decide --model gliner2.5-decide ...
 dtk serve --model gliner2.5-decide --warmup --port 8016
 curl -s http://127.0.0.1:8016/health
@@ -66,8 +66,8 @@ No long-lived PyPI token is needed; the workflow uses GitHub OIDC
 4. Create and push an annotated tag:
 
    ```bash
-   git tag -a v0.1.0 -m "decision-toolkit 0.1.0"
-   git push origin v0.1.0
+   git tag -a v0.1.1 -m "decision-toolkit 0.1.1"
+   git push origin v0.1.1
    ```
 
 5. `.github/workflows/release.yml` builds once, publishes to **TestPyPI**, then
@@ -111,9 +111,12 @@ to TestPyPI without publishing to PyPI or creating a GitHub release.
 
 ## Published release
 
-`0.1.0` was published to PyPI on 2026-10-20 from the verified wheel and sdist:
+`0.1.1` was published to PyPI on 2026-10-20 from the verified wheel and sdist:
 
-<https://pypi.org/project/decision-toolkit/0.1.0/>
+<https://pypi.org/project/decision-toolkit/0.1.1/>
+
+`0.1.0` was the first release; `0.1.1` is a metadata-only refresh of the PyPI
+project description.
 
 The tag-triggered workflow remains the preferred path for future releases once
 the TestPyPI/PyPI trusted publishers and protected environments are configured.
