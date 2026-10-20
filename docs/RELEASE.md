@@ -4,7 +4,8 @@ The package name is `decision-toolkit` (PyPI/TestPyPI returned 404 when this
 file was written, so the name was available). The first release was `0.1.0`;
 `0.1.1` was a metadata-only refresh; `0.1.2` validated Trusted Publishing;
 `0.1.3` added release verification and docs publication; `0.1.4` migrated
-package management and builds to uv.
+package management and builds to uv but was published to TestPyPI only; `0.1.5`
+fixes TestPyPI verification for uv.
 
 ## Local build and verification
 
@@ -31,7 +32,7 @@ Clean install test (no `PYTHONPATH`):
 ```bash
 uv venv --python 3.12 /tmp/dtk-wheel
 uv pip install --python /tmp/dtk-wheel/bin/python \
-  dist/decision_toolkit-0.1.4-py3-none-any.whl
+  dist/decision_toolkit-0.1.5-py3-none-any.whl
 uv pip check --python /tmp/dtk-wheel/bin/python
 /tmp/dtk-wheel/bin/dtk --version
 /tmp/dtk-wheel/bin/dtk models list --json
@@ -42,7 +43,7 @@ With inference and server extras:
 
 ```bash
 uv pip install --python /tmp/dtk-wheel/bin/python \
-  "dist/decision_toolkit-0.1.4-py3-none-any.whl[onnx,server,tracing]"
+  "dist/decision_toolkit-0.1.5-py3-none-any.whl[onnx,server,tracing]"
 /tmp/dtk-wheel/bin/dtk decide --model gliner2.5-decide ...
 /tmp/dtk-wheel/bin/dtk serve --model gliner2.5-decide --warmup --port 8016
 curl -s http://127.0.0.1:8016/health
@@ -76,8 +77,8 @@ No long-lived PyPI token is needed; the workflow uses GitHub OIDC
 4. Create and push an annotated tag:
 
    ```bash
-   git tag -a v0.1.4 -m "decision-toolkit 0.1.4"
-   git push origin v0.1.4
+   git tag -a v0.1.5 -m "decision-toolkit 0.1.5"
+   git push origin v0.1.5
    ```
 
 5. `.github/workflows/release.yml` builds once, publishes to **TestPyPI**, then
@@ -89,7 +90,8 @@ No long-lived PyPI token is needed; the workflow uses GitHub OIDC
    uv venv --python 3.12 /tmp/dtk-testpypi
    uv pip install --python /tmp/dtk-testpypi/bin/python \
      --index-url https://test.pypi.org/simple/ \
-     --extra-index-url https://pypi.org/simple decision-toolkit
+     --extra-index-url https://pypi.org/simple \
+     --index-strategy unsafe-best-match decision-toolkit
    /tmp/dtk-testpypi/bin/dtk --version
    ```
 
@@ -120,14 +122,16 @@ to TestPyPI without publishing to PyPI or creating a GitHub release.
 
 ## Published release
 
-`0.1.4` is published through Trusted Publishing on 2026-10-20:
+`0.1.5` is published through Trusted Publishing on 2026-10-20:
 
-<https://pypi.org/project/decision-toolkit/0.1.4/>
+<https://pypi.org/project/decision-toolkit/0.1.5/>
 
 `0.1.0` was the first release; `0.1.1` refreshed the PyPI description; `0.1.2`
 validated the OIDC TestPyPI → PyPI flow; `0.1.3` added post-publish install
 verification and the GitHub Pages documentation site; `0.1.4` moved the
-development, build, CI, release and documentation environments to uv.
+development, build, CI, release and documentation environments to uv but was
+published to TestPyPI only; `0.1.5` fixes TestPyPI resolution during release
+verification.
 
 The tag-triggered workflow remains the preferred path for future releases once
 the TestPyPI/PyPI trusted publishers and protected environments are configured.

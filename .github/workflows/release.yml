@@ -79,10 +79,19 @@ jobs:
       - name: Install from TestPyPI with uv and smoke test
         run: |
           uv venv --python 3.12 /tmp/dtk-testpypi
-          uv pip install --python /tmp/dtk-testpypi/bin/python \
-            --index-url https://test.pypi.org/simple/ \
-            --extra-index-url https://pypi.org/simple \
-            "decision-toolkit==$VERSION"
+          for attempt in 1 2 3 4 5; do
+            if uv pip install --python /tmp/dtk-testpypi/bin/python \
+              --index-url https://test.pypi.org/simple/ \
+              --extra-index-url https://pypi.org/simple \
+              --index-strategy unsafe-best-match \
+              "decision-toolkit==$VERSION"; then
+              break
+            fi
+            if [ "$attempt" -eq 5 ]; then
+              exit 1
+            fi
+            sleep 10
+          done
           uv pip check --python /tmp/dtk-testpypi/bin/python
           /tmp/dtk-testpypi/bin/dtk --version
           /tmp/dtk-testpypi/bin/dtk models list --json
@@ -126,7 +135,15 @@ jobs:
       - name: Install from PyPI with uv and smoke test
         run: |
           uv venv --python 3.12 /tmp/dtk-pypi
-          uv pip install --python /tmp/dtk-pypi/bin/python "decision-toolkit==$VERSION"
+          for attempt in 1 2 3 4 5; do
+            if uv pip install --python /tmp/dtk-pypi/bin/python "decision-toolkit==$VERSION"; then
+              break
+            fi
+            if [ "$attempt" -eq 5 ]; then
+              exit 1
+            fi
+            sleep 10
+          done
           uv pip check --python /tmp/dtk-pypi/bin/python
           /tmp/dtk-pypi/bin/dtk --version
           /tmp/dtk-pypi/bin/dtk models list --json

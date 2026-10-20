@@ -1,15 +1,22 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.1.4` is
+All notable changes to this project are documented here. Version `0.1.5` is
 published on PyPI.
+
+## [0.1.5] — 2026-10-20
+
+Release verification fix for the uv migration: TestPyPI installation now uses
+uv's `unsafe-best-match` index strategy and retries while the TestPyPI simple
+index propagates. No runtime or model changes.
 
 ## [0.1.4] — 2026-10-20
 
-Packaging and infrastructure release. Package management, dependency
-resolution, builds, CI, release verification and documentation deployment now
-use uv exclusively. Development and docs dependencies moved to PEP 735
-dependency groups, and `uv.lock` is committed. The published wheel remains
-pip-compatible. No runtime or model changes.
+TestPyPI-only packaging validation build for the uv migration. Package
+management, dependency resolution, builds, CI, release verification and
+documentation deployment moved to uv; development and docs dependencies moved
+to PEP 735 dependency groups, and `uv.lock` is committed. PyPI publication
+stopped when TestPyPI verification could not resolve the new version; `0.1.5`
+fixes that verification step. No runtime or model changes.
 
 ## [0.1.3] — 2026-10-20
 
@@ -88,7 +95,8 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
-[0.1.4]: https://pypi.org/project/decision-toolkit/0.1.4/
+[0.1.5]: https://pypi.org/project/decision-toolkit/0.1.5/
+[0.1.4]: https://test.pypi.org/project/decision-toolkit/0.1.4/
 [0.1.3]: https://pypi.org/project/decision-toolkit/0.1.3/
 [0.1.2]: https://pypi.org/project/decision-toolkit/0.1.2/
 [0.1.1]: https://pypi.org/project/decision-toolkit/0.1.1/
