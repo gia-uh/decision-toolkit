@@ -10,6 +10,9 @@ contract** (how a model is fed and read). Three thin surfaces over the same API:
 
 Co-developed by [GIA-UH](https://github.com/gia-uh) and [Syalia S.R.L.](https://github.com/syalia-srl).
 
+**Examples:** [docs/EXAMPLES.md](docs/EXAMPLES.md) covers the library, REST and
+CLI. `dtk --help` and every subcommand help also include runnable examples.
+
 ## Installation
 
 ```bash

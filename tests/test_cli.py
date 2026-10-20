@@ -72,6 +72,21 @@ def test_parser_has_all_commands():
     assert serve.tracing is True
 
 
+def test_help_contains_runnable_examples(capsys):
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["--help"])
+    assert excinfo.value.code == 0
+    output = capsys.readouterr().out
+    assert "examples:" in output
+    assert "dtk models list --json" in output
+    assert "dtk decide --model" in output
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["models", "list", "--help"])
+    assert excinfo.value.code == 0
+    assert "examples:" in capsys.readouterr().out
+
+
 def test_parse_questions_adds_default_instructions():
     questions = cli._parse_questions(
         ["team=choice:billing=refunds|tech", "urgent=noul:Today?"]

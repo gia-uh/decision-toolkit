@@ -85,24 +85,47 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--no-color", action="store_true", help="Disable colors (accepted for scripts).")
     sub = parser.add_subparsers(dest="command", required=True)
+    _with_examples(
+        parser,
+        "dtk models list --json",
+        "dtk decide --model gliner2.5-multi --state \"Meeting with Acme.\" --q 'cat=choice:meeting|tasks|other'",
+        "dtk classify --model laya --text \"Dentist next Tuesday\" --labels reminder,task,idea",
+        "dtk serve --model gliner2.5-multi --warmup",
+    )
 
     # ----------------------------------------------------------------- models
-    models = sub.add_parser("models", help="Model cache and curated catalog.")
+    models = _with_examples(
+        sub.add_parser("models", help="Model cache and curated catalog."),
+        "dtk models",
+        "dtk models list --json",
+    )
     _add_json(models)
     models_sub = models.add_subparsers(dest="models_command")
 
-    models_list = models_sub.add_parser("list", help="The curated library (adapter, variants).")
+    models_list = _with_examples(
+        models_sub.add_parser("list", help="The curated library (adapter, variants)."),
+        "dtk models list --adapter --quant",
+        "dtk models list --json",
+    )
     _add_json(models_list)
     models_list.add_argument("--license", action="store_true", dest="show_license")
     models_list.add_argument("--quant", action="store_true", dest="show_quant")
     models_list.add_argument("--adapter", action="store_true", dest="show_adapter")
 
-    models_variants = models_sub.add_parser("variants", help="Variants of a catalog model.")
+    models_variants = _with_examples(
+        models_sub.add_parser("variants", help="Variants of a catalog model."),
+        "dtk models variants gliner2.5-multi",
+        "dtk models variants gliner2.5-multi --json",
+    )
     models_variants.add_argument("model")
     _add_json(models_variants)
 
-    models_download = models_sub.add_parser(
-        "download", help="Download one variant (the only network command)."
+    models_download = _with_examples(
+        models_sub.add_parser(
+            "download", help="Download one variant (the only network command)."
+        ),
+        "dtk models download gliner2.5-multi --dry-run",
+        "dtk models download gliner2.5-multi --variant fp32 --force",
     )
     models_download.add_argument("model", help="Catalog id.")
     models_download.add_argument("--variant", help="Variant name (default: the catalog default).")
@@ -111,15 +134,27 @@ def build_parser() -> argparse.ArgumentParser:
     models_download.add_argument("--dry-run", action="store_true", help="Show what would be downloaded.")
     _add_json(models_download)
 
-    models_use = models_sub.add_parser("use", help="Set the model (and optional variant) in use.")
+    models_use = _with_examples(
+        models_sub.add_parser("use", help="Set the model (and optional variant) in use."),
+        "dtk models use laya --variant q8",
+        "dtk models use julia-1 --json",
+    )
     models_use.add_argument("model")
     models_use.add_argument("--variant", help="Variant name.")
     _add_json(models_use)
 
-    models_current = models_sub.add_parser("current", help="Show the model in use.")
+    models_current = _with_examples(
+        models_sub.add_parser("current", help="Show the model in use."),
+        "dtk models current",
+        "dtk models current --json",
+    )
     _add_json(models_current)
 
-    models_delete = models_sub.add_parser("delete", help="Delete cached variant(s).")
+    models_delete = _with_examples(
+        models_sub.add_parser("delete", help="Delete cached variant(s)."),
+        "dtk models delete laya --variant q8",
+        "dtk models delete laya --all-variants --yes",
+    )
     models_delete.add_argument("model")
     models_delete.add_argument("--variant", help="Variant name (default: any cached variant).")
     models_delete.add_argument(
@@ -128,20 +163,35 @@ def build_parser() -> argparse.ArgumentParser:
     models_delete.add_argument("--yes", action="store_true", help="Do not prompt for --all-variants.")
     _add_json(models_delete)
 
-    models_verify = models_sub.add_parser("verify", help="Check files, hashes and ONNX sessions.")
+    models_verify = _with_examples(
+        models_sub.add_parser("verify", help="Check files, hashes and ONNX sessions."),
+        "dtk models verify laya --variant q8",
+        "dtk models verify --all --json",
+    )
     models_verify.add_argument("model", nargs="?", help="Cached model id (omit with --all).")
     models_verify.add_argument("--variant", help="Variant name.")
     models_verify.add_argument("--all", action="store_true", dest="verify_all", help="Verify every cached variant.")
     _add_json(models_verify)
 
-    models_import = models_sub.add_parser("import", help="Copy a local model directory into the cache.")
+    models_import = _with_examples(
+        models_sub.add_parser("import", help="Copy a local model directory into the cache."),
+        "dtk models import ./my-model --name my-model --adapter julia "
+        "--files model=model.onnx --files tokenizer=tokenizer.json",
+    )
     models_import.add_argument("path")
     models_import.add_argument("--name", help="Identifier to store it under.")
     _add_custom_args(models_import)
     _add_json(models_import)
 
     # ----------------------------------------------------------------- decide
-    decide = sub.add_parser("decide", help="Answer typed questions about a state (System One).")
+    decide = _with_examples(
+        sub.add_parser("decide", help="Answer typed questions about a state (System One)."),
+        "dtk decide --model gliner2.5-multi --state \"Meeting with Acme.\" "
+        "--q 'cat=choice:meeting|tasks|other'",
+        "dtk decide --model laya --state-file state.txt --questions-file questions.yaml",
+        "dtk decide --model gliner2.5-decide --input-jsonl states.jsonl "
+        "--q 'intent=choice:refund_request|seat_change' --output-jsonl out.jsonl",
+    )
     _add_model_args(decide)
     state_group = decide.add_mutually_exclusive_group(required=True)
     state_group.add_argument("-s", "--state", help="The state text.")
@@ -176,7 +226,13 @@ def build_parser() -> argparse.ArgumentParser:
     decide.add_argument("--pretty", action="store_true", help="Indent the JSON output.")
 
     # --------------------------------------------------------------- classify
-    classify = sub.add_parser("classify", help="One-label classification with a threshold.")
+    classify = _with_examples(
+        sub.add_parser("classify", help="One-label classification with a threshold."),
+        "dtk classify --model laya --text \"Dentist next Tuesday\" "
+        "--labels reminder,task,idea --json",
+        "dtk classify --model gliner2.5-multi --text-file note.txt "
+        "--labels-file categories.yaml --threshold 0.6",
+    )
     _add_model_args(classify)
     classify_group = classify.add_mutually_exclusive_group(required=True)
     classify_group.add_argument("-t", "--text", help="The text to classify.")
@@ -192,7 +248,12 @@ def build_parser() -> argparse.ArgumentParser:
     _add_json(classify)
 
     # ------------------------------------------------------------------ serve
-    serve = sub.add_parser("serve", help="Run the REST server (needs the [server] extra).")
+    serve = _with_examples(
+        sub.add_parser("serve", help="Run the REST server (needs the [server] extra)."),
+        "dtk serve --model gliner2.5-multi --warmup",
+        "dtk serve --model laya --api-key secret --max-concurrent 4 "
+        "--rate-limit 120 --rate-window 60",
+    )
     _add_model_args(serve)
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=8000)
@@ -242,26 +303,53 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # ----------------------------------------------------------------- config
-    config = sub.add_parser("config", help="Read and write toolkit configuration.")
+    config = _with_examples(
+        sub.add_parser("config", help="Read and write toolkit configuration."),
+        "dtk config list --json",
+        "dtk config set device cpu",
+    )
     config_sub = config.add_subparsers(dest="config_command", required=True)
-    config_list = config_sub.add_parser("list", help="Show all configuration values.")
+    config_list = _with_examples(
+        config_sub.add_parser("list", help="Show all configuration values."),
+        "dtk config list",
+        "dtk config list --json",
+    )
     _add_json(config_list)
-    config_get = config_sub.add_parser("get", help="Show one configuration value.")
+    config_get = _with_examples(
+        config_sub.add_parser("get", help="Show one configuration value."),
+        "dtk config get device",
+    )
     config_get.add_argument("key")
     _add_json(config_get)
-    config_set = config_sub.add_parser("set", help="Set one configuration value.")
+    config_set = _with_examples(
+        config_sub.add_parser("set", help="Set one configuration value."),
+        "dtk config set device cpu",
+        "dtk config set current gliner2.5-multi",
+    )
     config_set.add_argument("key")
     config_set.add_argument("value")
     _add_json(config_set)
 
     # ------------------------------------------------------------- misc
-    doctor = sub.add_parser("doctor", help="Environment and cache diagnostics.")
+    doctor = _with_examples(
+        sub.add_parser("doctor", help="Environment and cache diagnostics."),
+        "dtk doctor",
+        "dtk doctor --json",
+    )
     _add_json(doctor)
 
-    version = sub.add_parser("version", help="Print the toolkit version.")
+    version = _with_examples(
+        sub.add_parser("version", help="Print the toolkit version."),
+        "dtk version",
+        "dtk version --json",
+    )
     _add_json(version)
 
-    completion = sub.add_parser("completion", help="Print shell completion for bash/zsh/fish.")
+    completion = _with_examples(
+        sub.add_parser("completion", help="Print shell completion for bash/zsh/fish."),
+        "dtk completion bash",
+        "dtk completion zsh",
+    )
     completion.add_argument("shell", choices=("bash", "zsh", "fish"))
 
     return parser
@@ -275,6 +363,12 @@ def _add_json(parser: argparse.ArgumentParser) -> None:
         default=argparse.SUPPRESS,
         help="Print machine-readable JSON.",
     )
+
+
+def _with_examples(parser: argparse.ArgumentParser, *examples: str) -> argparse.ArgumentParser:
+    parser.formatter_class = argparse.RawDescriptionHelpFormatter
+    parser.epilog = "examples:\n" + "\n".join(f"  {example}" for example in examples)
+    return parser
 
 
 def _add_custom_args(parser: argparse.ArgumentParser) -> None:
