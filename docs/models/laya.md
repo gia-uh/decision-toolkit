@@ -26,7 +26,7 @@
   - `v1/tokenizer.json` — `6c8aaa9a542084f2457eab775d4eeb51f92a70c0fd9de28d5edb0ddec3c08d30`
   - `v1/rl_agent_config.json` — `ae287b56bbcf5f8c4f4541ae9dfd00c914c4c48b940b8398c3058af37ba92bbd`
 - **Verify:** `dtk models verify laya --variant q8`
-- **Bench:** `PYTHONPATH=src python bench/run.py --suite bench/suites/smoke.jsonl --models laya`
+- **Bench:** `uv run python bench/run.py --suite bench/suites/smoke.jsonl --models laya`
 
 ## Evidence (2026-10-19)
 

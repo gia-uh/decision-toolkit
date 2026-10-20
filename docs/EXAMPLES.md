@@ -4,8 +4,8 @@ Runnable examples for the three surfaces. Models must already be cached:
 
 ```bash
 dtk models download gliner2.5-multi
-# or run from the source tree:
-PYTHONPATH=src python -m decision_toolkit models download gliner2.5-multi
+# or from a source checkout managed with uv:
+uv run dtk models download gliner2.5-multi
 ```
 
 ## Library

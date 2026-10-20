@@ -21,10 +21,13 @@ and CLI. `dtk --help` and every subcommand help also include runnable examples.
 ## Installation
 
 ```bash
-pip install decision-toolkit              # library + CLI (0.1.3 on PyPI)
-pip install "decision-toolkit[onnx]"      # + onnxruntime, tokenizers (the model runtime)
-pip install "decision-toolkit[server]"    # + REST server (FastAPI)
+uv pip install decision-toolkit              # library + CLI (0.1.3 on PyPI)
+uv pip install "decision-toolkit[onnx]"      # + onnxruntime, tokenizers (the model runtime)
+uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 ```
+
+The project is managed with [uv](https://docs.astral.sh/uv/) and ships a committed `uv.lock`. Published
+wheels remain compatible with `pip` for environments that do not use uv.
 
 PyPI: <https://pypi.org/project/decision-toolkit/0.1.3/>. See
 [docs/RELEASE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/RELEASE.md)
@@ -126,7 +129,7 @@ batch, custom `--adapter/--files`, config and completion.
 **3. As a REST service (optional extra)**
 
 ```bash
-pip install "decision-toolkit[server]"
+uv pip install "decision-toolkit[server]"
 dtk serve --model gliner2.5-multi --warmup \
   --api-key "$DECISION_TOOLKIT_API_KEY" \
   --log-format json
@@ -198,7 +201,7 @@ question text never become log/metric labels.
 ```bash
 dtk serve --model gliner2.5-multi --warmup --max-concurrent 4 \
   --rate-limit 120 --rate-window 60
-PYTHONPATH=src python bench/load.py --base-url http://127.0.0.1:8000 \
+uv run python bench/load.py --base-url http://127.0.0.1:8000 \
   --concurrency 10 --requests 30
 ```
 
@@ -252,14 +255,13 @@ layout. If a model deserves support, it goes through curation.
 ## Development
 
 ```bash
-python -m venv .venv && . .venv/bin/activate
-pip install pytest ruff PyYAML huggingface_hub fastapi httpx pydantic numpy
-PYTHONPATH=src pytest -q             # fast suite (no model downloads)
-PYTHONPATH=src pytest -m integration -o addopts=""   # real model, opt-in
+uv sync --all-extras                 # locked dev, ONNX, server and tracing env
+uv run pytest -q                     # fast suite (no model downloads)
+uv run pytest -m integration -o addopts=""   # real model, opt-in
 ```
 
-No wheel or editable install is required while the project is pre-distribution.
-CI runs the same source-tree commands on Python 3.12/3.13. See
+`uv sync` installs the project in editable mode and resolves every dependency
+from `uv.lock`. CI runs the same commands on Python 3.12/3.13. See
 [CONTRIBUTING.md](https://github.com/gia-uh/decision-toolkit/blob/main/CONTRIBUTING.md).
 
 ## License

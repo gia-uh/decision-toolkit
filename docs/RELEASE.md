@@ -5,9 +5,13 @@ file was written, so the name was available). The first release was `0.1.0`; `0.
 
 ## Local build and verification
 
+The repository uses uv for every environment and build step. `uv.lock` must be
+current before tagging.
+
 ```bash
-python -m build
-python -m twine check dist/*
+uv sync --frozen
+uv build
+uv run --no-sync twine check dist/*
 ```
 
 The wheel must contain:
@@ -22,20 +26,22 @@ files.
 Clean install test (no `PYTHONPATH`):
 
 ```bash
-python -m venv /tmp/dtk-wheel
-. /tmp/dtk-wheel/bin/activate
-pip install dist/decision_toolkit-0.1.3-py3-none-any.whl
-dtk --version
-dtk models list --json
-dtk doctor --json
+uv venv --python 3.12 /tmp/dtk-wheel
+uv pip install --python /tmp/dtk-wheel/bin/python \
+  dist/decision_toolkit-0.1.3-py3-none-any.whl
+uv pip check --python /tmp/dtk-wheel/bin/python
+/tmp/dtk-wheel/bin/dtk --version
+/tmp/dtk-wheel/bin/dtk models list --json
+/tmp/dtk-wheel/bin/dtk doctor --json
 ```
 
 With inference and server extras:
 
 ```bash
-pip install "decision_toolkit-0.1.3-py3-none-any.whl[onnx,server,tracing]"
-dtk decide --model gliner2.5-decide ...
-dtk serve --model gliner2.5-decide --warmup --port 8016
+uv pip install --python /tmp/dtk-wheel/bin/python \
+  "dist/decision_toolkit-0.1.3-py3-none-any.whl[onnx,server,tracing]"
+/tmp/dtk-wheel/bin/dtk decide --model gliner2.5-decide ...
+/tmp/dtk-wheel/bin/dtk serve --model gliner2.5-decide --warmup --port 8016
 curl -s http://127.0.0.1:8016/health
 ```
 
@@ -60,8 +66,9 @@ No long-lived PyPI token is needed; the workflow uses GitHub OIDC
 
 ## Release flow
 
-1. Set the version in `pyproject.toml` and finalize `CHANGELOG.md`.
-2. Re-run tests, benchmark smoke and `twine check`.
+1. Set the version in `pyproject.toml`, run `uv lock` to refresh `uv.lock`,
+   and finalize `CHANGELOG.md`. Commit both files together.
+2. Re-run `uv sync --frozen`, tests, benchmark smoke and `uv run --no-sync twine check`.
 3. Commit the release preparation.
 4. Create and push an annotated tag:
 
@@ -76,21 +83,20 @@ No long-lived PyPI token is needed; the workflow uses GitHub OIDC
 6. Verify TestPyPI before approval:
 
    ```bash
-   python -m venv /tmp/dtk-testpypi
-   . /tmp/dtk-testpypi/bin/activate
-   pip install --index-url https://test.pypi.org/simple/ \
+   uv venv --python 3.12 /tmp/dtk-testpypi
+   uv pip install --python /tmp/dtk-testpypi/bin/python \
+     --index-url https://test.pypi.org/simple/ \
      --extra-index-url https://pypi.org/simple decision-toolkit
-   dtk --version
+   /tmp/dtk-testpypi/bin/dtk --version
    ```
 
 7. After PyPI approval and publication:
 
    ```bash
-   python -m venv /tmp/dtk-pypi
-   . /tmp/dtk-pypi/bin/activate
-   pip install decision-toolkit
-   dtk --version
-   dtk models list
+   uv venv --python 3.12 /tmp/dtk-pypi
+   uv pip install --python /tmp/dtk-pypi/bin/python decision-toolkit
+   /tmp/dtk-pypi/bin/dtk --version
+   /tmp/dtk-pypi/bin/dtk models list
    ```
 
 ## Version policy

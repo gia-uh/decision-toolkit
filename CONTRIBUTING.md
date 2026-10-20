@@ -3,23 +3,27 @@
 decision-toolkit is a curated runtime, not a mirror of model hubs. Changes that
 add a model or an adapter must bring **real evidence**, not a promising README.
 
-## Development setup (source only)
+## Development setup
 
-There is no wheel/PyPI release yet. Work from the source tree:
+[uv](https://docs.astral.sh/uv/) is the only package manager used by this
+repository. `uv.lock` is committed; change dependencies through `pyproject.toml`
+and refresh the lock with `uv lock`.
 
 ```bash
-python -m venv .venv
-. .venv/bin/activate
-pip install pytest ruff pip-audit PyYAML huggingface_hub fastapi httpx pydantic numpy
-# for real inference:
-pip install onnxruntime tokenizers
-PYTHONPATH=src pytest -q
+uv sync --all-extras     # project + dev + onnx + server + tracing
+uv run pytest -q         # fast suite (no model downloads)
 ```
 
 The fast suite must not download models. Integration tests are opt-in:
 
 ```bash
-PYTHONPATH=src pytest -m integration -o addopts="" -s
+uv run pytest -m integration -o addopts="" -s
+```
+
+The docs dependency group is separate:
+
+```bash
+uv run --group docs mkdocs serve
 ```
 
 `tests/test_integration_gliner2.py` uses `DECISION_TOOLKIT_GLINER2_DIR` and
@@ -54,7 +58,7 @@ Models that fail any gate belong in `docs/ROADMAP.md`, not in the catalog.
 Re-run the harness when a model, adapter or quantized build changes:
 
 ```bash
-PYTHONPATH=src python bench/run.py --suite bench/suites/smoke.jsonl \
+uv run python bench/run.py --suite bench/suites/smoke.jsonl \
   --repeats 3 --output bench/results/YYYY-MM-DD-smoke.json
 ```
 
@@ -65,15 +69,15 @@ same metric as the historical admission values in the model cards.
 ## Tests and lint
 
 ```bash
-ruff check src tests bench
-PYTHONPATH=src pytest -q
-PYTHONPATH=src pytest -q -m fuzz        # malformed REST corpus
-python -m decision_toolkit --version
-pip-audit                             # dependency scan (CI runs this)
+uv run ruff check src tests bench
+uv run pytest -q
+uv run pytest -q -m fuzz        # malformed REST corpus
+uv run dtk --version
+uv run pip-audit                # dependency scan (CI runs this)
 ```
 
-CI runs these on Python 3.12 and 3.13 from source, plus `pip-audit`. A separate
-tag-triggered release workflow builds and publishes the wheel; see
+CI runs these on Python 3.12 and 3.13, plus `pip-audit`. The tag-triggered
+release workflow builds and publishes the wheel with uv; see
 [RELEASE.md](docs/RELEASE.md). For rate limits, metrics, tracing and the load
 probe see [OPERATIONS.md](docs/OPERATIONS.md).
 

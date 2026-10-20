@@ -23,7 +23,7 @@
   - `model.onnx.data` — `fd915be810d7ebfb80fb05a48dd33c9484d17ae1b6bcb9e1f544cbaaa913ded1`
   - `tokenizer.json` — `609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f`
 - **Verify:** `dtk models verify julia-1 --variant fp32`
-- **Bench:** `PYTHONPATH=src python bench/run.py --suite bench/suites/smoke.jsonl --models julia-1`
+- **Bench:** `uv run python bench/run.py --suite bench/suites/smoke.jsonl --models julia-1`
 
 ## Evidence (2026-10-19)
 

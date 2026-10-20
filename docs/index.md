@@ -5,10 +5,12 @@ yes-no / score questions with calibrated probabilities, one ONNX engine and one
 adapter per model contract.
 
 ```bash
-pip install decision-toolkit
-pip install "decision-toolkit[onnx]"     # model runtime
-pip install "decision-toolkit[server]"   # REST server
+uv pip install decision-toolkit
+uv pip install "decision-toolkit[onnx]"     # model runtime
+uv pip install "decision-toolkit[server]"   # REST server
 ```
+
+Development builds are reproducible with the committed `uv.lock`.
 
 PyPI: <https://pypi.org/project/decision-toolkit/>
 

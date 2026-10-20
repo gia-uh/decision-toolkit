@@ -23,7 +23,7 @@
   - `onnx/model_q4f16.onnx_data` — `df2b05dc97ff875e0d2b51ec21de0049b7b3e7feddaa5224d318dc79e66210e8`
   - `tokenizer.json` — `3ad87d9ffe669147063e70850927dd2da90249e2acc5c8527f1eb65df467bcc8`
 - **Verify:** `dtk models verify gliner2.5-decide --variant q4f16`
-- **Bench:** `PYTHONPATH=src python bench/run.py --suite bench/suites/smoke.jsonl --models gliner2.5-decide`
+- **Bench:** `uv run python bench/run.py --suite bench/suites/smoke.jsonl --models gliner2.5-decide`
 
 ## Evidence (2026-10-19)
 

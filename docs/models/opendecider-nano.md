@@ -23,7 +23,7 @@
   - `tokenizer.web.json` — `fd4146f0082d98fd1fc03bf41349f4d1eed478987ce9a64addc1654dfcad14ee`
   - `opendecider.json` — `28eea9d70afba02740fdd871b148004437cd4f8c31b416776bb864d7895cf83f`
 - **Verify:** `dtk models verify opendecider-nano --variant q8f16`
-- **Bench:** `PYTHONPATH=src python bench/run.py --suite bench/suites/smoke.jsonl --models opendecider-nano`
+- **Bench:** `uv run python bench/run.py --suite bench/suites/smoke.jsonl --models opendecider-nano`
 - The `fp16` variant is pinned to the same revision; its hashes live in `catalog.py`.
 
 ## Evidence (2026-10-19)

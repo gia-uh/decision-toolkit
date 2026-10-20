@@ -18,27 +18,27 @@ jobs:
       fail-fast: false
       matrix:
         python: ["3.12", "3.13"]
-    env:
-      PYTHONPATH: src
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
-          cache: pip
-      - name: Install test dependencies from source
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install \
-            pytest ruff PyYAML huggingface_hub fastapi httpx pydantic numpy openai
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.11.8"
+          enable-cache: true
+      - name: Check lockfile
+        run: uv lock --check
+      - name: Sync locked environment
+        run: uv sync --frozen --all-extras
       - name: Lint
-        run: ruff check src tests bench
+        run: uv run --no-sync ruff check src tests bench
       - name: Unit and contract tests (source tree, no wheel)
-        run: pytest -q
+        run: uv run --no-sync pytest -q
       - name: CLI smoke from source
         run: |
-          python -m decision_toolkit --version
-          python -m decision_toolkit --home "$RUNNER_TEMP/dtk-home" doctor --json
+          uv run --no-sync dtk --version
+          uv run --no-sync dtk --home "$RUNNER_TEMP/dtk-home" doctor --json
 
   package:
     name: wheel build and clean install
@@ -48,17 +48,21 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: Build and validate distributions
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.11.8"
+          enable-cache: true
+      - name: Sync locked environment
+        run: uv sync --frozen
+      - name: Build and validate distributions with uv
         run: |
-          python -m pip install --upgrade build twine
-          python -m build
-          python -m twine check dist/*
-      - name: Install the wheel in a clean venv
+          uv build
+          uv run --no-sync twine check dist/*
+      - name: Install the wheel in a clean uv venv
         run: |
-          python -m venv /tmp/dtk-wheel
-          /tmp/dtk-wheel/bin/pip install --upgrade pip
-          /tmp/dtk-wheel/bin/pip install dist/*.whl
-          /tmp/dtk-wheel/bin/pip check
+          uv venv --python 3.12 /tmp/dtk-wheel
+          uv pip install --python /tmp/dtk-wheel/bin/python dist/*.whl
+          uv pip check --python /tmp/dtk-wheel/bin/python
           /tmp/dtk-wheel/bin/dtk --version
           /tmp/dtk-wheel/bin/dtk models list --json
 
@@ -70,9 +74,11 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
-      - name: Install audit tool and runtime dependencies
-        run: |
-          python -m pip install --upgrade pip pip-audit
-          python -m pip install PyYAML huggingface_hub fastapi httpx pydantic numpy
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.11.8"
+          enable-cache: true
+      - name: Sync locked environment
+        run: uv sync --frozen --all-extras
       - name: pip-audit
-        run: pip-audit
+        run: uv run --no-sync pip-audit

@@ -18,12 +18,12 @@ quality benchmark.
 ## Reproduce
 
 ```bash
-PYTHONPATH=src python bench/run.py \
+uv run python bench/run.py \
   --suite bench/suites/smoke.jsonl \
   --repeats 3 \
   --output bench/results/2026-10-20-smoke.json
 
-PYTHONPATH=src python bench/run.py \
+uv run python bench/run.py \
   --suite bench/suites/calibration.jsonl \
   --repeats 1 \
   --output bench/results/2026-10-20-calibration.json

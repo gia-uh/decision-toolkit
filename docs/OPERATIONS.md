@@ -89,11 +89,11 @@ Tracing is a no-op when the package is absent. Exporters are configured by the
 application/environment, not by decision-toolkit. Install with:
 
 ```bash
-pip install "decision-toolkit[tracing]"
+uv pip install "decision-toolkit[tracing]"
 ```
 
-(No wheel exists yet; this extra applies once packaging is available. For source
-work, install `opentelemetry-api` directly.)
+The extra is included in the published wheel. Source checkouts install it with
+`uv sync --all-extras`.
 
 ## Load testing
 
@@ -102,7 +102,7 @@ work, install `opentelemetry-api` directly.)
 dtk serve --model gliner2.5-multi --warmup --port 8011 --max-concurrent 4
 
 # probe it
-PYTHONPATH=src python bench/load.py \
+uv run python bench/load.py \
   --base-url http://127.0.0.1:8011 \
   --model gliner2.5-multi \
   --concurrency 10 --requests 30 \
@@ -134,8 +134,8 @@ A local audit on 2026-10-20 reported no known vulnerabilities. Re-run it after
 changing dependency ranges:
 
 ```bash
-pip install pip-audit
-pip-audit
+uv sync --all-extras
+uv run pip-audit
 ```
 
 ## Runbook

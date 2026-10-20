@@ -23,7 +23,7 @@
   - `fp32_25/classifier_fp32.onnx` — `3c06934244a4763a7411d9dceb002ba2d5c84d1bb7f7d66aa64acd5653314454`
   - `fp16_25/tokenizer.json` — `c62446df87ae18ec98b133f8f84fc449a07cc89bbf8ef192a4cb5f9c53777a7a`
 - **Verify:** `dtk models verify gliner2.5-multi --variant fp16`
-- **Bench:** `PYTHONPATH=src python bench/run.py --suite bench/suites/smoke.jsonl --models gliner2.5-multi`
+- **Bench:** `uv run python bench/run.py --suite bench/suites/smoke.jsonl --models gliner2.5-multi`
 - The `fp32` variant is pinned to the same revision; its hashes live in `catalog.py`.
 
 ## Evidence (2026-10-19)

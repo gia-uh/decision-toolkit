@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Mapping
 from typing import Any
 
@@ -99,6 +100,9 @@ def fake_snapshot(monkeypatch):
     monkeypatch.setattr(catalog, "CATALOG", patched)
     monkeypatch.setattr(catalog, "CATALOG_BY_ID", {model.id: model for model in patched})
 
+    # Fake files are not valid ONNX graphs; make verify report the session
+    # check as unavailable rather than failing on a synthetic artifact.
+    monkeypatch.setitem(sys.modules, "onnxruntime", None)
     calls: list[dict] = []
 
     def _fake(repo_id, local_dir, revision=None, allow_patterns=None):
