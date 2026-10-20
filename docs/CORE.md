@@ -283,5 +283,6 @@ This is the checklist against which the REST projection will be verified:
   (see [REST.md](REST.md)).
 - CLI workflows across the whole catalog — implemented in phase 3 (see
   [CLI.md](CLI.md)).
-- Pin/hash enforcement in the catalog and wheel/CI (phase 4).
+- Pin/hash enforcement and source CI are implemented in phase 4; wheel,
+  PyPI and distribution tagging are deferred to phase 6.
 - Metrics server, rate limiting, load/fuzz testing (phase 5).

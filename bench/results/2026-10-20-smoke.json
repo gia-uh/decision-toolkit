@@ -1,0 +1,246 @@
+{
+  "suite": "bench/suites/smoke.jsonl",
+  "generated_at": "2026-10-20T17:57:53+00:00",
+  "repeats": 3,
+  "environment": {
+    "python": "3.12.7",
+    "platform": "Linux-6.14.6-061406-generic-x86_64-with-glibc2.40",
+    "machine": "x86_64",
+    "onnxruntime": "1.23.2",
+    "tokenizers": "0.22.1",
+    "numpy": "2.3.4"
+  },
+  "models": {
+    "gliner2.5-multi": {
+      "variant": "fp16",
+      "cases": 1,
+      "parity": {
+        "cases": 1,
+        "matched": 1,
+        "accuracy": 1.0
+      },
+      "latency_ms": {
+        "runs": 3,
+        "p50": 177.11525999948208,
+        "p95": 186.80963969991353
+      },
+      "calibration": null,
+      "results": [
+        {
+          "id": "gliner2.5-multi-reunion",
+          "matched": true,
+          "expected": {
+            "cat": "reunion"
+          },
+          "actual": {
+            "cat": "reunion"
+          },
+          "types": {
+            "cat": "choice"
+          },
+          "confidence": {
+            "cat": 0.9835345201220771
+          },
+          "latency_ms": [
+            187.88679299996147,
+            175.79495800055156,
+            177.11525999948208
+          ],
+          "usage": {
+            "input_tokens": 160,
+            "output_tokens": 91,
+            "total_tokens": 251,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        }
+      ]
+    },
+    "gliner2.5-decide": {
+      "variant": "q4f16",
+      "cases": 1,
+      "parity": {
+        "cases": 1,
+        "matched": 1,
+        "accuracy": 1.0
+      },
+      "latency_ms": {
+        "runs": 3,
+        "p50": 292.87025299981906,
+        "p95": 294.83382439993875
+      },
+      "calibration": null,
+      "results": [
+        {
+          "id": "gliner2.5-decide-refund",
+          "matched": true,
+          "expected": {
+            "intent": "refund_request"
+          },
+          "actual": {
+            "intent": "refund_request"
+          },
+          "types": {
+            "intent": "choice"
+          },
+          "confidence": {
+            "intent": 0.9328825937413195
+          },
+          "latency_ms": [
+            295.05199899995205,
+            292.87025299981906,
+            292.5135229997977
+          ],
+          "usage": {
+            "input_tokens": 73,
+            "output_tokens": 87,
+            "total_tokens": 160,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        }
+      ]
+    },
+    "laya": {
+      "variant": "q8",
+      "cases": 1,
+      "parity": {
+        "cases": 1,
+        "matched": 1,
+        "accuracy": 1.0
+      },
+      "latency_ms": {
+        "runs": 3,
+        "p50": 262.74267400003737,
+        "p95": 290.0606278007217
+      },
+      "calibration": null,
+      "results": [
+        {
+          "id": "laya-billing",
+          "matched": true,
+          "expected": {
+            "team": "billing"
+          },
+          "actual": {
+            "team": "billing"
+          },
+          "types": {
+            "team": "choice"
+          },
+          "confidence": {
+            "team": 0.9721868863390014
+          },
+          "latency_ms": [
+            261.69648399991274,
+            262.74267400003737,
+            293.09595600079774
+          ],
+          "usage": {
+            "input_tokens": 58,
+            "output_tokens": 114,
+            "total_tokens": 172,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        }
+      ]
+    },
+    "julia-1": {
+      "variant": "fp32",
+      "cases": 1,
+      "parity": {
+        "cases": 1,
+        "matched": 1,
+        "accuracy": 1.0
+      },
+      "latency_ms": {
+        "runs": 3,
+        "p50": 16.60541699948226,
+        "p95": 16.68926550046308
+      },
+      "calibration": null,
+      "results": [
+        {
+          "id": "julia-billing",
+          "matched": true,
+          "expected": {
+            "team": "billing"
+          },
+          "actual": {
+            "team": "billing"
+          },
+          "types": {
+            "team": "choice"
+          },
+          "confidence": {
+            "team": 0.9999352161089804
+          },
+          "latency_ms": [
+            16.69858200057206,
+            16.60541699948226,
+            16.37891900008981
+          ],
+          "usage": {
+            "input_tokens": 52,
+            "output_tokens": 99,
+            "total_tokens": 151,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        }
+      ]
+    },
+    "opendecider-nano": {
+      "variant": "q8f16",
+      "cases": 1,
+      "parity": {
+        "cases": 1,
+        "matched": 1,
+        "accuracy": 1.0
+      },
+      "latency_ms": {
+        "runs": 3,
+        "p50": 273.8949300000968,
+        "p95": 279.01974329943187
+      },
+      "calibration": null,
+      "results": [
+        {
+          "id": "opendecider-billing",
+          "matched": true,
+          "expected": {
+            "team": "billing"
+          },
+          "actual": {
+            "team": "billing"
+          },
+          "types": {
+            "team": "choice"
+          },
+          "confidence": {
+            "team": 0.8405045947187926
+          },
+          "latency_ms": [
+            273.8949300000968,
+            279.589166999358,
+            271.3106009996409
+          ],
+          "usage": {
+            "input_tokens": 58,
+            "output_tokens": 70,
+            "total_tokens": 128,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        }
+      ]
+    }
+  },
+  "ok": true
+}

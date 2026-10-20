@@ -78,7 +78,26 @@ def home(tmp_path):
 @pytest.fixture
 def fake_snapshot(monkeypatch):
     """Replace the hub download with a local fake; record its arguments."""
+    import dataclasses
+
     import decision_toolkit.models as models_module
+    from decision_toolkit import catalog
+
+    # Fake downloads write arbitrary bytes; remove the real pinned hashes for
+    # the duration of this fixture so verification tests exercise the cache
+    # metadata rather than real model artifacts.
+    patched = tuple(
+        dataclasses.replace(
+            model,
+            variants=tuple(
+                dataclasses.replace(variant, sha256={}, extra_sha256={})
+                for variant in model.variants
+            ),
+        )
+        for model in catalog.CATALOG
+    )
+    monkeypatch.setattr(catalog, "CATALOG", patched)
+    monkeypatch.setattr(catalog, "CATALOG_BY_ID", {model.id: model for model in patched})
 
     calls: list[dict] = []
 

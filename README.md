@@ -175,6 +175,25 @@ gliner2.5-multi:
   sample) and measuring latency on CPU.
 - Unverified variants are never default. No silent fallback.
 
+## Reproducibility
+
+Every catalog variant is pinned to a real HuggingFace **commit SHA** and carries
+a **SHA256 per file**, including external `.onnx.data` files. Downloads reject
+mismatches and verification treats the catalog hashes as the source of truth:
+
+```bash
+dtk models verify --all --json    # exit 3 if any file/hash/session fails
+```
+
+Latency/parity/calibration evidence is reproducible with the harness in
+[`bench/`](bench/) and documented in [docs/BENCH.md](docs/BENCH.md). CI runs
+lint, unit/contract tests and a CLI smoke from source on Python 3.12/3.13.
+
+There is **no wheel or PyPI release yet**; packaging is a later milestone. See
+[CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md),
+[SECURITY.md](SECURITY.md) and
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ## Custom ONNX (at your own risk)
 
 You can run any ONNX file with an adapter you trust — outside the curated
@@ -203,10 +222,15 @@ layout. If a model deserves support, it goes through curation.
 ## Development
 
 ```bash
-uv venv && uv pip install -e ".[dev,onnx,server]"
-uv run pytest                       # fast suite (no model downloads)
-uv run pytest -m integration        # loads a real model (needs its download/runtime)
+python -m venv .venv && . .venv/bin/activate
+pip install pytest ruff PyYAML huggingface_hub fastapi httpx pydantic numpy
+PYTHONPATH=src pytest -q             # fast suite (no model downloads)
+PYTHONPATH=src pytest -m integration -o addopts=""   # real model, opt-in
 ```
+
+No wheel or editable install is required while the project is pre-distribution.
+CI runs the same source-tree commands on Python 3.12/3.13. See
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

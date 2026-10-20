@@ -73,6 +73,16 @@ def test_select_variant_without_variants_errors():
         catalog.select_variant(model)
 
 
+def test_every_variant_is_pinned_and_hashed():
+    for model in catalog.CATALOG:
+        for variant in model.variants:
+            assert variant.revision and len(variant.revision) == 40, (model.id, variant.name)
+            assert set(variant.sha256) == set(variant.files), (model.id, variant.name)
+            assert set(variant.extra_sha256) == set(variant.extra_files), (model.id, variant.name)
+            for digest in [*variant.sha256.values(), *variant.extra_sha256.values()]:
+                assert len(digest) == 64 and all(char in "0123456789abcdef" for char in digest)
+
+
 def test_m0_variants_have_measured_evidence():
     for model in catalog.CATALOG:
         for variant in model.variants:

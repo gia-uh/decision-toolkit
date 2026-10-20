@@ -1,0 +1,311 @@
+{
+  "suite": "bench/suites/calibration.jsonl",
+  "generated_at": "2026-10-20T17:57:57+00:00",
+  "repeats": 1,
+  "environment": {
+    "python": "3.12.7",
+    "platform": "Linux-6.14.6-061406-generic-x86_64-with-glibc2.40",
+    "machine": "x86_64",
+    "onnxruntime": "1.23.2",
+    "tokenizers": "0.22.1",
+    "numpy": "2.3.4"
+  },
+  "models": {
+    "gliner2.5-multi": {
+      "variant": "fp16",
+      "cases": 10,
+      "parity": null,
+      "latency_ms": {
+        "runs": 10,
+        "p50": 170.83249249981236,
+        "p95": 177.60170709975682
+      },
+      "calibration": {
+        "n": 10,
+        "accuracy": 0.6,
+        "brier": 0.17269478454352358,
+        "ece": 0.24714999798012505,
+        "thresholds": {
+          "0.5": {
+            "coverage": 0.8,
+            "accuracy_kept": 1.0,
+            "n_kept": 8.0
+          },
+          "0.6": {
+            "coverage": 0.8,
+            "accuracy_kept": 1.0,
+            "n_kept": 8.0
+          },
+          "0.7": {
+            "coverage": 0.7,
+            "accuracy_kept": 1.0,
+            "n_kept": 7.0
+          },
+          "0.8": {
+            "coverage": 0.7,
+            "accuracy_kept": 1.0,
+            "n_kept": 7.0
+          },
+          "0.9": {
+            "coverage": 0.6,
+            "accuracy_kept": 1.0,
+            "n_kept": 6.0
+          }
+        }
+      },
+      "results": [
+        {
+          "id": "routing-01",
+          "matched": null,
+          "expected": null,
+          "actual": {
+            "cat": "reunion"
+          },
+          "types": {
+            "cat": "choice"
+          },
+          "confidence": {
+            "cat": 0.9835345201220771
+          },
+          "latency_ms": [
+            171.21758499979478
+          ],
+          "usage": {
+            "input_tokens": 160,
+            "output_tokens": 91,
+            "total_tokens": 251,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        },
+        {
+          "id": "routing-02",
+          "matched": null,
+          "expected": null,
+          "actual": {
+            "cat": "reunion"
+          },
+          "types": {
+            "cat": "choice"
+          },
+          "confidence": {
+            "cat": 0.6381258923283962
+          },
+          "latency_ms": [
+            171.21710799983703
+          ],
+          "usage": {
+            "input_tokens": 153,
+            "output_tokens": 90,
+            "total_tokens": 243,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        },
+        {
+          "id": "routing-03",
+          "matched": null,
+          "expected": null,
+          "actual": {
+            "cat": "contacto"
+          },
+          "types": {
+            "cat": "choice"
+          },
+          "confidence": {
+            "cat": 0.9821188953950262
+          },
+          "latency_ms": [
+            180.83441799990396
+          ],
+          "usage": {
+            "input_tokens": 159,
+            "output_tokens": 92,
+            "total_tokens": 251,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        },
+        {
+          "id": "routing-04",
+          "matched": null,
+          "expected": null,
+          "actual": {
+            "cat": "tareas"
+          },
+          "types": {
+            "cat": "choice"
+          },
+          "confidence": {
+            "cat": 0.4529261474635126
+          },
+          "latency_ms": [
+            170.4478769997877
+          ],
+          "usage": {
+            "input_tokens": 153,
+            "output_tokens": 90,
+            "total_tokens": 243,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        },
+        {
+          "id": "routing-05",
+          "matched": null,
+          "expected": null,
+          "actual": {
+            "cat": "reunion"
+          },
+          "types": {
+            "cat": "choice"
+          },
+          "confidence": {
+            "cat": 0.9873561660514988
+          },
+          "latency_ms": [
+            173.34431200015388
+          ],
+          "usage": {
+            "input_tokens": 150,
+            "output_tokens": 92,
+            "total_tokens": 242,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        },
+        {
+          "id": "routing-06",
+          "matched": null,
+          "expected": null,
+          "actual": {
+            "cat": "tareas"
+          },
+          "types": {
+            "cat": "choice"
+          },
+          "confidence": {
+            "cat": 0.8838307166553228
+          },
+          "latency_ms": [
+            166.00923399983003
+          ],
+          "usage": {
+            "input_tokens": 148,
+            "output_tokens": 88,
+            "total_tokens": 236,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        },
+        {
+          "id": "routing-07",
+          "matched": null,
+          "expected": null,
+          "actual": {
+            "cat": "reunion"
+          },
+          "types": {
+            "cat": "choice"
+          },
+          "confidence": {
+            "cat": 0.9996229485730719
+          },
+          "latency_ms": [
+            173.65061599957698
+          ],
+          "usage": {
+            "input_tokens": 153,
+            "output_tokens": 94,
+            "total_tokens": 247,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        },
+        {
+          "id": "routing-08",
+          "matched": null,
+          "expected": null,
+          "actual": {
+            "cat": "idea"
+          },
+          "types": {
+            "cat": "choice"
+          },
+          "confidence": {
+            "cat": 0.9851321291132044
+          },
+          "latency_ms": [
+            170.4082420001214
+          ],
+          "usage": {
+            "input_tokens": 152,
+            "output_tokens": 91,
+            "total_tokens": 243,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        },
+        {
+          "id": "routing-09",
+          "matched": null,
+          "expected": null,
+          "actual": {
+            "cat": "contacto"
+          },
+          "types": {
+            "cat": "choice"
+          },
+          "confidence": {
+            "cat": 0.973367744200846
+          },
+          "latency_ms": [
+            166.12879099920974
+          ],
+          "usage": {
+            "input_tokens": 145,
+            "output_tokens": 91,
+            "total_tokens": 236,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        },
+        {
+          "id": "routing-10",
+          "matched": null,
+          "expected": null,
+          "actual": {
+            "cat": "idea"
+          },
+          "types": {
+            "cat": "choice"
+          },
+          "confidence": {
+            "cat": 0.35314625320893994
+          },
+          "latency_ms": [
+            169.4325710004705
+          ],
+          "usage": {
+            "input_tokens": 151,
+            "output_tokens": 90,
+            "total_tokens": 241,
+            "estimated": true
+          },
+          "warnings": [],
+          "truncated": false
+        }
+      ]
+    }
+  },
+  "ok": true
+}

@@ -234,4 +234,5 @@ dtk doctor --json
   config), but still does not reimplement inference.
 - It does not have a compatibility obligation to System One/OpenAI; those are
   REST contracts.
-- Metrics/rate limiting and packaging/CI belong to phases 5 and 4.
+- Metrics/rate limiting belong to phase 5; wheel/PyPI and distribution
+  tagging are deferred to phase 6.

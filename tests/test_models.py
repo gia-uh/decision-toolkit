@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 
 import pytest
 
-from decision_toolkit.errors import ModelNotFoundError
+from decision_toolkit import catalog
+from decision_toolkit.errors import ModelNotFoundError, VerificationError
 from decision_toolkit.models import ModelStore
 
 
@@ -45,6 +47,56 @@ def test_download_explicit_variant(store, fake_snapshot):
         "fp32_25/classifier_fp32.onnx",
         "fp32_25/tokenizer.json",
     ]
+
+
+def test_download_records_the_pinned_revision(store, fake_snapshot):
+    entry = store.download("gliner2.5-multi")
+    meta = json.loads((entry.path / "model.json").read_text())
+    assert meta["revision"] == "3de2c11f55853b7919f985a59bfc8df27b5ec991"
+    assert meta["sha256"]["encoder"]
+    assert meta["extra_sha256"] == {}
+
+
+def test_download_rejects_a_hash_mismatch(store, fake_snapshot, monkeypatch):
+    model = catalog.get("gliner2.5-multi")
+    variant = catalog.select_variant(model, "fp16")
+    bad_variant = dataclasses.replace(
+        variant, sha256={**variant.sha256, "encoder": "0" * 64}
+    )
+    bad_model = dataclasses.replace(
+        model,
+        variants=tuple(
+            bad_variant if item.name == "fp16" else item for item in model.variants
+        ),
+    )
+    monkeypatch.setattr(
+        catalog, "get", lambda identifier: bad_model if identifier == model.id else None
+    )
+    with pytest.raises(VerificationError):
+        store.download("gliner2.5-multi")
+    assert not (store.models_dir / "gliner2.5-multi@fp16").exists()
+
+
+def test_verify_uses_pinned_catalog_hashes(store, fake_snapshot, monkeypatch):
+    entry = store.download("gliner2.5-multi")
+    model = catalog.get("gliner2.5-multi")
+    variant = catalog.select_variant(model, "fp16")
+    bad_variant = dataclasses.replace(
+        variant, sha256={**variant.sha256, "encoder": "0" * 64}
+    )
+    bad_model = dataclasses.replace(
+        model,
+        variants=tuple(
+            bad_variant if item.name == "fp16" else item for item in model.variants
+        ),
+    )
+    monkeypatch.setattr(
+        catalog, "get", lambda identifier: bad_model if identifier == model.id else None
+    )
+    report = store.verify("gliner2.5-multi")
+    assert report["ok"] is False
+    assert report["hashes"]["encoder"]["ok"] is False
+    assert entry.path.is_dir()
 
 
 def test_download_laya_variant_includes_external_data(store, fake_snapshot):
@@ -96,6 +148,16 @@ def test_delete_refuses_the_model_in_use(store, fake_snapshot):
     store.use("gliner2.5-multi")
     with pytest.raises(ModelNotFoundError):
         store.delete("gliner2.5-multi")
+
+
+def test_verify_checks_external_data_files(store, fake_snapshot):
+    store.download("laya")
+    report = store.verify("laya")
+    assert set(report["extra_hashes"]) == {
+        "v1/encoder_q8.onnx.data",
+        "v1/head_q8.onnx.data",
+    }
+    assert all(item["ok"] for item in report["extra_hashes"].values())
 
 
 def test_verify_reports_files_and_session_note(store, fake_snapshot):

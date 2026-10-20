@@ -38,7 +38,7 @@ from typing import Any
 
 from . import catalog
 from .config import Config, load_config, save_config
-from .errors import ModelNotFoundError
+from .errors import ModelNotFoundError, VerificationError
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +61,9 @@ class ModelEntry:
     size_bytes: int
     adapter: str | None = None
     sha256: Mapping[str, str] = field(default_factory=dict)
+    extra_files: tuple[str, ...] = ()
+    extra_sha256: Mapping[str, str] = field(default_factory=dict)
+    revision: str | None = None
 
 
 @dataclass(frozen=True)
@@ -90,6 +93,20 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _role_hashes(
+    hashes: Mapping[str, str],
+    files: Mapping[str, str],
+) -> dict[str, str]:
+    """Accept both role-keyed and path-keyed legacy hash maps."""
+    by_path = {path: role for role, path in files.items()}
+    normalized: dict[str, str] = {}
+    for key, value in hashes.items():
+        role = key if key in files else by_path.get(key)
+        if role is not None:
+            normalized[role] = value
+    return normalized
 
 
 def _gunzip_tree(root: Path) -> None:
@@ -159,6 +176,9 @@ class ModelStore:
                     size_bytes=_dir_size(directory),
                     adapter=meta.get("adapter"),
                     sha256=dict(meta.get("sha256") or {}),
+                    extra_files=tuple(meta.get("extra_files") or ()),
+                    extra_sha256=dict(meta.get("extra_sha256") or {}),
+                    revision=meta.get("revision"),
                 )
             )
         return found
@@ -193,32 +213,82 @@ class ModelStore:
         logger.info("deleted %s (%d bytes)", entry.path, entry.size_bytes)
 
     def verify(self, identifier: str, variant: str | None = None) -> dict[str, Any]:
-        """Check a cached variant: files, recorded SHA256 and, if available, ONNX sessions."""
+        """Check a cached variant against its pinned catalog hashes.
+
+        The catalog is the source of truth when it has hashes; the ``model.json``
+        hashes are used for custom/imported models or older caches.  Extra files
+        (external ONNX data) are checked too.
+        """
         entry = self.get(identifier, variant)
         if entry is None:
             raise ModelNotFoundError(f"{identifier!r} is not in the toolkit cache")
-        missing = [path for path in entry.files.values() if not (entry.path / path).is_file()]
+        model = catalog.get(identifier)
+        chosen = None
+        if model is not None:
+            try:
+                chosen = catalog.select_variant(model, entry.variant)
+            except ModelNotFoundError:
+                chosen = None
+
+        expected = (
+            dict(chosen.sha256)
+            if chosen is not None and chosen.sha256
+            else _role_hashes(entry.sha256, entry.files)
+        )
+        expected_extra = (
+            dict(chosen.extra_sha256)
+            if chosen is not None and chosen.extra_sha256
+            else dict(entry.extra_sha256)
+        )
+        declared = list(entry.files.values()) + list(entry.extra_files)
+        missing = [relative for relative in declared if not (entry.path / relative).is_file()]
+        missing.extend(f"missing role {role}" for role in expected if role not in entry.files)
+        missing.extend(
+            f"missing extra {relative}"
+            for relative in expected_extra
+            if relative not in entry.extra_files
+        )
+
         hashes: dict[str, dict[str, Any]] = {}
-        for role, expected in entry.sha256.items():
-            relative = entry.files.get(role)
-            if relative is None:
-                hashes[role] = {"expected": expected, "actual": None, "ok": False}
-                continue
+        for role, relative in entry.files.items():
             target = entry.path / relative
             actual = _sha256(target) if target.is_file() else None
+            wanted = expected.get(role)
             hashes[role] = {
-                "expected": expected,
+                "expected": wanted,
                 "actual": actual,
-                "ok": actual == expected,
+                "ok": bool(wanted) and actual == wanted,
             }
+        extra_hashes: dict[str, dict[str, Any]] = {}
+        for relative in entry.extra_files:
+            target = entry.path / relative
+            actual = _sha256(target) if target.is_file() else None
+            wanted = expected_extra.get(relative)
+            extra_hashes[relative] = {
+                "expected": wanted,
+                "actual": actual,
+                "ok": bool(wanted) and actual == wanted,
+            }
+
         report: dict[str, Any] = {
             "identifier": entry.identifier,
             "variant": entry.variant,
+            "revision": (
+                chosen.revision if chosen is not None else None
+            ),
+            "pinned": bool(chosen is not None and chosen.revision and chosen.sha256),
             "files": dict(entry.files),
+            "extra_files": list(entry.extra_files),
             "missing": missing,
             "hashes": hashes,
+            "extra_hashes": extra_hashes,
             "sessions": {},
-            "ok": not missing and all(item["ok"] for item in hashes.values()),
+            "ok": (
+                not missing
+                and not (expected and not hashes)
+                and all(item["ok"] for item in hashes.values())
+                and all(item["ok"] for item in extra_hashes.values())
+            ),
         }
         try:
             import onnxruntime  # noqa: F401
@@ -290,18 +360,43 @@ class ModelStore:
 
                 files = {role: _strip_gz(relative) for role, relative in chosen.files.items()}
                 extra_files = [_strip_gz(relative) for relative in chosen.extra_files]
-                sha256 = {
-                    role: _sha256(partial / relative)
-                    for role, relative in files.items()
-                    if (partial / relative).is_file()
-                }
+                sha256: dict[str, str] = {}
+                extra_sha256: dict[str, str] = {}
+                mismatches: list[str] = []
+                for role, relative in files.items():
+                    target = partial / relative
+                    if not target.is_file():
+                        mismatches.append(f"{relative} (missing)")
+                        continue
+                    actual = _sha256(target)
+                    sha256[role] = actual
+                    wanted = chosen.sha256.get(role)
+                    if wanted and actual != wanted:
+                        mismatches.append(f"{relative} (role {role})")
+                for relative in extra_files:
+                    target = partial / relative
+                    if not target.is_file():
+                        mismatches.append(f"{relative} (missing)")
+                        continue
+                    actual = _sha256(target)
+                    extra_sha256[relative] = actual
+                    wanted = chosen.extra_sha256.get(relative)
+                    if wanted and actual != wanted:
+                        mismatches.append(relative)
+                if mismatches:
+                    raise VerificationError(
+                        f"download of {identifier}@{chosen.name} does not match the pinned "
+                        f"SHA256 for: {', '.join(mismatches)}"
+                    )
                 meta = {
                     "identifier": identifier,
                     "variant": chosen.name,
                     "repo": chosen.repo,
+                    "revision": revision or chosen.revision,
                     "files": files,
                     "extra_files": extra_files,
                     "sha256": sha256,
+                    "extra_sha256": extra_sha256,
                     "adapter": model.adapter,
                     "source": "download",
                     "origin": f"huggingface:{chosen.repo}@{revision or chosen.revision or 'main'}",
@@ -366,6 +461,8 @@ class ModelStore:
                 "files": role_map,
                 "extra_files": [],
                 "sha256": sha256,
+                "extra_sha256": {},
+                "revision": None,
                 "adapter": adapter,
                 "source": "import",
                 "origin": str(source),

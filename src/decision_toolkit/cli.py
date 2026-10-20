@@ -417,7 +417,10 @@ def _entry_payload(entry: ModelEntry) -> dict[str, Any]:
         "size_bytes": entry.size_bytes,
         "adapter": entry.adapter,
         "files": dict(entry.files),
+        "extra_files": list(entry.extra_files),
         "sha256": dict(entry.sha256),
+        "extra_sha256": dict(entry.extra_sha256),
+        "revision": entry.revision,
     }
 
 
@@ -448,6 +451,8 @@ def _variant_payload(variant: catalog.Variant, cached: set[tuple[str, str]], mod
         "verified_at": variant.verified_at,
         "latency_ms_p50": variant.latency_ms_p50,
         "parity": dict(variant.parity) if variant.parity else None,
+        "sha256": dict(variant.sha256),
+        "extra_sha256": dict(variant.extra_sha256),
         "cached": (model_id, variant.name) in cached,
     }
 
@@ -594,6 +599,7 @@ def _cmd_models(args: argparse.Namespace) -> int:
                 f"  {variant.name:8s} {variant.quant:10s} {variant.size_mb:7.1f} MB  "
                 f"role={variant.role:8s} repo={variant.repo}{cached_mark}"
             )
+            print(f"           revision: {variant.revision or '(unpinned)'}")
             if variant.latency_ms_p50 is not None:
                 verified = f" · verified {variant.verified_at}" if variant.verified_at else ""
                 print(f"           latency p50: {variant.latency_ms_p50:.0f} ms{verified}")
@@ -619,6 +625,8 @@ def _cmd_models(args: argparse.Namespace) -> int:
                 "size_mb": chosen.size_mb,
                 "files": dict(chosen.files),
                 "extra_files": list(chosen.extra_files),
+                "sha256": dict(chosen.sha256),
+                "extra_sha256": dict(chosen.extra_sha256),
                 "cached": (model.id, chosen.name) in _cached_set(store),
             }
             if as_json:

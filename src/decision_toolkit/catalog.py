@@ -74,6 +74,8 @@ class Variant:
     verified_at: str | None = None
     latency_ms_p50: float | None = None
     parity: Mapping[str, Any] | None = None
+    sha256: Mapping[str, str] = field(default_factory=dict)        # role -> sha256
+    extra_sha256: Mapping[str, str] = field(default_factory=dict)  # relative path -> sha256
 
 
 @dataclass(frozen=True)
@@ -164,6 +166,8 @@ class ModelInfo:
                     "verified_at": variant.verified_at,
                     "latency_ms_p50": variant.latency_ms_p50,
                     "parity": dict(variant.parity) if variant.parity else None,
+                    "sha256": dict(variant.sha256),
+                    "extra_sha256": dict(variant.extra_sha256),
                 }
                 for variant in self.variants
             ],
@@ -197,6 +201,12 @@ CATALOG: tuple[CatalogModel, ...] = (
                 quant="fp16",
                 size_mb=577.1,
                 role="default",
+                revision="3de2c11f55853b7919f985a59bfc8df27b5ec991",
+                sha256={
+                    "encoder": "b389910b27261d4999bd41c164bfa0334f76b3bc9fd3d890527b6f07fa1bfb94",
+                    "classifier": "3c06934244a4763a7411d9dceb002ba2d5c84d1bb7f7d66aa64acd5653314454",
+                    "tokenizer": "c62446df87ae18ec98b133f8f84fc449a07cc89bbf8ef192a4cb5f9c53777a7a",
+                },
                 verified_at="2026-10-19",
                 latency_ms_p50=353.0,
                 parity={
@@ -217,6 +227,12 @@ CATALOG: tuple[CatalogModel, ...] = (
                 quant="fp32",
                 size_mb=1131.9,
                 role="quality",
+                revision="3de2c11f55853b7919f985a59bfc8df27b5ec991",
+                sha256={
+                    "encoder": "cba26576eef7e14eba87f3485395d5b24e5047f819c859a9d667a63915ed404f",
+                    "classifier": "3c06934244a4763a7411d9dceb002ba2d5c84d1bb7f7d66aa64acd5653314454",
+                    "tokenizer": "c62446df87ae18ec98b133f8f84fc449a07cc89bbf8ef192a4cb5f9c53777a7a",
+                },
             ),
         ),
     ),
@@ -245,6 +261,14 @@ CATALOG: tuple[CatalogModel, ...] = (
                 quant="q4/fp16",
                 size_mb=523.5,
                 role="default",
+                revision="18271032588167fe9a3fbb8c5a4900b1231f8119",
+                sha256={
+                    "model": "93f3e0d4ed8bbd4858840f8a2e66028a70e86a482e1ff9822d2ac726381684f6",
+                    "tokenizer": "3ad87d9ffe669147063e70850927dd2da90249e2acc5c8527f1eb65df467bcc8",
+                },
+                extra_sha256={
+                    "onnx/model_q4f16.onnx_data": "df2b05dc97ff875e0d2b51ec21de0049b7b3e7feddaa5224d318dc79e66210e8",
+                },
                 verified_at="2026-10-19",
                 latency_ms_p50=912.0,
                 parity={
@@ -281,6 +305,17 @@ CATALOG: tuple[CatalogModel, ...] = (
                 quant="int8",
                 size_mb=527.9,
                 role="default",
+                revision="cccc9a01e06189cbb1c153a51ea32642102e306d",
+                sha256={
+                    "encoder": "5267b578a536bf12808ec84c1f354e87efd150d3c38d44099ef3dd29c5f43124",
+                    "head": "e86c14c89a18b14f6115a7ccbfd039fce7ff97178fa0c07c14af936690a1f688",
+                    "tokenizer": "6c8aaa9a542084f2457eab775d4eeb51f92a70c0fd9de28d5edb0ddec3c08d30",
+                    "config": "ae287b56bbcf5f8c4f4541ae9dfd00c914c4c48b940b8398c3058af37ba92bbd",
+                },
+                extra_sha256={
+                    "v1/encoder_q8.onnx.data": "6375a3ae8f3ebfa4ca196e813fc7bdaf2e8ad8cf709218ef844ae8814dfffc59",
+                    "v1/head_q8.onnx.data": "cfdf7c199378b07758c69f58935871cf517c97c29914328d4b11fcfbe50b7f8b",
+                },
                 verified_at="2026-10-19",
                 latency_ms_p50=514.0,
                 parity={
@@ -316,6 +351,14 @@ CATALOG: tuple[CatalogModel, ...] = (
                 quant="fp32",
                 size_mb=618.2,
                 role="default",
+                revision="82a2fadf8fccfccdc5fd4e1009ba8f1a265eb7a8",
+                sha256={
+                    "model": "97141d0cfb1da6204e9f8f24d581af72eaeb82cda21149d83eaa6df7160fbcd9",
+                    "tokenizer": "609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f",
+                },
+                extra_sha256={
+                    "model.onnx.data": "fd915be810d7ebfb80fb05a48dd33c9484d17ae1b6bcb9e1f544cbaaa913ded1",
+                },
                 verified_at="2026-10-19",
                 latency_ms_p50=329.0,
                 parity={
@@ -352,6 +395,12 @@ CATALOG: tuple[CatalogModel, ...] = (
                 quant="int8/fp16",
                 size_mb=468.8,
                 role="default",
+                revision="5137ae7b4f1cf8c55f1d05d3f5cdd3694d92da3e",
+                sha256={
+                    "model": "80436dbed1a284548b5e6c3975bb26df81fb493fc4e64629e5a6ef490bf0e0ae",
+                    "tokenizer": "fd4146f0082d98fd1fc03bf41349f4d1eed478987ce9a64addc1654dfcad14ee",
+                    "config": "28eea9d70afba02740fdd871b148004437cd4f8c31b416776bb864d7895cf83f",
+                },
                 verified_at="2026-10-19",
                 latency_ms_p50=530.0,
                 parity={
@@ -371,6 +420,12 @@ CATALOG: tuple[CatalogModel, ...] = (
                 quant="fp16",
                 size_mb=791.9,
                 role="quality",
+                revision="5137ae7b4f1cf8c55f1d05d3f5cdd3694d92da3e",
+                sha256={
+                    "model": "ce3b92ed327c394570123867d48a73383e748b015c08ca5b735670d6601ab44c",
+                    "tokenizer": "fd4146f0082d98fd1fc03bf41349f4d1eed478987ce9a64addc1654dfcad14ee",
+                    "config": "28eea9d70afba02740fdd871b148004437cd4f8c31b416776bb864d7895cf83f",
+                },
             ),
         ),
     ),

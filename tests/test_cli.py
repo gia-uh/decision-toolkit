@@ -196,6 +196,8 @@ def test_models_variants_text_and_json(home, capsys):
     payload = json.loads(_out(capsys))
     assert payload["adapter"] == "gliner2"
     assert {variant["name"] for variant in payload["variants"]} == {"fp16", "fp32"}
+    assert payload["variants"][0]["revision"]
+    assert payload["variants"][0]["sha256"]
 
 
 def test_models_empty_cache_message(home, capsys):
