@@ -88,15 +88,28 @@ logging events and the expressiveness inventory.
 **2. As a CLI**
 
 ```bash
-dtk models list                                  # curated catalog, adapters, variants
-dtk models variants gliner2.5-multi              # real variants (quant, size, role)
-dtk models download gliner2.5-multi              # the default variant only
+dtk models list --adapter --quant                # catalog, variants and cache state
+dtk models variants gliner2.5-multi --json       # real variants (quant, size, role)
+dtk models download gliner2.5-multi --dry-run    # show the download first
+dtk models use gliner2.5-multi --variant fp16
+dtk models current --json                        # includes the current variant
 dtk decide --model gliner2.5-multi \
     --state "Reunión con Acme: descuento del 10%, firmar la semana que viene." \
-    --q cat='choice:reunion|tareas|contacto|idea|otras' --pretty
+    --questions-file questions.yaml --json
+dtk decide --model gliner2.5-multi \
+    --input-jsonl states.jsonl --questions-file questions.yaml \
+    --output-jsonl decisions.jsonl --batch-size 32
 dtk classify --model gliner2.5-multi \
-    --text "Dentist next Tuesday at 9" --labels "reminder,task,idea" --threshold 0.6
+    --text "Dentist next Tuesday at 9" --labels "reminder,task,idea" \
+    --threshold 0.6 --json
+dtk config list --json
+dtk models verify --all --json
 ```
+
+`dtk` has consistent exit codes (`0` ok, `1` runtime, `2` usage, `3`
+verification), `--json` everywhere, quiet/verbose modes and no tracebacks for
+expected failures. See [docs/CLI.md](docs/CLI.md) for questions files, JSONL
+batch, custom `--adapter/--files`, config and completion.
 
 **3. As a REST service (optional extra)**
 

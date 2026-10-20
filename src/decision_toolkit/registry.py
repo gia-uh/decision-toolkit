@@ -11,10 +11,11 @@ from __future__ import annotations
 import logging
 import threading
 from collections import OrderedDict
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from .decision_model import DecisionModel
 from .errors import ModelNotFoundError
@@ -48,6 +49,8 @@ class ModelRegistry:
         home: str | Path | None = None,
         threads: int = 4,
         max_loaded: int = 2,
+        adapter: Any = None,
+        files: Mapping[str, str] | None = None,
     ) -> None:
         self._fixed = model
         self._model_id = model_id
@@ -55,6 +58,8 @@ class ModelRegistry:
         self._home = home
         self._threads = int(threads)
         self._max_loaded = max(1, int(max_loaded))
+        self._adapter = adapter
+        self._files = dict(files or {}) or None
         self._store = ModelStore(home=home)
         self._slots: OrderedDict[str, _Slot] = OrderedDict()
         self._lock = threading.RLock()
@@ -134,6 +139,8 @@ class ModelRegistry:
                 variant=variant,
                 home=self._home,
                 threads=self._threads,
+                adapter=self._adapter,
+                files=self._files,
             )
         )
 

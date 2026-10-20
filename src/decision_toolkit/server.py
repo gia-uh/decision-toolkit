@@ -337,6 +337,8 @@ def create_app(
     variant: str | None = None,
     home: str | None = None,
     threads: int = 4,
+    adapter: Any = None,
+    files: dict[str, str] | None = None,
     api_key: str | None = None,
     cors_origins: Sequence[str] = (),
     max_body_mb: float = 16.0,
@@ -374,6 +376,8 @@ def create_app(
         home=home,
         threads=threads,
         max_loaded=max_models,
+        adapter=adapter,
+        files=files,
     )
     if warmup:
         registry.warmup_default()

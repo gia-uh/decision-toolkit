@@ -281,6 +281,7 @@ This is the checklist against which the REST projection will be verified:
 
 - REST contract projection and standard compliance — implemented in phase 2
   (see [REST.md](REST.md)).
-- CLI workflows across the whole catalog (phase 3).
+- CLI workflows across the whole catalog — implemented in phase 3 (see
+  [CLI.md](CLI.md)).
 - Pin/hash enforcement in the catalog and wheel/CI (phase 4).
 - Metrics server, rate limiting, load/fuzz testing (phase 5).
