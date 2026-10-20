@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. Version `0.1.5` is
 published on PyPI.
 
+## [Unreleased]
+
+### Fixed
+
+- Release verification resolves the published wheel URL from the TestPyPI/PyPI
+  JSON API and installs it with uv, avoiding simple-index cache delays.
+
 ## [0.1.5] — 2026-10-20
 
 Release verification fix for the uv migration: TestPyPI installation now uses
@@ -95,6 +102,7 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
+[Unreleased]: https://github.com/gia-uh/decision-toolkit/compare/v0.1.5...HEAD
 [0.1.5]: https://pypi.org/project/decision-toolkit/0.1.5/
 [0.1.4]: https://test.pypi.org/project/decision-toolkit/0.1.4/
 [0.1.3]: https://pypi.org/project/decision-toolkit/0.1.3/

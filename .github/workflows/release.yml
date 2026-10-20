@@ -76,22 +76,33 @@ jobs:
           with open("pyproject.toml", "rb") as handle:
               print("VERSION=" + tomllib.load(handle)["project"]["version"])
           PY
+      - name: Resolve published TestPyPI wheel
+        run: |
+          python - <<'PY' >> "$GITHUB_ENV"
+          import json, os, time, urllib.request
+          version = os.environ["VERSION"]
+          url = f"https://test.pypi.org/pypi/decision-toolkit/{version}/json"
+          for attempt in range(12):
+              try:
+                  with urllib.request.urlopen(url, timeout=30) as response:
+                      data = json.load(response)
+                  if data["info"]["version"] != version:
+                      raise RuntimeError("published version mismatch")
+                  wheel = next(
+                      item["url"] for item in data["urls"]
+                      if item["filename"].endswith(".whl")
+                  )
+                  print("WHEEL_URL=" + wheel)
+                  break
+              except Exception:
+                  if attempt == 11:
+                      raise
+                  time.sleep(10)
+          PY
       - name: Install from TestPyPI with uv and smoke test
         run: |
           uv venv --python 3.12 /tmp/dtk-testpypi
-          for attempt in 1 2 3 4 5; do
-            if uv pip install --python /tmp/dtk-testpypi/bin/python \
-              --index-url https://test.pypi.org/simple/ \
-              --extra-index-url https://pypi.org/simple \
-              --index-strategy unsafe-best-match \
-              "decision-toolkit==$VERSION"; then
-              break
-            fi
-            if [ "$attempt" -eq 5 ]; then
-              exit 1
-            fi
-            sleep 10
-          done
+          uv pip install --python /tmp/dtk-testpypi/bin/python "$WHEEL_URL"
           uv pip check --python /tmp/dtk-testpypi/bin/python
           /tmp/dtk-testpypi/bin/dtk --version
           /tmp/dtk-testpypi/bin/dtk models list --json
@@ -132,18 +143,33 @@ jobs:
           with open("pyproject.toml", "rb") as handle:
               print("VERSION=" + tomllib.load(handle)["project"]["version"])
           PY
+      - name: Resolve published PyPI wheel
+        run: |
+          python - <<'PY' >> "$GITHUB_ENV"
+          import json, os, time, urllib.request
+          version = os.environ["VERSION"]
+          url = f"https://pypi.org/pypi/decision-toolkit/{version}/json"
+          for attempt in range(12):
+              try:
+                  with urllib.request.urlopen(url, timeout=30) as response:
+                      data = json.load(response)
+                  if data["info"]["version"] != version:
+                      raise RuntimeError("published version mismatch")
+                  wheel = next(
+                      item["url"] for item in data["urls"]
+                      if item["filename"].endswith(".whl")
+                  )
+                  print("WHEEL_URL=" + wheel)
+                  break
+              except Exception:
+                  if attempt == 11:
+                      raise
+                  time.sleep(10)
+          PY
       - name: Install from PyPI with uv and smoke test
         run: |
           uv venv --python 3.12 /tmp/dtk-pypi
-          for attempt in 1 2 3 4 5; do
-            if uv pip install --python /tmp/dtk-pypi/bin/python "decision-toolkit==$VERSION"; then
-              break
-            fi
-            if [ "$attempt" -eq 5 ]; then
-              exit 1
-            fi
-            sleep 10
-          done
+          uv pip install --python /tmp/dtk-pypi/bin/python "$WHEEL_URL"
           uv pip check --python /tmp/dtk-pypi/bin/python
           /tmp/dtk-pypi/bin/dtk --version
           /tmp/dtk-pypi/bin/dtk models list --json

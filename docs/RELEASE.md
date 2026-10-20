@@ -95,6 +95,11 @@ No long-lived PyPI token is needed; the workflow uses GitHub OIDC
    /tmp/dtk-testpypi/bin/dtk --version
    ```
 
+   PyPI and TestPyPI simple indexes may be cached for up to ten minutes. If the
+   exact version is not visible yet, install the wheel URL from
+   `https://pypi.org/pypi/decision-toolkit/<version>/json` (or the TestPyPI
+   equivalent). The release workflow does this automatically.
+
 7. After PyPI approval and publication:
 
    ```bash
