@@ -55,6 +55,9 @@ server = [
 tracing = [
     "opentelemetry-api>=1.25",
 ]
+docs = [
+    "mkdocs-material>=9.5",
+]
 dev = [
     "pytest>=8",
     "ruff>=0.6",
@@ -67,7 +70,7 @@ dev = [
 Homepage = "https://github.com/gia-uh/decision-toolkit"
 Repository = "https://github.com/gia-uh/decision-toolkit"
 Issues = "https://github.com/gia-uh/decision-toolkit/issues"
-Documentation = "https://github.com/gia-uh/decision-toolkit/tree/main/docs"
+Documentation = "https://uhgia.org/decision-toolkit/"
 Changelog = "https://github.com/gia-uh/decision-toolkit/blob/main/CHANGELOG.md"
 
 [project.scripts]

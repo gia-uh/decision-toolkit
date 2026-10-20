@@ -1,0 +1,63 @@
+site_name: decision-toolkit
+site_description: Local-first toolkit for open-weights decision models on CPU.
+site_url: https://uhgia.org/decision-toolkit/
+repo_url: https://github.com/gia-uh/decision-toolkit
+repo_name: gia-uh/decision-toolkit
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+    - toc.follow
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+nav:
+  - Home: index.md
+  - Examples: EXAMPLES.md
+  - Core API: CORE.md
+  - REST: REST.md
+  - CLI: CLI.md
+  - Operations: OPERATIONS.md
+  - Benchmarks: BENCH.md
+  - Models:
+      - Overview: models/README.md
+      - GLiNER2.5 multi: models/gliner2.5-multi.md
+      - GLiNER2.5-Decide: models/gliner2.5-decide.md
+      - Laya: models/laya.md
+      - Julia 1: models/julia-1.md
+      - OpenDecider nano: models/opendecider-nano.md
+  - Release: RELEASE.md
+  - Roadmap: ROADMAP.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+
+validation:
+  links:
+    absolute_links: relative_to_docs

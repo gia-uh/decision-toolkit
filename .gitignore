@@ -20,6 +20,7 @@ htmlcov/
 .ruff_cache/
 
 # Local data
+site/
 *.local
 home/
 /models/

@@ -1,6 +1,6 @@
 # Benchmarks and calibration
 
-The reproducible harness lives in [`bench/`](../bench/). It is intentionally
+The reproducible harness lives in [`bench/`](https://github.com/gia-uh/decision-toolkit/tree/main/bench). It is intentionally
 outside the installed package.
 
 ## What it measures
@@ -48,9 +48,9 @@ Calibration smoke (`gliner2.5-multi`, 10 synthetic routing cases): accuracy
 `0.60`, Brier `0.173`, ECE `0.247`.
 
 Full evidence, per-case answers and environment metadata:
-[`bench/results/2026-10-20-smoke.json`](../bench/results/2026-10-20-smoke.json)
+[`bench/results/2026-10-20-smoke.json`](https://github.com/gia-uh/decision-toolkit/blob/main/bench/results/2026-10-20-smoke.json)
 and
-[`bench/results/2026-10-20-calibration.json`](../bench/results/2026-10-20-calibration.json).
+[`bench/results/2026-10-20-calibration.json`](https://github.com/gia-uh/decision-toolkit/blob/main/bench/results/2026-10-20-calibration.json).
 
 ## Interpreting latency
 

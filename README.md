@@ -1,5 +1,9 @@
 # decision-toolkit
 
+[![PyPI](https://img.shields.io/pypi/v/decision-toolkit?style=flat-square)](https://pypi.org/project/decision-toolkit/)
+[![CI](https://github.com/gia-uh/decision-toolkit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gia-uh/decision-toolkit/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-online-blue?style=flat-square)](https://uhgia.org/decision-toolkit/)
+
 Local-first toolkit around **open-weights decision models**: typed **choice /
 yes-no (`noul`) / score** questions over a state (text or JSON), answered with a
 **calibrated probability for every option** — no generated text, no parsing.
@@ -10,8 +14,9 @@ contract** (how a model is fed and read). Three thin surfaces over the same API:
 
 Co-developed by [GIA-UH](https://github.com/gia-uh) and [Syalia S.R.L.](https://github.com/syalia-srl).
 
-**Examples:** [docs/EXAMPLES.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/EXAMPLES.md) covers the library, REST and
-CLI. `dtk --help` and every subcommand help also include runnable examples.
+**Documentation:** <https://uhgia.org/decision-toolkit/>. Start with
+[Examples](https://uhgia.org/decision-toolkit/EXAMPLES/) for the library, REST
+and CLI. `dtk --help` and every subcommand help also include runnable examples.
 
 ## Installation
 
