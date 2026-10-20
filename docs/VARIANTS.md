@@ -32,6 +32,32 @@ Models with a single row have only one catalogued, verified build. That does
 not mean other conversions do not exist upstream; it means they have not passed
 the parity, hash and license gates for this catalog.
 
+## One selection model across surfaces
+
+The same catalog variant is used by the library, CLI and REST API. Selection
+precedence is:
+
+1. an explicit per-call/per-request variant (`DecisionModel(..., variant=...)`,
+   `--variant`, or `"variant"` in a REST body);
+2. the CLI/server configuration (`dtk models use`, or `dtk serve --variant`);
+3. the catalog default marked with `*`.
+
+| Surface | Explicit selection | Default when omitted |
+| --- | --- | --- |
+| Library | `DecisionModel("gliner2.5-multi", variant="fp32")` | persisted variant for the current model, else catalog default |
+| CLI | `--variant fp32` | variant selected by `dtk models use`, else catalog default |
+| REST | `"variant": "fp32"` in the request body | server `--variant`, else persisted variant for the current model, else catalog default |
+
+`DecisionModel.variant` and the CLI report the selected variant (`id@variant` in
+`dtk models current`). REST responses expose it under
+`x_decision_toolkit.variant`; `/v1/decision-models` includes `current` and
+`current_variant`, plus all `variants` and `cached_variants`. A server started
+with `--model`/`--variant` reports that default in `/v1/info` and `/ready`.
+
+The variant must have been downloaded before a library call or REST request
+loads it. An unknown variant returns a model-not-found error; a known but
+missing cache entry returns a model-not-downloaded error.
+
 ## Inspect the catalog
 
 ```bash

@@ -44,6 +44,22 @@ OpenAI dialect is the beta Decisions shape already translated by the toolkit.
 Toolkit-only metadata is under `x_decision_toolkit`, never mixed into standard
 fields. `/v1/decision-models` is the rich, non-standard catalog endpoint.
 
+## Variants
+
+Both decision endpoints accept an optional `variant` alongside `model`:
+
+- Request `variant` wins.
+- Otherwise, a server started with `dtk serve --variant` uses that default.
+- Otherwise, the variant selected with `dtk models use` is used when the server
+  is serving the current model.
+- Otherwise, the catalog default (the `*` variant in `dtk models list`) is used.
+
+The selected variant is echoed in `x_decision_toolkit.variant`.
+`/v1/models`, `/v1/models/{id}`, `/v1/decision-models`, `/v1/info` and `/ready`
+expose the configured catalog variants, the default, cached variants, and the
+current selection. See [Variants and quantization](VARIANTS.md) for the catalog
+and download/select commands.
+
 ## System One 1.14
 
 Request:

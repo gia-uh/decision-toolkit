@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from . import catalog
 from .decision_model import DecisionModel
 from .errors import ModelNotFoundError
 from .models import ModelStore
@@ -82,9 +83,13 @@ class ModelRegistry:
             return self._fixed.variant
         if self._variant is not None:
             return self._variant
-        if self._model_id is None:
+        identifier = self._model_id or self._store.current()
+        if identifier is None:
+            return None
+        if identifier == self._store.current() and self._store.current_variant():
             return self._store.current_variant()
-        return None
+        model = catalog.get(identifier)
+        return model.default_variant.name if model and model.default_variant else None
 
     @property
     def warmup_error(self) -> str | None:
@@ -131,10 +136,10 @@ class ModelRegistry:
             raise ModelNotFoundError(
                 f"this server is bound to {fixed_id!r}; requested model {model_id!r}"
             )
-        if variant and self._fixed.variant and variant != self._fixed.variant:
+        if variant and variant != self._fixed.variant:
+            bound = self._fixed.variant or "its default variant"
             raise ModelNotFoundError(
-                f"this server is bound to variant {self._fixed.variant!r}; "
-                f"requested {variant!r}"
+                f"this server is bound to {bound}; requested variant {variant!r}"
             )
         return self._fixed
 

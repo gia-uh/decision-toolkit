@@ -393,6 +393,27 @@ def test_models_delete_unknown_fails_cleanly(home, capsys):
 
 
 # --------------------------------------------------------------------- decide
+def test_decide_passes_variant_to_model(fake_cli_model, home, capsys):
+    assert cli.main(
+        [
+            "--home",
+            str(home),
+            "decide",
+            "--model",
+            "gliner2.5-multi",
+            "--variant",
+            "fp32",
+            "--state",
+            "state",
+            "--q",
+            "urgent=noul:Today?",
+        ]
+    ) == 0
+    identifier, kwargs = fake_cli_model[0]
+    assert identifier == "gliner2.5-multi"
+    assert kwargs["variant"] == "fp32"
+
+
 def test_decide_single_json(fake_cli_model, home, capsys):
     code = cli.main(
         [

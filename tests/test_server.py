@@ -7,6 +7,8 @@ import logging
 import pytest
 
 from decision_toolkit.decision_model import DecisionModel
+from decision_toolkit.models import ModelStore
+from decision_toolkit.registry import ModelRegistry
 
 fastapi = pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
@@ -18,6 +20,22 @@ from .conftest import FakeAdapter
 
 def _app(**kwargs):
     return create_app(model=DecisionModel(adapter=FakeAdapter()), **kwargs)
+
+
+class _VariantModel(DecisionModel):
+    """Fake inference model that reports a selected catalog variant."""
+
+    def __init__(self, variant: str) -> None:
+        super().__init__(adapter=FakeAdapter())
+        self._selected_variant = variant
+
+    @property
+    def identifier(self) -> str:
+        return "gliner2.5-multi"
+
+    @property
+    def variant(self) -> str | None:
+        return self._selected_variant
 
 
 @pytest.fixture
@@ -64,6 +82,145 @@ def test_info_exposes_pinned_contract_versions(client):
     assert info["contracts"]["systemone"] == "1.14"
     assert info["contracts"]["openai_decisions"] == "beta"
     assert info["registry"]["default_model"] == "(none)"
+
+
+def test_registry_default_variant_uses_the_catalog_default(home):
+    registry = ModelRegistry(model_id="laya", home=str(home))
+    assert registry.default_identifier == "laya"
+    assert registry.default_variant == "q8"
+    ready, detail = registry.is_ready()
+    assert ready is False
+    assert detail["variant"] == "q8"
+
+
+def test_server_reports_catalog_default_variant(home):
+    app = create_app(model_id="laya", home=str(home))
+    client = TestClient(app)
+    info = client.get("/v1/info").json()
+    assert info["registry"]["default_model"] == "laya"
+    assert info["registry"]["default_variant"] == "q8"
+    ready = client.get("/v1/ready")
+    assert ready.status_code == 503
+    assert ready.json()["variant"] == "q8"
+
+
+def test_registry_default_variant_uses_persisted_selection(home, fake_snapshot):
+    store = ModelStore(home=home)
+    store.download("gliner2.5-multi", variant="fp16")
+    store.download("gliner2.5-multi", variant="fp32")
+    store.use("gliner2.5-multi", variant="fp32")
+    registry = ModelRegistry(model_id="gliner2.5-multi", home=str(home))
+    assert registry.default_variant == "fp32"
+    implicit = ModelRegistry(home=str(home))
+    assert implicit.default_identifier == "gliner2.5-multi"
+    assert implicit.default_variant == "fp32"
+
+
+def test_rest_default_request_uses_persisted_variant(
+    monkeypatch, home, fake_snapshot
+):
+    from decision_toolkit import registry as registry_module
+
+    store = ModelStore(home=home)
+    store.download("gliner2.5-multi", variant="fp16")
+    store.download("gliner2.5-multi", variant="fp32")
+    store.use("gliner2.5-multi", variant="fp32")
+
+    seen: list[tuple[str | None, str | None]] = []
+
+    def fake_model(identifier=None, **kwargs):
+        seen.append((identifier, kwargs.get("variant")))
+        return _VariantModel(kwargs.get("variant") or "fp16")
+
+    monkeypatch.setattr(registry_module, "DecisionModel", fake_model)
+    app = create_app(model_id="gliner2.5-multi", home=str(home))
+    response = TestClient(app).post("/v1/systemone", json=_systemone_body())
+    assert response.status_code == 200
+    assert response.json()["x_decision_toolkit"]["variant"] == "fp32"
+    assert seen == [("gliner2.5-multi", "fp32")]
+
+
+def test_rest_explicit_variant_is_passed_to_the_model(monkeypatch, home):
+    from decision_toolkit import registry as registry_module
+
+    seen: list[tuple[str | None, str | None]] = []
+
+    def fake_model(identifier=None, **kwargs):
+        seen.append((identifier, kwargs.get("variant")))
+        return _VariantModel(kwargs.get("variant") or "fp16")
+
+    monkeypatch.setattr(registry_module, "DecisionModel", fake_model)
+    app = create_app(model_id="gliner2.5-multi", home=str(home))
+    response = TestClient(app).post(
+        "/v1/systemone", json=_systemone_body(variant="fp32")
+    )
+    assert response.status_code == 200
+    assert response.json()["x_decision_toolkit"]["variant"] == "fp32"
+    assert seen == [("gliner2.5-multi", "fp32")]
+
+
+def test_rest_openai_request_passes_variant(monkeypatch, home):
+    from decision_toolkit import registry as registry_module
+
+    seen: list[tuple[str | None, str | None]] = []
+
+    def fake_model(identifier=None, **kwargs):
+        seen.append((identifier, kwargs.get("variant")))
+        return _VariantModel(kwargs.get("variant") or "fp16")
+
+    monkeypatch.setattr(registry_module, "DecisionModel", fake_model)
+    app = create_app(model_id="gliner2.5-multi", home=str(home))
+    response = TestClient(app).post(
+        "/v1/decisions",
+        json={
+            "input": "Customer wants a refund.",
+            "variant": "fp32",
+            "questions": [
+                {
+                    "type": "choice",
+                    "name": "team",
+                    "instructions": "Which team?",
+                    "choices": [
+                        {"value": "billing", "description": "refunds"},
+                        {"value": "technical", "description": "bugs"},
+                    ],
+                }
+            ],
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["x_decision_toolkit"]["variant"] == "fp32"
+    assert seen == [("gliner2.5-multi", "fp32")]
+
+
+def test_rest_catalog_exposes_current_variant(home, fake_snapshot):
+    store = ModelStore(home=home)
+    store.download("gliner2.5-multi", variant="fp16")
+    store.download("gliner2.5-multi", variant="fp32")
+    store.use("gliner2.5-multi", variant="fp32")
+
+    app = create_app(model_id="gliner2.5-multi", home=str(home))
+    client = TestClient(app)
+    rich = client.get("/v1/decision-models").json()
+    entry = next(item for item in rich["data"] if item["id"] == "gliner2.5-multi")
+    assert entry["current"] is True
+    assert entry["current_variant"] == "fp32"
+    assert set(entry["cached_variants"]) == {"fp16", "fp32"}
+
+    info = client.get("/v1/info").json()
+    assert info["registry"]["default_model"] == "gliner2.5-multi"
+    assert info["registry"]["default_variant"] == "fp32"
+    ready = client.get("/v1/ready")
+    assert ready.status_code == 503
+    assert ready.json()["variant"] == "fp32"
+
+
+def test_fixed_model_rejects_a_different_variant(client):
+    response = client.post(
+        "/v1/systemone", json=_systemone_body(variant="fp16")
+    )
+    assert response.status_code == 404
+    assert "bound" in response.json()["error"]["message"]
 
 
 # ----------------------------------------------------------------- system one

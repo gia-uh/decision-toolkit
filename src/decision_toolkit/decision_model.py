@@ -34,6 +34,7 @@ from typing import Any, Self
 from .adapters import Adapter, create_adapter, validate_adapter_files
 from .adapters.base import state_to_text
 from .catalog import Capabilities, ModelInfo
+from .catalog import get as get_catalog_model
 from .engine import OnnxEngine, encode
 from .errors import (
     AdapterNotAvailableError,
@@ -118,7 +119,19 @@ class DecisionModel:
         if self._variant is not None:
             return self._variant
         if self._identifier is None:
-            return self._store.current_variant()
+            selected = self._store.current_variant()
+            if selected is not None:
+                return selected
+            model = get_catalog_model(self._store.current() or "")
+        else:
+            if (
+                self._identifier == self._store.current()
+                and self._store.current_variant() is not None
+            ):
+                return self._store.current_variant()
+            model = get_catalog_model(self._identifier)
+        if model is not None and model.default_variant is not None:
+            return model.default_variant.name
         return None
 
     @property

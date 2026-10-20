@@ -1,7 +1,29 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.1.6` is
+All notable changes to this project are documented here. Version `0.1.7` is
 published on PyPI.
+
+## [0.1.7] — 2026-10-20
+
+Variant consistency release. The selected quantization now agrees across the
+library, CLI and REST API, including catalog defaults, persisted `dtk models
+use` selections, per-call overrides, readiness/info metadata and response
+payloads.
+
+### Fixed
+
+- `DecisionModel.variant` reports the explicit, persisted or catalog-default
+  variant before and after resolution, without inheriting another model's
+  selection.
+- The REST registry resolves the catalog default for a configured model and
+  honors the persisted variant for the current model. `/v1/info`, `/ready`,
+  `/v1/models` and `/v1/decision-models` expose the effective default and
+  `current_variant`.
+- REST responses echo the selected variant under `x_decision_toolkit.variant`;
+  a fixed injected model rejects a conflicting request variant.
+- Added cross-surface tests for library resolution, CLI pass-through, registry
+  defaults and System One/OpenAI REST requests, plus documentation for selection
+  precedence.
 
 ## [0.1.6] — 2026-10-20
 
@@ -116,6 +138,7 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
+[0.1.7]: https://pypi.org/project/decision-toolkit/0.1.7/
 [0.1.6]: https://pypi.org/project/decision-toolkit/0.1.6/
 [0.1.5]: https://pypi.org/project/decision-toolkit/0.1.5/
 [0.1.4]: https://test.pypi.org/project/decision-toolkit/0.1.4/

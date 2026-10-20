@@ -10,9 +10,30 @@ from decision_toolkit.errors import (
     InvalidQuestionError,
     ModelNotFoundError,
 )
+from decision_toolkit.models import ModelStore
 from decision_toolkit.schema import choice, noul, score
 
 from .conftest import FakeAdapter
+
+
+def test_variant_property_reflects_catalog_and_persisted_selection(home, fake_snapshot):
+    # Catalog default before anything is downloaded or selected.
+    assert DecisionModel("gliner2.5-multi", home=home).variant == "fp16"
+
+    store = ModelStore(home=home)
+    store.download("gliner2.5-multi", variant="fp16")
+    store.download("gliner2.5-multi", variant="fp32")
+    store.use("gliner2.5-multi", variant="fp32")
+
+    default = DecisionModel("gliner2.5-multi", home=home)
+    assert default.variant == "fp32"
+    assert default.resolved.variant.name == "fp32"
+    assert DecisionModel(home=home).variant == "fp32"
+    explicit = DecisionModel("gliner2.5-multi", home=home, variant="fp16")
+    assert explicit.variant == "fp16"
+    assert explicit.resolved.variant.name == "fp16"
+    # A different catalog model does not inherit the other model's selection.
+    assert DecisionModel("laya", home=home).variant == "q8"
 
 
 def test_decide_returns_typed_answers(fake_model):

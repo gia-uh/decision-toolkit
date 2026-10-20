@@ -377,12 +377,14 @@ def _rich_model_payload(
     cached: set[tuple[str, str]],
     *,
     current: str | None,
+    current_variant: str | None = None,
 ) -> dict[str, Any]:
     payload = model.info.to_dict()
     payload["cached_variants"] = [
         variant.name for variant in model.variants if (model.id, variant.name) in cached
     ]
     payload["current"] = model.id == current
+    payload["current_variant"] = current_variant if model.id == current else None
     payload["object"] = "model"
     payload["owned_by"] = "decision-toolkit"
     payload["created"] = 0
@@ -631,10 +633,12 @@ def create_app(
         )
         return decision
 
-    def catalog_state() -> tuple[ModelStore, set[tuple[str, str]], str | None]:
+    def catalog_state() -> tuple[
+        ModelStore, set[tuple[str, str]], str | None, str | None
+    ]:
         store = registry.store
         cached = {(entry.identifier, entry.variant) for entry in store.entries()}
-        return store, cached, store.current()
+        return store, cached, store.current(), store.current_variant()
 
     # ------------------------------------------------------------- meta/health
     @app.get("/health", tags=["meta"])
@@ -684,14 +688,19 @@ def create_app(
     # ------------------------------------------------------------------ models
     @app.get("/v1/models", tags=["models"], dependencies=protected)
     def models() -> dict[str, Any]:
-        _store, cached, current = catalog_state()
+        _store, cached, current, current_variant = catalog_state()
         data = [
             {
                 "id": model.id,
                 "object": "model",
                 "created": 0,
                 "owned_by": "decision-toolkit",
-                "x_decision_toolkit": _rich_model_payload(model, cached, current=current),
+                "x_decision_toolkit": _rich_model_payload(
+                    model,
+                    cached,
+                    current=current,
+                    current_variant=current_variant,
+                ),
             }
             for model in catalog.CATALOG
         ]
@@ -704,10 +713,15 @@ def create_app(
 
     @app.get("/v1/models/{model_name:path}", tags=["models"], dependencies=protected)
     def model_detail(model_name: str) -> dict[str, Any]:
-        _store, cached, current = catalog_state()
+        _store, cached, current, current_variant = catalog_state()
         model = catalog.get(model_name)
         if model is not None:
-            rich = _rich_model_payload(model, cached, current=current)
+            rich = _rich_model_payload(
+                model,
+                cached,
+                current=current,
+                current_variant=current_variant,
+            )
             return {
                 "id": model.id,
                 "object": "model",
@@ -722,8 +736,16 @@ def create_app(
 
     @app.get("/v1/decision-models", tags=["models"], dependencies=protected)
     def decision_models() -> dict[str, Any]:
-        _store, cached, current = catalog_state()
-        data = [_rich_model_payload(model, cached, current=current) for model in catalog.CATALOG]
+        _store, cached, current, current_variant = catalog_state()
+        data = [
+            _rich_model_payload(
+                model,
+                cached,
+                current=current,
+                current_variant=current_variant,
+            )
+            for model in catalog.CATALOG
+        ]
         known = {model.id for model in catalog.CATALOG}
         for entry in _store.entries():
             if entry.identifier not in known:

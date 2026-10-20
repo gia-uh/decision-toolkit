@@ -6,7 +6,8 @@ file was written, so the name was available). The first release was `0.1.0`;
 `0.1.3` added release verification and docs publication; `0.1.4` migrated
 package management and builds to uv but was published to TestPyPI only; `0.1.5`
 fixed TestPyPI verification for uv; `0.1.6` added complete variant visibility
-and selection in the CLI and documentation.
+and selection in the CLI and documentation; `0.1.7` aligned variant selection
+across the library, CLI and REST API.
 
 ## Local build and verification
 
@@ -33,7 +34,7 @@ Clean install test (no `PYTHONPATH`):
 ```bash
 uv venv --python 3.12 /tmp/dtk-wheel
 uv pip install --python /tmp/dtk-wheel/bin/python \
-  dist/decision_toolkit-0.1.6-py3-none-any.whl
+  dist/decision_toolkit-0.1.7-py3-none-any.whl
 uv pip check --python /tmp/dtk-wheel/bin/python
 /tmp/dtk-wheel/bin/dtk --version
 /tmp/dtk-wheel/bin/dtk models list --json
@@ -44,7 +45,7 @@ With inference and server extras:
 
 ```bash
 uv pip install --python /tmp/dtk-wheel/bin/python \
-  "dist/decision_toolkit-0.1.6-py3-none-any.whl[onnx,server,tracing]"
+  "dist/decision_toolkit-0.1.7-py3-none-any.whl[onnx,server,tracing]"
 /tmp/dtk-wheel/bin/dtk decide --model gliner2.5-decide ...
 /tmp/dtk-wheel/bin/dtk serve --model gliner2.5-decide --warmup --port 8016
 curl -s http://127.0.0.1:8016/health
@@ -78,8 +79,8 @@ No long-lived PyPI token is needed; the workflow uses GitHub OIDC
 4. Create and push an annotated tag:
 
    ```bash
-   git tag -a v0.1.6 -m "decision-toolkit 0.1.6"
-   git push origin v0.1.6
+   git tag -a v0.1.7 -m "decision-toolkit 0.1.7"
+   git push origin v0.1.7
    ```
 
 5. `.github/workflows/release.yml` builds once, publishes to **TestPyPI**, then
@@ -128,16 +129,17 @@ to TestPyPI without publishing to PyPI or creating a GitHub release.
 
 ## Published release
 
-`0.1.6` is published through Trusted Publishing on 2026-10-20:
+`0.1.7` is published through Trusted Publishing on 2026-10-20:
 
-<https://pypi.org/project/decision-toolkit/0.1.6/>
+<https://pypi.org/project/decision-toolkit/0.1.7/>
 
 `0.1.0` was the first release; `0.1.1` refreshed the PyPI description; `0.1.2`
 validated the OIDC TestPyPI → PyPI flow; `0.1.3` added post-publish install
 verification and the GitHub Pages documentation site; `0.1.4` moved the
 development, build, CI, release and documentation environments to uv but was
 published to TestPyPI only; `0.1.5` fixed TestPyPI resolution; `0.1.6` added
-complete variant/quantization visibility and selection.
+complete variant/quantization visibility and CLI selection; `0.1.7` aligned
+selection across library, CLI and REST.
 
 The tag-triggered workflow remains the preferred path for future releases once
 the TestPyPI/PyPI trusted publishers and protected environments are configured.
