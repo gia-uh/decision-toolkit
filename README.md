@@ -21,7 +21,7 @@ and CLI. `dtk --help` and every subcommand help also include runnable examples.
 ## Installation
 
 ```bash
-uv pip install decision-toolkit              # library + CLI (0.1.3 on PyPI)
+uv pip install decision-toolkit              # library + CLI (0.1.4 on PyPI)
 uv pip install "decision-toolkit[onnx]"      # + onnxruntime, tokenizers (the model runtime)
 uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 ```
@@ -29,7 +29,7 @@ uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 The project is managed with [uv](https://docs.astral.sh/uv/) and ships a committed `uv.lock`. Published
 wheels remain compatible with `pip` for environments that do not use uv.
 
-PyPI: <https://pypi.org/project/decision-toolkit/0.1.3/>. See
+PyPI: <https://pypi.org/project/decision-toolkit/0.1.4/>. See
 [docs/RELEASE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/RELEASE.md)
 for the Trusted Publishing flow and clean-install checks.
 

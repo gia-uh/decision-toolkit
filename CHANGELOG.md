@@ -1,16 +1,15 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.1.3` is
+All notable changes to this project are documented here. Version `0.1.4` is
 published on PyPI.
 
-## [Unreleased]
+## [0.1.4] — 2026-10-20
 
-### Changed
-
-- Package management, dependency resolution, builds, CI, release verification
-  and documentation deployment now use uv exclusively. Development and docs
-  dependencies moved to PEP 735 dependency groups, and `uv.lock` is committed.
-  The published wheel remains pip-compatible.
+Packaging and infrastructure release. Package management, dependency
+resolution, builds, CI, release verification and documentation deployment now
+use uv exclusively. Development and docs dependencies moved to PEP 735
+dependency groups, and `uv.lock` is committed. The published wheel remains
+pip-compatible. No runtime or model changes.
 
 ## [0.1.3] — 2026-10-20
 
@@ -89,7 +88,7 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
-[Unreleased]: https://github.com/gia-uh/decision-toolkit/compare/v0.1.3...HEAD
+[0.1.4]: https://pypi.org/project/decision-toolkit/0.1.4/
 [0.1.3]: https://pypi.org/project/decision-toolkit/0.1.3/
 [0.1.2]: https://pypi.org/project/decision-toolkit/0.1.2/
 [0.1.1]: https://pypi.org/project/decision-toolkit/0.1.1/

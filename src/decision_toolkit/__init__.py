@@ -7,7 +7,7 @@ questions with a calibrated probability for every option, on CPU.
 
 from __future__ import annotations
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 from .adapters import register_adapter
 from .calibration import brier_score, expected_calibration_error, threshold_sweep
