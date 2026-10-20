@@ -19,23 +19,57 @@ which the REST server exposes at ``/v1/decisions``.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence, Union
+from typing import Any, Union
 
-from .errors import InvalidQuestionError
+from .errors import InvalidQuestionError, InvalidRequestError
 
 #: Wire limits (System One as served by TypeSafe Jev; LLM gateway limits are stricter).
 MAX_CHOICE_OPTIONS = 255
 MAX_SCORE_LEVELS = 10
 MIN_SCORE_LEVELS = 2
 
-QuestionValue = Union["Choice", "Noul", "Score", Mapping[str, Any]]
+QuestionValue = Union["Choice", "Noul", "Score", "Box", Mapping[str, Any]]
 
 
 def _require_instructions(instructions: str) -> str:
     if not isinstance(instructions, str) or not instructions.strip():
         raise InvalidQuestionError("every question needs non-empty `instructions`")
     return instructions
+
+
+@dataclass(frozen=True)
+class State:
+    """A System One state: text, optional assets, or both.
+
+    Text-only states are accepted as plain strings for convenience.  ``State``
+    exists so callers can be explicit about assets and so the core can validate
+    multimodal input against the selected model's capabilities before loading
+    the model.
+    """
+
+    text: str = ""
+    assets: Sequence[Mapping[str, Any]] = ()
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.text, str):
+            raise InvalidRequestError("State.text must be a string")
+        assets = tuple(self.assets or ())
+        for index, asset in enumerate(assets):
+            if not isinstance(asset, Mapping):
+                raise InvalidRequestError(f"State.assets[{index}] must be a mapping")
+        object.__setattr__(self, "assets", assets)
+
+    def to_systemone(self) -> dict[str, Any]:
+        """The JSON-friendly System One state payload."""
+        payload: dict[str, Any] = {"text": self.text}
+        if self.assets:
+            payload["assets"] = [dict(asset) for asset in self.assets]
+        return payload
+
+    def __str__(self) -> str:
+        return self.text
 
 
 @dataclass(frozen=True)
@@ -104,6 +138,30 @@ class Score:
         return {"type": "score", "instructions": self.instructions, "criteria": levels}
 
 
+@dataclass(frozen=True)
+class Box:
+    """A region/box question over an asset (System One ``box`` primitive).
+
+    The current catalog has no multimodal/box model, so the core will validate
+    this question and then raise ``UnsupportedCapabilityError`` for those
+    models.  The typed builder is here so a future adapter can implement the
+    same contract without changing the public vocabulary.
+    """
+
+    instructions: str
+    criteria: Sequence[str] | None = None
+
+    def to_question(self) -> dict[str, Any]:
+        _require_instructions(self.instructions)
+        question: dict[str, Any] = {"type": "box", "instructions": self.instructions}
+        if self.criteria is not None:
+            labels = [str(label).strip() for label in self.criteria]
+            if not labels or any(not label for label in labels):
+                raise InvalidQuestionError("box criteria must be non-empty labels")
+            question["criteria"] = labels
+        return question
+
+
 def choice(instructions: str, criteria: Mapping[str, str | None] | None = None) -> Choice:
     """Build a ``choice`` question (constructor shorthand)."""
     return Choice(instructions=instructions, criteria=criteria)
@@ -119,12 +177,38 @@ def score(instructions: str, criteria: Sequence[str]) -> Score:
     return Score(instructions=instructions, criteria=criteria)
 
 
+def box(instructions: str, criteria: Sequence[str] | None = None) -> Box:
+    """Build a ``box`` question (region/asset primitive)."""
+    return Box(instructions=instructions, criteria=criteria)
+
+
+def normalize_state(state: Any) -> Any:
+    """Validate a System One state without converting its text form.
+
+    Plain strings and JSON states are returned unchanged; :class:`State` stays
+    typed so the caller's assets survive until capability validation.
+    """
+    if state is None:
+        raise InvalidRequestError("state cannot be None")
+    if isinstance(state, State):
+        return state
+    if isinstance(state, (str, Mapping, list, tuple)):
+        return state
+    # Scalars are stringified by the adapters; keep the historical permissive
+    # behaviour for custom adapters.
+    return state
+
+
 def normalize_questions(questions: Mapping[str, QuestionValue]) -> dict[str, dict[str, Any]]:
     """Validate a question mapping and return the canonical System One payload.
 
-    Accepts :class:`Choice` / :class:`Noul` / :class:`Score` objects or raw
-    question dictionaries (passed through with a light type check, so callers
-    are never blocked from using a vendor-specific extension).
+    Accepts :class:`Choice` / :class:`Noul` / :class:`Score` / :class:`Box`
+    objects or raw question dictionaries.  Known primitives are validated here
+    once (type, instructions, option/level counts); unknown vendor extensions
+    are rejected rather than passed through silently.
+
+    Extra keys used by adapters/extensions (``task``, ``multi_label``,
+    ``_values``...) are preserved.
     """
     if not isinstance(questions, Mapping) or not questions:
         raise InvalidQuestionError("`questions` must be a non-empty mapping of name -> question")
@@ -133,21 +217,92 @@ def normalize_questions(questions: Mapping[str, QuestionValue]) -> dict[str, dic
     for name, question in questions.items():
         if not isinstance(name, str) or not name.strip():
             raise InvalidQuestionError(f"question names must be non-empty strings, got {name!r}")
-        if isinstance(question, (Choice, Noul, Score)):
+        if isinstance(question, (Choice, Noul, Score, Box)):
             normalized[name] = question.to_question()
             continue
         if isinstance(question, Mapping):
             qtype = question.get("type")
-            if qtype not in {"choice", "noul", "score"}:
+            if qtype not in {"choice", "noul", "score", "box"}:
                 raise InvalidQuestionError(
-                    f"question {name!r} has type {qtype!r}; expected choice, noul or score"
+                    f"question {name!r} has type {qtype!r}; "
+                    "expected choice, noul, score or box"
                 )
-            normalized[name] = dict(question)
+            normalized[name] = _validate_raw_question(name, question)
             continue
         raise InvalidQuestionError(
-            f"question {name!r} must be a Choice/Noul/Score or a mapping, got {type(question).__name__}"
+            f"question {name!r} must be a Choice/Noul/Score/Box or a mapping, "
+            f"got {type(question).__name__}"
         )
     return normalized
+
+
+def _validate_raw_question(name: str, question: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate one raw canonical question, preserving extension keys."""
+    payload = dict(question)
+    qtype = payload["type"]
+    instructions = payload.get("instructions")
+    if not isinstance(instructions, str) or not instructions.strip():
+        raise InvalidQuestionError(f"question {name!r} needs non-empty `instructions`")
+
+    if qtype == "choice":
+        criteria = payload.get("criteria")
+        if criteria is not None:
+            if not isinstance(criteria, Mapping):
+                raise InvalidQuestionError(f"question {name!r}: choice criteria must be a mapping")
+            if not 1 <= len(criteria) <= MAX_CHOICE_OPTIONS:
+                raise InvalidQuestionError(
+                    f"question {name!r}: a choice needs 1 to {MAX_CHOICE_OPTIONS} "
+                    f"options, got {len(criteria)}"
+                )
+            for label, description in criteria.items():
+                if not isinstance(label, str) or not label.strip():
+                    raise InvalidQuestionError(
+                        f"question {name!r}: choice labels must be non-empty strings"
+                    )
+                if description is not None and not isinstance(description, str):
+                    raise InvalidQuestionError(
+                        f"question {name!r}: choice descriptions must be strings or null"
+                    )
+    elif qtype == "noul":
+        criteria = payload.get("criteria")
+        if criteria is not None:
+            if not isinstance(criteria, Mapping):
+                raise InvalidQuestionError(f"question {name!r}: noul criteria must be a mapping")
+            unknown = set(criteria) - {"false", "true"}
+            if unknown:
+                raise InvalidQuestionError(
+                    f"question {name!r}: noul criteria keys must be 'false' and/or "
+                    f"'true', got {sorted(unknown)}"
+                )
+    elif qtype == "score":
+        levels = payload.get("criteria")
+        if (
+            not isinstance(levels, Sequence)
+            or isinstance(levels, (str, bytes))
+            or not MIN_SCORE_LEVELS <= len(levels) <= MAX_SCORE_LEVELS
+        ):
+            raise InvalidQuestionError(
+                f"question {name!r}: a score needs {MIN_SCORE_LEVELS} to "
+                f"{MAX_SCORE_LEVELS} ordered levels"
+            )
+        if any(not isinstance(level, str) or not level.strip() for level in levels):
+            raise InvalidQuestionError(f"question {name!r}: score levels must be non-empty strings")
+    elif qtype == "box":
+        criteria = payload.get("criteria")
+        if criteria is not None:
+            if (
+                not isinstance(criteria, Sequence)
+                or isinstance(criteria, (str, bytes))
+                or not criteria
+            ):
+                raise InvalidQuestionError(
+                    f"question {name!r}: box criteria must be a non-empty sequence of labels"
+                )
+            if any(not isinstance(label, str) or not label.strip() for label in criteria):
+                raise InvalidQuestionError(
+                    f"question {name!r}: box labels must be non-empty strings"
+                )
+    return payload
 
 
 def parse_question_spec(spec: str) -> dict[str, Any]:
@@ -333,14 +488,18 @@ def _max_probability(entries: Sequence[Mapping[str, Any]]) -> float:
 
 
 __all__ = [
+    "Box",
     "Choice",
     "Noul",
     "Score",
+    "State",
+    "box",
     "choice",
-    "noul",
-    "score",
     "normalize_questions",
-    "parse_question_spec",
+    "normalize_state",
+    "noul",
     "openai_to_systemone",
+    "parse_question_spec",
+    "score",
     "systemone_answers_to_openai",
 ]

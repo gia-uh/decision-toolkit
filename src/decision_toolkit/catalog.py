@@ -9,10 +9,47 @@ and are deliberately absent here.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Mapping
+from collections.abc import Mapping
+from dataclasses import dataclass, field
+from typing import Any
 
 from .errors import ModelNotFoundError
+
+
+@dataclass(frozen=True)
+class Capabilities:
+    """What a model can actually do, independent of any wire contract.
+
+    These are semantic capabilities, not REST fields.  The core validates
+    requests against them before loading a model, so an unsupported question
+    fails with ``UnsupportedCapabilityError`` instead of a backend error.
+    """
+
+    question_types: tuple[str, ...] = ("choice", "noul", "score")
+    max_options: int | None = 255
+    max_score_levels: int | None = 10
+    max_context_tokens: int | None = None
+    languages: tuple[str, ...] = ("en",)
+    multimodal: bool = False
+    multi_label: bool = False
+    batch: bool = False
+    usage: bool = True
+
+    def supports(self, question_type: str) -> bool:
+        return str(question_type) in self.question_types
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "question_types": list(self.question_types),
+            "max_options": self.max_options,
+            "max_score_levels": self.max_score_levels,
+            "max_context_tokens": self.max_context_tokens,
+            "languages": list(self.languages),
+            "multimodal": self.multimodal,
+            "multi_label": self.multi_label,
+            "batch": self.batch,
+            "usage": self.usage,
+        }
 
 
 @dataclass(frozen=True)
@@ -53,6 +90,7 @@ class CatalogModel:
     status: str = "m0"
     variants: tuple[Variant, ...] = ()
     notes: str = ""
+    capabilities: Capabilities = field(default_factory=Capabilities)
 
     @property
     def default_variant(self) -> Variant | None:
@@ -60,6 +98,77 @@ class CatalogModel:
             if variant.role == "default":
                 return variant
         return self.variants[0] if self.variants else None
+
+    @property
+    def info(self) -> ModelInfo:
+        """Typed metadata for the public API (catalog + capabilities)."""
+        return ModelInfo(
+            id=self.id,
+            name=self.name,
+            adapter=self.adapter,
+            license=self.license,
+            params=self.params,
+            architecture=self.architecture,
+            languages=self.languages,
+            status=self.status,
+            capabilities=self.capabilities,
+            variants=self.variants,
+            notes=self.notes,
+        )
+
+
+@dataclass(frozen=True)
+class ModelInfo:
+    """Public model metadata: identity, provenance and capabilities."""
+
+    id: str
+    name: str
+    adapter: str
+    license: str
+    params: str
+    architecture: str
+    languages: str
+    status: str
+    capabilities: Capabilities
+    variants: tuple[Variant, ...] = ()
+    notes: str = ""
+
+    @property
+    def default_variant(self) -> Variant | None:
+        for variant in self.variants:
+            if variant.role == "default":
+                return variant
+        return self.variants[0] if self.variants else None
+
+    def to_dict(self) -> dict[str, Any]:
+        default = self.default_variant
+        return {
+            "id": self.id,
+            "name": self.name,
+            "adapter": self.adapter,
+            "license": self.license,
+            "params": self.params,
+            "architecture": self.architecture,
+            "languages": self.languages,
+            "status": self.status,
+            "capabilities": self.capabilities.to_dict(),
+            "default_variant": default.name if default else None,
+            "variants": [
+                {
+                    "name": variant.name,
+                    "quant": variant.quant,
+                    "size_mb": variant.size_mb,
+                    "role": variant.role,
+                    "repo": variant.repo,
+                    "revision": variant.revision,
+                    "verified_at": variant.verified_at,
+                    "latency_ms_p50": variant.latency_ms_p50,
+                    "parity": dict(variant.parity) if variant.parity else None,
+                }
+                for variant in self.variants
+            ],
+            "notes": self.notes,
+        }
 
 
 CATALOG: tuple[CatalogModel, ...] = (
@@ -72,6 +181,7 @@ CATALOG: tuple[CatalogModel, ...] = (
         architecture="GLiNER2.5 multi-v1",
         languages="multi",
         status="m0",
+        capabilities=Capabilities(languages=("multi",)),
         notes="Base v1 export with classifier head, verified end-to-end: public fp16 export "
               "downloaded and run (9/15 routing, 353 ms CPU), same accuracy as the local "
               "int8 build.",
@@ -118,6 +228,7 @@ CATALOG: tuple[CatalogModel, ...] = (
         params="340M",
         architecture="DeBERTa-v3-large",
         status="m0",
+        capabilities=Capabilities(languages=("en",)),
         notes="Fused ONNX export verified on CPU: refund example → refund_request 0.944; "
               "flight change → seat_change 0.593 (change second, 0.334); the sentiment example "
               "resolves positive (the card's potential output said mixed — documented, not "
@@ -152,6 +263,7 @@ CATALOG: tuple[CatalogModel, ...] = (
         params="421M",
         architecture="ModernBERT-large",
         status="m0",
+        capabilities=Capabilities(languages=("en",), max_context_tokens=1024),
         notes="English checkpoint. Split q8 export verified: billing 0.9612 vs torch 0.9598, "
               "urgent 0.056 vs 0.061, tone 1.025 vs 1.026 (within the export's stated "
               "≤0.0158 probability shift); 514 ms/decision on CPU.",
@@ -189,6 +301,7 @@ CATALOG: tuple[CatalogModel, ...] = (
         architecture="mmBERT-small",
         languages="52 locales",
         status="m0",
+        capabilities=Capabilities(languages=("mul",), max_context_tokens=1024),
         notes="Official ONNX export verified: 100/100 argmax parity against the published "
               "PyTorch logits, max absolute logit error 8.5e-05; 329 ms/decision on CPU.",
         variants=(
@@ -222,6 +335,7 @@ CATALOG: tuple[CatalogModel, ...] = (
         params="395M",
         architecture="Ettin encoder 400M",
         status="m0",
+        capabilities=Capabilities(languages=("en",), max_context_tokens=2048),
         notes="Official ONNX build. Prompt/readout ported from the pinned packaging code "
               "(nano_ids + softmax over [MASK]); runs on CPU: billing 0.907, urgent 0.572, "
               "tone 1.235, 530 ms/decision. The official benchmark inputs are hashed, so no "
@@ -291,11 +405,13 @@ def select_variant(model: CatalogModel, name: str | None = None) -> Variant:
 
 
 __all__ = [
-    "CatalogModel",
-    "Variant",
     "CATALOG",
     "CATALOG_BY_ID",
     "IMPLEMENTED_ADAPTERS",
+    "Capabilities",
+    "CatalogModel",
+    "ModelInfo",
+    "Variant",
     "get",
     "select_variant",
 ]

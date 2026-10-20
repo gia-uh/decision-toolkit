@@ -9,43 +9,84 @@ from __future__ import annotations
 
 __version__ = "0.1.0"
 
+from .adapters import register_adapter
 from .calibration import brier_score, expected_calibration_error, threshold_sweep
+from .catalog import Capabilities, ModelInfo
 from .decision_model import DecisionModel
 from .errors import (
     AdapterError,
     AdapterNotAvailableError,
+    AdapterNotImplementedError,
+    BackendFailureError,
     DecisionToolkitError,
     InvalidQuestionError,
+    InvalidRequestError,
+    ModelNotDownloadedError,
     ModelNotFoundError,
+    TruncationError,
+    UnsupportedCapabilityError,
+    VerificationError,
 )
 from .models import ModelStore
-from .results import Answer, Classification, Decision
-from .schema import Choice, Noul, Score, choice, noul, score
+from .observability import ensure_request_id, get_request_id, request_context
+from .results import Answer, Classification, Decision, Usage
+from .schema import (
+    Box,
+    Choice,
+    Noul,
+    Score,
+    State,
+    box,
+    choice,
+    normalize_state,
+    noul,
+    score,
+)
 
 __all__ = [
-    "__version__",
-    # core
-    "DecisionModel",
-    "ModelStore",
+    # errors
+    "AdapterError",
+    "AdapterNotAvailableError",
+    "AdapterNotImplementedError",
     # results
     "Answer",
+    "BackendFailureError",
+    # schema
+    "Box",
+    # catalog
+    "Capabilities",
+    "Choice",
     "Classification",
     "Decision",
-    # schema
-    "Choice",
+    # core
+    "DecisionModel",
+    "DecisionToolkitError",
+    "InvalidQuestionError",
+    "InvalidRequestError",
+    "ModelInfo",
+    "ModelNotDownloadedError",
+    "ModelNotFoundError",
+    "ModelStore",
     "Noul",
     "Score",
-    "choice",
-    "noul",
-    "score",
+    "State",
+    "TruncationError",
+    "UnsupportedCapabilityError",
+    "Usage",
+    "VerificationError",
+    "__version__",
+    "box",
     # calibration
     "brier_score",
+    "choice",
+    # observability
+    "ensure_request_id",
     "expected_calibration_error",
+    "get_request_id",
+    "normalize_state",
+    "noul",
+    "register_adapter",
+    "request_context",
+    "score",
     "threshold_sweep",
-    # errors
-    "DecisionToolkitError",
-    "ModelNotFoundError",
-    "AdapterNotAvailableError",
-    "AdapterError",
-    "InvalidQuestionError",
 ]

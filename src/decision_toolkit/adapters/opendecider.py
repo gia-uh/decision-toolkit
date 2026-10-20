@@ -11,7 +11,8 @@ Contract (from the project's `opendecider/prompt.py::nano_ids` and the export's
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from ..engine import OnnxEngine, encode
 from ..errors import AdapterError
@@ -64,8 +65,9 @@ class OpendeciderAdapter:
         options: Mapping[str, str | None],
         special_ids: tuple[int, int, int],
         max_len: int,
-    ) -> tuple[list[int], list[int]]:
+    ) -> tuple[list[int], list[int], bool]:
         cls_id, sep_id, mask_id = special_ids
+        truncated = False
         ids = [cls_id, *encode(tokenizer, f"question: {instructions}"), sep_id]
         markers: list[int] = []
         for key, value in options.items():
@@ -77,8 +79,14 @@ class OpendeciderAdapter:
 
         state_ids = encode(tokenizer, f"input: {state_text}")
         room = max(max_len - len(ids) - 1, 0)
+        if len(state_ids) > room:
+            truncated = True
         ids = ids + state_ids[:room] + [sep_id]
-        return ids[:max_len], [marker for marker in markers if marker < max_len]
+        if len(ids) > max_len:
+            truncated = True
+        if len(markers) > sum(1 for marker in markers if marker < max_len):
+            truncated = True
+        return ids[:max_len], [marker for marker in markers if marker < max_len], truncated
 
     def _scores(
         self,
@@ -88,10 +96,10 @@ class OpendeciderAdapter:
         options: Mapping[str, str | None],
         special_ids: tuple[int, int, int],
         max_len: int,
-    ) -> list[float]:
+    ) -> tuple[list[float], bool]:
         import numpy as np
 
-        ids, markers = self._sequence(
+        ids, markers, truncated = self._sequence(
             engine.tokenizer, state_text, instructions, options, special_ids, max_len
         )
         input_ids = np.asarray([ids], dtype=np.int64)
@@ -99,7 +107,7 @@ class OpendeciderAdapter:
             "input_ids": input_ids,
             "attention_mask": np.ones_like(input_ids),
         })[0][0]
-        return [float(logits[position]) for position in markers]
+        return [float(logits[position]) for position in markers], truncated
 
     # -------------------------------------------------------------- inference
     def system_one(
@@ -113,7 +121,7 @@ class OpendeciderAdapter:
 
         for name, question in questions.items():
             options = self._render_options(question)
-            scores = self._scores(
+            scores, truncated = self._scores(
                 engine, state_text, str(question.get("instructions") or ""),
                 options, special_ids, max_len,
             )
@@ -121,11 +129,15 @@ class OpendeciderAdapter:
             kind = question.get("type")
             labels = list(options)
             if kind == "choice":
-                answers[name] = build_choice_answer(labels, probabilities)
+                answer = build_choice_answer(labels, probabilities)
             elif kind == "noul":
-                answers[name] = build_noul_answer(probabilities[1], probabilities[0])
+                answer = build_noul_answer(probabilities[1], probabilities[0])
             else:
-                answers[name] = build_score_answer(labels, probabilities)
+                answer = build_score_answer(labels, probabilities)
+            if truncated:
+                answer["truncated"] = True
+                answer["warnings"] = [f"input was truncated to fit max_len={max_len}"]
+            answers[name] = answer
         return answers
 
 

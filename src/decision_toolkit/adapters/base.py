@@ -11,10 +11,12 @@ from __future__ import annotations
 
 import json
 import math
-from typing import Any, Mapping, Protocol, Sequence, runtime_checkable
+from collections.abc import Mapping, Sequence
+from typing import Any, Protocol, runtime_checkable
 
 from ..engine import OnnxEngine
 from ..errors import AdapterError, InvalidQuestionError
+from ..schema import State
 
 
 @runtime_checkable
@@ -30,9 +32,11 @@ class Adapter(Protocol):
 
 def state_to_text(state: Any) -> str:
     """Render a System One ``state`` as text for text-based model families."""
+    if isinstance(state, State):
+        return state.text
     if isinstance(state, str):
         return state
-    if isinstance(state, Mapping) or isinstance(state, (list, tuple)):
+    if isinstance(state, (Mapping, list, tuple)):
         return json.dumps(state, ensure_ascii=False, sort_keys=True)
     if state is None:
         raise AdapterError("state cannot be None")
@@ -91,6 +95,7 @@ def build_choice_answer(labels: Sequence[str], probabilities: Sequence[float]) -
         "choice": labels[best],
         "probabilities": {label: float(p) for label, p in zip(labels, probabilities)},
         "confidence": float(probabilities[best]),
+        "confidence_kind": "probability",
     }
 
 
@@ -100,6 +105,7 @@ def build_noul_answer(probability_yes: float, probability_no: float) -> dict[str
         "noul": float(probability_yes),
         "probabilities": {"true": float(probability_yes), "false": float(probability_no)},
         "confidence": float(max(probability_yes, probability_no)),
+        "confidence_kind": "probability",
     }
 
 
@@ -113,15 +119,16 @@ def build_score_answer(labels: Sequence[str], probabilities: Sequence[float]) ->
         "legend": {str(index): label for index, label in enumerate(labels)},
         "probabilities": {str(index): float(p) for index, p in enumerate(probabilities)},
         "confidence": float(probabilities[best]),
+        "confidence_kind": "probability",
     }
 
 
 __all__ = [
     "Adapter",
-    "state_to_text",
-    "softmax",
-    "question_options",
     "build_choice_answer",
     "build_noul_answer",
     "build_score_answer",
+    "question_options",
+    "softmax",
+    "state_to_text",
 ]

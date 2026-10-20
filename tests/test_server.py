@@ -8,9 +8,9 @@ from decision_toolkit.decision_model import DecisionModel
 from decision_toolkit.server import create_app
 
 fastapi = pytest.importorskip("fastapi")
-from fastapi.testclient import TestClient  # noqa: E402
+from fastapi.testclient import TestClient
 
-from .conftest import FakeAdapter  # noqa: E402
+from .conftest import FakeAdapter
 
 
 @pytest.fixture

@@ -13,17 +13,28 @@ A downloaded model is stored **per variant**, so quantizations coexist::
 
 ``config.json`` is created on first use with the defaults already written.
 There are no environment variables.
+
+Phase 1 hardening adds: a process-local download lock, an atomic
+download-then-rename flow (a failed download never leaves a half-usable cache
+entry), gzip decompression for ``.gz`` external-data files, SHA256 recording
+and verification, and custom imports that can carry an adapter and file map.
 """
 
 from __future__ import annotations
 
+import gzip
+import hashlib
 import json
 import logging
+import os
 import shutil
-from dataclasses import dataclass
-from datetime import datetime, timezone
+import threading
+import uuid
+from collections.abc import Mapping
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Mapping
+from typing import Any
 
 from . import catalog
 from .config import Config, load_config, save_config
@@ -32,6 +43,7 @@ from .errors import ModelNotFoundError
 logger = logging.getLogger(__name__)
 
 _ENTRY_META = "model.json"
+_DOWNLOAD_LOCK = threading.RLock()
 
 
 @dataclass(frozen=True)
@@ -47,6 +59,8 @@ class ModelEntry:
     origin: str
     created_at: str
     size_bytes: int
+    adapter: str | None = None
+    sha256: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -59,6 +73,7 @@ class ResolvedModel:
     variant: catalog.Variant | None
     files: Mapping[str, str]
     origin: str  # "cache" | "catalog" | "path"
+    adapter: str | None = None
 
 
 def _dir_size(path: Path) -> int:
@@ -67,6 +82,28 @@ def _dir_size(path: Path) -> int:
 
 def _dirname(identifier: str, variant: str) -> str:
     return f"{identifier}@{variant}"
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _gunzip_tree(root: Path) -> None:
+    """Decompress any ``*.gz`` file under ``root`` and remove the archive."""
+    for archive in sorted(root.rglob("*.gz")):
+        target = archive.with_name(archive.name[:-3])
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with gzip.open(archive, "rb") as source, target.open("wb") as destination:
+            shutil.copyfileobj(source, destination)
+        archive.unlink()
+
+
+def _strip_gz(path: str) -> str:
+    return path.removesuffix(".gz")
 
 
 def _snapshot_download(
@@ -103,6 +140,8 @@ class ModelStore:
             return []
         found: list[ModelEntry] = []
         for directory in sorted(self.models_dir.iterdir()):
+            if directory.name.startswith("."):
+                continue  # an in-flight atomic download, never a cache entry
             meta_path = directory / _ENTRY_META
             if not directory.is_dir() or not meta_path.is_file():
                 continue
@@ -118,6 +157,8 @@ class ModelStore:
                     origin=meta.get("origin", "?"),
                     created_at=meta.get("created_at", "?"),
                     size_bytes=_dir_size(directory),
+                    adapter=meta.get("adapter"),
+                    sha256=dict(meta.get("sha256") or {}),
                 )
             )
         return found
@@ -138,31 +179,46 @@ class ModelStore:
         return candidates[0]
 
     def delete(self, identifier: str, variant: str | None = None) -> None:
-        """Delete a cached variant; refuses the model in use."""
+        """Delete a cached variant; refuses the variant in use."""
         entry = self.get(identifier, variant)
         if entry is None:
             raise ModelNotFoundError(f"{identifier!r} is not in the toolkit cache")
-        if self.config.current == identifier:
+        if self.config.current == identifier and (
+            self.config.current_variant is None or entry.variant == self.config.current_variant
+        ):
             raise ModelNotFoundError(
                 f"{identifier!r} is the model in use; run `dtk models use <other>` first"
             )
         shutil.rmtree(entry.path)
         logger.info("deleted %s (%d bytes)", entry.path, entry.size_bytes)
 
-    def verify(self, identifier: str, variant: str | None = None) -> dict:
-        """Check a cached variant: declared files exist and, if onnxruntime is
-        installed, every declared ``.onnx`` opens (catching missing external data)."""
+    def verify(self, identifier: str, variant: str | None = None) -> dict[str, Any]:
+        """Check a cached variant: files, recorded SHA256 and, if available, ONNX sessions."""
         entry = self.get(identifier, variant)
         if entry is None:
             raise ModelNotFoundError(f"{identifier!r} is not in the toolkit cache")
         missing = [path for path in entry.files.values() if not (entry.path / path).is_file()]
-        report: dict = {
+        hashes: dict[str, dict[str, Any]] = {}
+        for role, expected in entry.sha256.items():
+            relative = entry.files.get(role)
+            if relative is None:
+                hashes[role] = {"expected": expected, "actual": None, "ok": False}
+                continue
+            target = entry.path / relative
+            actual = _sha256(target) if target.is_file() else None
+            hashes[role] = {
+                "expected": expected,
+                "actual": actual,
+                "ok": actual == expected,
+            }
+        report: dict[str, Any] = {
             "identifier": entry.identifier,
             "variant": entry.variant,
             "files": dict(entry.files),
             "missing": missing,
+            "hashes": hashes,
             "sessions": {},
-            "ok": not missing,
+            "ok": not missing and all(item["ok"] for item in hashes.values()),
         }
         try:
             import onnxruntime  # noqa: F401
@@ -185,9 +241,19 @@ class ModelStore:
 
     # -------------------------------------------------------------- network
     def download(
-        self, identifier: str, variant: str | None = None, revision: str | None = None
+        self,
+        identifier: str,
+        variant: str | None = None,
+        revision: str | None = None,
+        *,
+        force: bool = False,
     ) -> ModelEntry:
-        """Download one variant of a catalog model (the only network command)."""
+        """Download one variant of a catalog model (the only network command).
+
+        The download happens in a temporary sibling directory and is renamed
+        into place only after the metadata is written, so an interrupted or
+        failed download never appears as a usable cache entry.
+        """
         model = catalog.get(identifier)
         if model is None:
             raise ModelNotFoundError(
@@ -195,40 +261,82 @@ class ModelStore:
                 "models (custom ONNX files: import them or point at a local directory)"
             )
         chosen = catalog.select_variant(model, variant)
-        local_dir = self.models_dir / _dirname(identifier, chosen.name)
-        if (local_dir / _ENTRY_META).is_file():
-            raise ModelNotFoundError(
-                f"{identifier}@{chosen.name} is already in the cache ({local_dir}); "
-                "delete it first to re-download"
+        final_dir = self.models_dir / _dirname(identifier, chosen.name)
+
+        with _DOWNLOAD_LOCK:
+            if final_dir.exists() and not force:
+                raise ModelNotFoundError(
+                    f"{identifier}@{chosen.name} is already in the cache ({final_dir}); "
+                    "delete it first or pass force=True to re-download"
+                )
+            partial = final_dir.with_name(
+                f".{final_dir.name}.partial-{os.getpid()}-{uuid.uuid4().hex[:8]}"
             )
+            shutil.rmtree(partial, ignore_errors=True)
 
-        allow_patterns = list(chosen.files.values()) + list(chosen.extra_files)
-        logger.info(
-            "downloading %s@%s (%s, %.1f MB) from %s",
-            identifier, chosen.name, chosen.quant, chosen.size_mb, chosen.repo,
-        )
-        _snapshot_download(
-            chosen.repo, local_dir, revision=revision or chosen.revision,
-            allow_patterns=allow_patterns,
-        )
+            allow_patterns = list(chosen.files.values()) + list(chosen.extra_files)
+            logger.info(
+                "downloading %s@%s (%s, %.1f MB) from %s",
+                identifier, chosen.name, chosen.quant, chosen.size_mb, chosen.repo,
+            )
+            try:
+                _snapshot_download(
+                    chosen.repo,
+                    partial,
+                    revision=revision or chosen.revision,
+                    allow_patterns=allow_patterns,
+                )
+                _gunzip_tree(partial)
 
-        meta = {
-            "identifier": identifier,
-            "variant": chosen.name,
-            "repo": chosen.repo,
-            "files": dict(chosen.files),
-            "extra_files": list(chosen.extra_files),
-            "source": "download",
-            "origin": f"huggingface:{chosen.repo}@{revision or chosen.revision or 'main'}",
-            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        }
-        (local_dir / _ENTRY_META).write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
-        size = _dir_size(local_dir)
-        logger.info("downloaded %s@%s into %s (%.1f MB)", identifier, chosen.name, local_dir, size / 1e6)
-        return self.get(identifier, chosen.name)  # type: ignore[return-value]
+                files = {role: _strip_gz(relative) for role, relative in chosen.files.items()}
+                extra_files = [_strip_gz(relative) for relative in chosen.extra_files]
+                sha256 = {
+                    role: _sha256(partial / relative)
+                    for role, relative in files.items()
+                    if (partial / relative).is_file()
+                }
+                meta = {
+                    "identifier": identifier,
+                    "variant": chosen.name,
+                    "repo": chosen.repo,
+                    "files": files,
+                    "extra_files": extra_files,
+                    "sha256": sha256,
+                    "adapter": model.adapter,
+                    "source": "download",
+                    "origin": f"huggingface:{chosen.repo}@{revision or chosen.revision or 'main'}",
+                    "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
+                }
+                (partial / _ENTRY_META).write_text(
+                    json.dumps(meta, indent=2) + "\n", encoding="utf-8"
+                )
+                if final_dir.exists():
+                    shutil.rmtree(final_dir)
+                partial.rename(final_dir)
+            except Exception:
+                shutil.rmtree(partial, ignore_errors=True)
+                raise
 
-    def import_model(self, path: str | Path, name: str | None = None) -> ModelEntry:
-        """Copy a local model directory into the toolkit cache (custom models)."""
+            size = _dir_size(final_dir)
+            logger.info(
+                "downloaded %s@%s into %s (%.1f MB)",
+                identifier, chosen.name, final_dir, size / 1e6,
+            )
+            return self.get(identifier, chosen.name)  # type: ignore[return-value]
+
+    def import_model(
+        self,
+        path: str | Path,
+        name: str | None = None,
+        *,
+        adapter: str | None = None,
+        files: Mapping[str, str] | None = None,
+    ) -> ModelEntry:
+        """Copy a local model directory into the toolkit cache (custom models).
+
+        ``adapter`` and ``files`` make the imported model directly runnable by
+        ``DecisionModel`` without repeating the role map at every call.
+        """
         source = Path(path).expanduser().resolve()
         if not source.is_dir():
             raise ModelNotFoundError(f"local model path not found: {source}")
@@ -236,39 +344,76 @@ class ModelStore:
         local_dir = self.models_dir / _dirname(identifier, "local")
         if local_dir.exists():
             raise ModelNotFoundError(f"{identifier}@local is already in the toolkit cache")
-        shutil.copytree(source, local_dir)
-        meta = {
-            "identifier": identifier,
-            "variant": "local",
-            "repo": "",
-            "files": {},
-            "extra_files": [],
-            "source": "import",
-            "origin": str(source),
-            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        }
-        (local_dir / _ENTRY_META).write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+        role_map = dict(files or {})
+        for role, relative in role_map.items():
+            if not isinstance(role, str) or not role.strip():
+                raise ModelNotFoundError("import files need non-empty role names")
+            if not isinstance(relative, str) or not relative.strip():
+                raise ModelNotFoundError(f"import file for {role!r} needs a non-empty path")
+        partial = local_dir.with_name(f".{local_dir.name}.partial-{os.getpid()}")
+        shutil.rmtree(partial, ignore_errors=True)
+        try:
+            shutil.copytree(source, partial)
+            sha256 = {
+                role: _sha256(partial / relative)
+                for role, relative in role_map.items()
+                if (partial / relative).is_file()
+            }
+            meta = {
+                "identifier": identifier,
+                "variant": "local",
+                "repo": "",
+                "files": role_map,
+                "extra_files": [],
+                "sha256": sha256,
+                "adapter": adapter,
+                "source": "import",
+                "origin": str(source),
+                "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            }
+            (partial / _ENTRY_META).write_text(
+                json.dumps(meta, indent=2) + "\n", encoding="utf-8"
+            )
+            partial.rename(local_dir)
+        except Exception:
+            shutil.rmtree(partial, ignore_errors=True)
+            raise
         return self.get(identifier, "local")  # type: ignore[return-value]
 
     # ------------------------------------------------------------------ use
     def use(self, identifier: str, variant: str | None = None) -> None:
-        """Set the model in use (persistent)."""
-        if catalog.get(identifier) is None and self.get(identifier, variant) is None and "/" not in identifier:
+        """Set the model (and optional variant) in use, persistently."""
+        model = catalog.get(identifier)
+        cached = self.get(identifier, variant)
+        if model is None and cached is None and "/" not in identifier:
             raise ModelNotFoundError(
                 f"{identifier!r} is neither in the toolkit cache nor the catalog; "
                 "run `dtk models list` / `dtk models download <id>`"
             )
+        if variant is not None:
+            if model is not None:
+                catalog.select_variant(model, variant)
+            elif cached is None:
+                raise ModelNotFoundError(
+                    f"{identifier!r} is not cached with variant {variant!r}"
+                )
         self.config.current = identifier
+        self.config.current_variant = variant
         save_config(self.config)
 
     def current(self) -> str | None:
         return self.config.current
+
+    def current_variant(self) -> str | None:
+        return self.config.current_variant
 
     # -------------------------------------------------------------- resolve
     def resolve(self, identifier: str | None = None, variant: str | None = None) -> ResolvedModel:
         """Resolve an identifier into the directory and file map an adapter needs."""
         if identifier is None:
             identifier = self.config.current
+            if variant is None:
+                variant = self.config.current_variant
         if identifier is None:
             raise ModelNotFoundError(
                 "no model given and none in use; pass a model id or run `dtk models use <id>`"
@@ -303,6 +448,7 @@ class ModelStore:
                 variant=chosen,
                 files=entry.files,
                 origin="cache",
+                adapter=entry.adapter or (model.adapter if model is not None else None),
             )
 
         # 3. the catalog
@@ -318,10 +464,11 @@ class ModelStore:
                 variant=chosen,
                 files=dict(chosen.files) if chosen else {},
                 origin="catalog",
+                adapter=model.adapter,
             )
 
         # 4. a bare hub reference (custom; the caller supplies adapter + files)
-        repo = identifier[3:] if identifier.startswith("hf:") else identifier
+        repo = identifier.removeprefix("hf:")
         if "/" in repo:
             return ResolvedModel(
                 identifier=identifier,
@@ -341,4 +488,4 @@ class ModelStore:
         )
 
 
-__all__ = ["ModelStore", "ModelEntry", "ResolvedModel"]
+__all__ = ["ModelEntry", "ModelStore", "ResolvedModel"]

@@ -13,7 +13,8 @@ Anything that talks to Jev talks to ``dtk serve`` by changing the base URL.
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from . import __version__, catalog
 from .decision_model import DecisionModel
@@ -24,7 +25,11 @@ from .errors import (
     ModelNotFoundError,
 )
 from .models import ModelStore
-from .schema import normalize_questions, openai_to_systemone, systemone_answers_to_openai
+from .schema import (
+    normalize_questions,
+    openai_to_systemone,
+    systemone_answers_to_openai,
+)
 
 
 def create_app(
@@ -123,7 +128,7 @@ def create_app(
 
     # ------------------------------------------------------------- inference
     @app.post("/v1/systemone")
-    def systemone(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    def systemone(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:  # noqa: B008
         state_value = payload.get("state")
         questions = payload.get("questions")
         if state_value is None or not isinstance(questions, Mapping):
@@ -136,7 +141,7 @@ def create_app(
         return {"model": get_model().identifier, "answers": decision.to_dict()}
 
     @app.post("/v1/decisions")
-    def decisions(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    def decisions(payload: dict[str, Any] = Body(...)) -> dict[str, Any]:  # noqa: B008
         input_value = payload.get("input")
         questions = payload.get("questions")
         if input_value is None or not isinstance(questions, list):

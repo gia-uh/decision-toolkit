@@ -10,8 +10,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 from . import __version__, catalog
 from .adapters import ADAPTERS
@@ -42,7 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
     # ----------------------------------------------------------------- models
     models = sub.add_parser("models", help="Model cache and curated catalog.")
     models_sub = models.add_subparsers(dest="models_command")
-    models_list = models_sub.add_parser("list", help="The curated library (adapter, variants).")
+    models_sub.add_parser("list", help="The curated library (adapter, variants).")
     models_variants = models_sub.add_parser("variants", help="Variants of a catalog model.")
     models_variants.add_argument("model")
     models_download = models_sub.add_parser("download", help="Download one variant (the only network command).")

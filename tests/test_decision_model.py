@@ -112,4 +112,4 @@ def test_custom_path_requires_files(home, tmp_path):
 def test_close_releases_backend(fake_model):
     fake_model.warmup()
     fake_model.close()
-    assert fake_model._adapter is None  # noqa: SLF001 - white-box lifecycle check
+    assert fake_model._adapter is None

@@ -57,6 +57,34 @@ verdict = model.classify(
 verdict.label, verdict.confidence, verdict.below_threshold
 ```
 
+The core is the **superset** of the surfaces. It also exposes lifecycle,
+usage, batch/async, capabilities and structured events:
+
+```python
+from decision_toolkit import DecisionModel, request_context, noul
+
+with DecisionModel("gliner2.5-multi", strict=True) as model:
+    model.warmup()
+    with request_context("req-42"):
+        decision = model.decide("Customer wants a refund today.",
+                                {"urgent": noul("Does it need a reply today?")})
+    batch = model.decide_many(["first state", "second state"],
+                              {"urgent": noul("Today?")})
+
+decision["urgent"].confidence       # normalized probability
+decision.usage.to_dict()            # input/output tokens + estimated flag
+decision.latency_ms                 # per-decision latency
+decision.request_id                 # 'req-42'
+decision.truncated, decision.warnings
+```
+
+`strict=True` turns silent truncation into `TruncationError`. Capabilities are
+validated before inference (`box`/assets are rejected by text-only models).
+Custom adapters can be registered with `register_adapter`; local ONNX models
+can be opened with `DecisionModel.from_onnx(...)`. See
+[docs/CORE.md](docs/CORE.md) for the full phase 1 contract, error taxonomy,
+logging events and the expressiveness inventory.
+
 **2. As a CLI**
 
 ```bash
@@ -133,13 +161,20 @@ You can run any ONNX file with an adapter you trust — outside the curated
 catalog:
 
 ```python
-model = DecisionModel(
+model = DecisionModel.from_onnx(
     "./mi-modelo",
     adapter="gliner2",              # the layout you declare
     files={"encoder": "encoder.onnx", "classifier": "classifier.onnx",
            "tokenizer": "tokenizer.json"},
 )
 # no parity, no license check, no support
+```
+
+Third-party layouts can be registered in-process:
+
+```python
+from decision_toolkit import register_adapter
+register_adapter("my-layout", MyAdapter)
 ```
 
 Custom models do not appear in `dtk models list`; the toolkit never guesses a

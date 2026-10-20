@@ -14,7 +14,8 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from ..engine import OnnxEngine, encode
 from ..errors import AdapterError
@@ -36,7 +37,7 @@ WORD_PATTERN = re.compile(
     r"|@[a-z0-9_]+"
     r"|[\w]+(?:[-_][\w]+)*"
     r"|\S",
-    re.I | re.U,
+    re.IGNORECASE | re.UNICODE,
 )
 
 

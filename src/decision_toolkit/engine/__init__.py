@@ -12,8 +12,9 @@ paths.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from ..errors import AdapterError, AdapterNotAvailableError
 
@@ -88,7 +89,7 @@ def load_tokenizer(path: str | Path) -> Any:
         from transformers import AutoTokenizer
 
         return AutoTokenizer.from_pretrained(str(target.parent))
-    except Exception:  # not installed, or a tokenizer class this build lacks
+    except Exception:  # noqa: BLE001, S110 - fall back to the tokenizers runtime
         pass
     try:
         from tokenizers import Tokenizer
@@ -107,4 +108,4 @@ def encode(tokenizer: Any, text: str) -> list[int]:
     return [int(token) for token in ids]
 
 
-__all__ = ["OnnxEngine", "open_session", "load_tokenizer", "encode"]
+__all__ = ["OnnxEngine", "encode", "load_tokenizer", "open_session"]

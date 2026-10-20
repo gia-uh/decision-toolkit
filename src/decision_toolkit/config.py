@@ -10,6 +10,7 @@ another disk). There are **no environment variables**; pass ``home=`` /
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -26,6 +27,7 @@ class Config:
     home: Path
     cache_dir: Path
     current: str | None = None
+    current_variant: str | None = None
     device: str = "auto"
 
 
@@ -49,21 +51,29 @@ def load_config(home: str | Path | None = None) -> Config:
         home=home_path,
         cache_dir=cache_dir,
         current=data.get("current"),
+        current_variant=data.get("current_variant"),
         device=data.get("device", "auto"),
     )
 
 
 def save_config(config: Config) -> None:
-    """Persist a :class:`Config` to ``<home>/config.json``."""
+    """Persist a :class:`Config` to ``<home>/config.json`` atomically.
+
+    ``current_variant`` is omitted when unset so existing config files and
+    callers that only know ``current`` remain valid.
+    """
     config.home.mkdir(parents=True, exist_ok=True)
-    payload = {
+    payload: dict[str, object] = {
         "cache_dir": str(config.cache_dir),
         "current": config.current,
         "device": config.device,
     }
-    (config.home / CONFIG_NAME).write_text(
-        json.dumps(payload, indent=2) + "\n", encoding="utf-8"
-    )
+    if config.current_variant is not None:
+        payload["current_variant"] = config.current_variant
+    target = config.home / CONFIG_NAME
+    temporary = target.with_name(f".{target.name}.tmp")
+    temporary.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    os.replace(temporary, target)
 
 
 def update_config(home: str | Path | None = None, **changes: object) -> Config:
@@ -77,4 +87,4 @@ def update_config(home: str | Path | None = None, **changes: object) -> Config:
     return config
 
 
-__all__ = ["Config", "DEFAULT_HOME", "CONFIG_NAME", "load_config", "save_config", "update_config"]
+__all__ = ["CONFIG_NAME", "DEFAULT_HOME", "Config", "load_config", "save_config", "update_config"]

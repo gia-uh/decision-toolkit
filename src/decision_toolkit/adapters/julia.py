@@ -14,7 +14,8 @@ scores the options directly.
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from ..engine import OnnxEngine, encode
 from ..errors import AdapterError
@@ -80,17 +81,26 @@ class JuliaAdapter:
         state_text: str,
         question: Mapping[str, Any],
         options: list[str],
-    ) -> tuple[list[int], list[int]]:
+    ) -> tuple[list[int], list[int], bool]:
         mask, bos, eos = self._special_ids(tokenizer)
+        truncated = False
         instructions = str(question.get("instructions") or "")
         head_ids = encode(tokenizer, f"{question['type']} question: {instructions}")
-        option_ids = [[mask, *encode(tokenizer, " " + option)[:48]] for option in options]
+        option_ids: list[list[int]] = []
+        for option in options:
+            encoded = encode(tokenizer, " " + option)
+            if len(encoded) > 48:
+                truncated = True
+            option_ids.append([mask, *encoded[:48]])
 
         budget = self.head_length - sum(len(option) for option in option_ids)
         if budget < 16:
+            truncated = True
             per = max(4, (self.head_length - 16) // max(1, len(option_ids)))
             option_ids = [option[:per] for option in option_ids]
             budget = self.head_length - sum(len(option) for option in option_ids)
+        if len(head_ids) > max(8, budget):
+            truncated = True
         head_ids = head_ids[: max(8, budget)]
 
         ids = [bos, *head_ids, eos]
@@ -101,9 +111,14 @@ class JuliaAdapter:
         ids.append(eos)
 
         room = max(1, self.max_length - len(ids) - 1)
-        state_ids = encode(tokenizer, state_text)[:room]
+        state_ids = encode(tokenizer, state_text)
+        if len(state_ids) > room:
+            truncated = True
+        state_ids = state_ids[:room]
         all_ids = (ids + state_ids + [eos])[: self.max_length]
-        return all_ids, [marker for marker in markers if marker < self.max_length]
+        if len(markers) > sum(1 for marker in markers if marker < self.max_length):
+            truncated = True
+        return all_ids, [marker for marker in markers if marker < self.max_length], truncated
 
     # -------------------------------------------------------------- inference
     def system_one(
@@ -118,7 +133,7 @@ class JuliaAdapter:
         for name, question in questions.items():
             kind, labels, _ = question_options(question)
             options = self._render_options(question)
-            ids, markers = self._sequence(tokenizer, state_text, question, options)
+            ids, markers, truncated = self._sequence(tokenizer, state_text, question, options)
             if len(markers) != len(options):
                 raise AdapterError(
                     f"{name!r}: the options do not fit in {self.head_length} tokens"
@@ -136,11 +151,17 @@ class JuliaAdapter:
 
             probabilities = softmax(np.asarray(logits)[0][: len(markers)].tolist())
             if kind == "choice":
-                answers[name] = build_choice_answer(labels, probabilities)
+                answer = build_choice_answer(labels, probabilities)
             elif kind == "noul":
-                answers[name] = build_noul_answer(probabilities[1], probabilities[0])
+                answer = build_noul_answer(probabilities[1], probabilities[0])
             else:
-                answers[name] = build_score_answer(labels, probabilities)
+                answer = build_score_answer(labels, probabilities)
+            if truncated:
+                answer["truncated"] = True
+                answer["warnings"] = [
+                    f"input was truncated to fit max_length={self.max_length}"
+                ]
+            answers[name] = answer
         return answers
 
 

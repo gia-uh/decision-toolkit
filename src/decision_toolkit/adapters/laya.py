@@ -15,7 +15,8 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from ..engine import OnnxEngine, encode
 from ..errors import AdapterError
@@ -81,20 +82,29 @@ class LayaAdapter:
         question: Mapping[str, Any],
         options: list[str],
         config: Mapping[str, Any],
-    ) -> tuple[list[int], list[int]]:
+    ) -> tuple[list[int], list[int], bool]:
         max_len = int(config.get("max_len", 1024))
         head_max_len = int(config.get("head_max_len", 256))
         mask, bos, eos = self._special_ids(tokenizer)
+        truncated = False
 
         instructions = str(question.get("instructions") or "")
         head_ids = encode(tokenizer, f"{question['type']} question: {instructions}")
-        option_ids = [[mask, *encode(tokenizer, " " + option)[:48]] for option in options]
+        option_ids: list[list[int]] = []
+        for option in options:
+            encoded = encode(tokenizer, " " + option)
+            if len(encoded) > 48:
+                truncated = True
+            option_ids.append([mask, *encoded[:48]])
 
         budget = head_max_len - sum(len(option) for option in option_ids)
         if budget < 16:
+            truncated = True
             per = max(4, (head_max_len - 16) // max(1, len(option_ids)))
             option_ids = [option[:per] for option in option_ids]
             budget = head_max_len - sum(len(option) for option in option_ids)
+        if len(head_ids) > max(8, budget):
+            truncated = True
         head_ids = head_ids[: max(8, budget)]
 
         ids = [bos, *head_ids, eos]
@@ -105,9 +115,14 @@ class LayaAdapter:
         ids.append(eos)
 
         room = max(0, max_len - len(ids) - 1)
-        state_ids = encode(tokenizer, state_text)[:room]
+        state_ids = encode(tokenizer, state_text)
+        if len(state_ids) > room:
+            truncated = True
+        state_ids = state_ids[:room]
         all_ids = (ids + state_ids + [eos])[:max_len]
-        return all_ids, [marker for marker in markers if marker < max_len]
+        if len(markers) > sum(1 for marker in markers if marker < max_len):
+            truncated = True
+        return all_ids, [marker for marker in markers if marker < max_len], truncated
 
     @staticmethod
     def _temperature(config: Mapping[str, Any], qtype: int, count: int) -> float:
@@ -141,7 +156,9 @@ class LayaAdapter:
         for name, question in questions.items():
             kind, labels, _ = question_options(question)
             options = self._render_options(question)
-            ids, markers = self._sequence(tokenizer, state_text, question, options, config)
+            ids, markers, truncated = self._sequence(
+                tokenizer, state_text, question, options, config
+            )
             if len(markers) != len(options):
                 raise AdapterError(
                     f"{name!r}: the options do not fit in {config.get('head_max_len')} tokens"
@@ -192,8 +209,14 @@ class LayaAdapter:
 
             if kind in {"choice", "score"}:
                 answer["answer_confidence"] = answer["confidence"]
-                answer["confidence"] = self._confidence(probabilities)
+                answer["distribution_confidence"] = self._confidence(probabilities)
+            answer["confidence_kind"] = "probability"
             answer["action"] = {"act_probability": float(act_probability)}
+            if truncated:
+                answer["truncated"] = True
+                answer["warnings"] = [
+                    f"input was truncated to fit max_len={config.get('max_len', 1024)}"
+                ]
             answers[name] = answer
 
         return answers

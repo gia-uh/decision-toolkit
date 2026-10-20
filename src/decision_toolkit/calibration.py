@@ -11,7 +11,7 @@ it from your own labelled rows with :func:`pairs_from_rows`.
 
 from __future__ import annotations
 
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 Pair = tuple[float, bool]
 
@@ -76,4 +76,4 @@ def threshold_sweep(pairs: Sequence[Pair], thresholds: Sequence[float] = (0.5, 0
     return report
 
 
-__all__ = ["Pair", "pairs_from_rows", "brier_score", "expected_calibration_error", "threshold_sweep"]
+__all__ = ["Pair", "brier_score", "expected_calibration_error", "pairs_from_rows", "threshold_sweep"]

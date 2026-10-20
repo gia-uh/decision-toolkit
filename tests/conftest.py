@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 import pytest
 
@@ -29,7 +30,7 @@ class FakeAdapter:
         for key, question in questions.items():
             qtype = question["type"]
             if qtype == "choice":
-                labels = list((question.get("criteria") or {"first": None, "second": None}))
+                labels = list(question.get("criteria") or {"first": None, "second": None})
                 tail = 0.1 / max(1, len(labels) - 1)
                 answers[key] = {
                     "type": "choice",
