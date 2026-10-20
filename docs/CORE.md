@@ -6,7 +6,7 @@ this API, and the CLI is our own operational subset. Nothing in this document
 belongs to a wire contract.
 
 ```
-Núcleo programático   ← superset, semantic source of truth
+Programmatic core   ← superset, semantic source of truth
    ├── REST           ← subset projected onto System One / OpenAI, versioned
    └── CLI            ← own workflows, no external standard
 ```

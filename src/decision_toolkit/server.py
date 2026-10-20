@@ -603,6 +603,7 @@ def create_app(
                     time.perf_counter() - started,
                 )
             raise
+        variant_name = selected.variant or variant_name
         if not was_loaded and selected.is_loaded:
             metrics.observe(
                 "dtk_model_load_seconds",

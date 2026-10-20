@@ -6,7 +6,7 @@ subset, maps it to a pinned wire contract, and adds transport concerns (auth,
 request ids, limits, CORS, logging).
 
 ```
-Núcleo programático (superset)
+Programmatic core (superset)
         │  pure projection + conformance
         ▼
 REST (subset; System One 1.14 + OpenAI Decisions beta)

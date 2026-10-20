@@ -22,7 +22,7 @@ htmlcov/
 # Local data
 *.local
 home/
-models/
+/models/
 
 # OS / editors
 .DS_Store

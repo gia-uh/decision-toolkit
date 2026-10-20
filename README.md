@@ -29,19 +29,19 @@ from decision_toolkit import DecisionModel, choice, noul, score
 model = DecisionModel("gliner2.5-multi")
 
 answer = model.decide(
-    state="Reunión con Acme: acordamos un descuento del 10% y firmar la semana que viene.",
+    state="Meeting with Acme: we agreed a 10% discount and will sign next week.",
     questions={
-        "cat": choice("¿Qué tipo de registro describe el texto?", {
-            "reunion": "una reunión o llamada con temas, decisiones y acciones",
-            "tareas": "cosas pendientes por hacer, con fechas o responsables",
-            "contacto": "datos de una persona: nombre, rol, empresa, teléfono, correo",
-            "idea": "una idea, reflexión, observación o pregunta",
-            "otras": "saludo, charla suelta o cualquier cosa que no sea ninguna",
+        "cat": choice("What kind of record is this?", {
+            "meeting": "a meeting or call with topics, decisions and actions",
+            "tasks": "things to do, with dates or owners",
+            "contact": "a person's details: name, role, company, phone, email",
+            "idea": "an idea, reflection, observation or question",
+            "other": "a greeting, small talk or anything else",
         }),
-        "urgent": noul("¿Necesita respuesta hoy?"),
+        "urgent": noul("Does it need a reply today?"),
     },
 )
-answer["cat"].choice          # 'reunion'
+answer["cat"].choice          # 'meeting'
 answer["cat"].confidence      # 0.77
 answer["urgent"].noul         # probability of "true"
 ```
@@ -94,7 +94,7 @@ dtk models download gliner2.5-multi --dry-run    # show the download first
 dtk models use gliner2.5-multi --variant fp16
 dtk models current --json                        # includes the current variant
 dtk decide --model gliner2.5-multi \
-    --state "Reunión con Acme: descuento del 10%, firmar la semana que viene." \
+    --state "Meeting with Acme: 10% discount, sign next week." \
     --questions-file questions.yaml --json
 dtk decide --model gliner2.5-multi \
     --input-jsonl states.jsonl --questions-file questions.yaml \
@@ -219,7 +219,7 @@ catalog:
 
 ```python
 model = DecisionModel.from_onnx(
-    "./mi-modelo",
+    "./my-model",
     adapter="gliner2",              # the layout you declare
     files={"encoder": "encoder.onnx", "classifier": "classifier.onnx",
            "tokenizer": "tokenizer.json"},
