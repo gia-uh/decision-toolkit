@@ -175,6 +175,24 @@ gliner2.5-multi:
   sample) and measuring latency on CPU.
 - Unverified variants are never default. No silent fallback.
 
+## Operations
+
+The server has bounded inference concurrency (`--max-concurrent`), an optional
+per-key rate limiter (`--rate-limit`, 429 + `Retry-After`), Prometheus metrics
+at `/metrics`, and optional OpenTelemetry spans (`--tracing`). Saturation
+returns 503 `server_busy` instead of building an unbounded queue. State and
+question text never become log/metric labels.
+
+```bash
+dtk serve --model gliner2.5-multi --warmup --max-concurrent 4 \
+  --rate-limit 120 --rate-window 60
+PYTHONPATH=src python bench/load.py --base-url http://127.0.0.1:8000 \
+  --concurrency 10 --requests 30
+```
+
+See [docs/OPERATIONS.md](docs/OPERATIONS.md) for metric names, alerts, the
+runbook and the multi-worker caveat.
+
 ## Reproducibility
 
 Every catalog variant is pinned to a real HuggingFace **commit SHA** and carries

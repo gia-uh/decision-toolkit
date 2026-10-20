@@ -5,6 +5,19 @@ published a distribution artifact yet; versions are repository milestones.
 
 ## [Unreleased]
 
+### Phase 5 — operations
+
+- Per-key rate limiting with `429` + `Retry-After` (disabled by default).
+- Bounded inference concurrency (`--max-concurrent`) with `503 server_busy`
+  instead of unbounded queueing.
+- Prometheus `/metrics`: HTTP, decision, token, model-load, rate-limit, busy,
+  inflight and model-cache metrics with low-cardinality labels.
+- Optional OpenTelemetry spans (`--tracing`) with a no-op fallback.
+- `bench/load.py` concurrent load probe and a versioned backpressure result.
+- Deterministic REST fuzz/negative corpus and PII sentinel tests.
+- `pip-audit` CI job; `docs/OPERATIONS.md` runbook.
+- Still no wheel/PyPI/tag.
+
 ### Phase 4 — reproducibility
 
 - Pinned every catalog variant to a HuggingFace commit SHA.

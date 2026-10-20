@@ -285,4 +285,5 @@ This is the checklist against which the REST projection will be verified:
   [CLI.md](CLI.md)).
 - Pin/hash enforcement and source CI are implemented in phase 4; wheel,
   PyPI and distribution tagging are deferred to phase 6.
-- Metrics server, rate limiting, load/fuzz testing (phase 5).
+- Metrics server, rate limiting and load/fuzz testing are server-side phase 5
+  features; see [OPERATIONS.md](OPERATIONS.md).

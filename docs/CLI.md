@@ -234,5 +234,6 @@ dtk doctor --json
   config), but still does not reimplement inference.
 - It does not have a compatibility obligation to System One/OpenAI; those are
   REST contracts.
-- Metrics/rate limiting belong to phase 5; wheel/PyPI and distribution
-  tagging are deferred to phase 6.
+- Metrics/rate limiting are server-side phase 5 features; see
+  [OPERATIONS.md](OPERATIONS.md). Wheel/PyPI and distribution tagging are
+  deferred to phase 6.

@@ -17,15 +17,19 @@ envelope. The core remains the superset.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import hmac
 import json
 import logging
 import time
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
+from functools import partial
 from typing import Any
 
 from starlette.requests import Request
+from starlette.responses import PlainTextResponse
 
 from . import __version__, catalog
 from .contracts import (
@@ -52,9 +56,12 @@ from .errors import (
     ModelNotDownloadedError,
     ModelNotFoundError,
     MultimodalNotSupportedError,
+    ServerBusyError,
     TruncationError,
     UnsupportedCapabilityError,
 )
+from .limits import ConcurrencyGate, RateLimiter
+from .metrics import Metrics, metric_path
 from .models import ModelStore
 from .observability import (
     configure_logging,
@@ -65,6 +72,7 @@ from .observability import (
 )
 from .registry import ModelRegistry
 from .schema import openai_to_systemone
+from .tracing import configure_tracing, tracing_span
 
 logger = logging.getLogger(__name__)
 access_logger = logging.getLogger("decision_toolkit.server.access")
@@ -81,13 +89,34 @@ class _BodyTooLarge(BaseException):
     """
 
 
-class _RequestMiddleware:
-    """Request id, access log and body-size limit as one ASGI middleware."""
+_EXEMPT_FROM_RATE_LIMIT = {
+    "/health",
+    "/v1/health",
+    "/ready",
+    "/v1/ready",
+    "/metrics",
+}
 
-    def __init__(self, app: Any, *, max_body_bytes: int, logger_: logging.Logger) -> None:
+
+class _RequestMiddleware:
+    """Request id, access log, rate limit, metrics and body-size limit."""
+
+    def __init__(
+        self,
+        app: Any,
+        *,
+        max_body_bytes: int,
+        logger_: logging.Logger,
+        rate_limiter: RateLimiter | None = None,
+        metrics: Metrics | None = None,
+        tracer: Any | None = None,
+    ) -> None:
         self.app = app
         self.max_body_bytes = max(1, int(max_body_bytes))
         self.logger = logger_
+        self.rate_limiter = rate_limiter
+        self.metrics = metrics
+        self.tracer = tracer
 
     @staticmethod
     def _request_id(scope: dict[str, Any]) -> str:
@@ -98,25 +127,31 @@ class _RequestMiddleware:
                     return candidate
         return new_request_id()
 
+    @staticmethod
+    def _rate_key(scope: dict[str, Any]) -> str:
+        for key, value in scope.get("headers", []):
+            if key.lower() == b"authorization" and value:
+                return "auth:" + hashlib.sha256(value).hexdigest()
+        client = scope.get("client") or ("unknown", 0)
+        return "ip:" + str(client[0])
+
     async def _send_json(
         self,
         send: Any,
         status: int,
         payload: dict[str, Any],
         request_id: str,
+        *,
+        extra_headers: Sequence[tuple[bytes, bytes]] = (),
     ) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        await send(
-            {
-                "type": "http.response.start",
-                "status": status,
-                "headers": [
-                    (b"content-type", b"application/json"),
-                    (b"content-length", str(len(body)).encode("ascii")),
-                    (b"x-request-id", request_id.encode("ascii", errors="replace")),
-                ],
-            }
-        )
+        headers = [
+            (b"content-type", b"application/json"),
+            (b"content-length", str(len(body)).encode("ascii")),
+            (b"x-request-id", request_id.encode("ascii", errors="replace")),
+            *extra_headers,
+        ]
+        await send({"type": "http.response.start", "status": status, "headers": headers})
         await send({"type": "http.response.body", "body": body})
 
     async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
@@ -125,10 +160,14 @@ class _RequestMiddleware:
             return
 
         request_id = self._request_id(scope)
+        path = str(scope.get("path") or "")
+        method = str(scope.get("method") or "")
         started = time.perf_counter()
         status = 500
         response_started = False
         total_body = 0
+        if self.metrics is not None:
+            self.metrics.add_gauge("dtk_inflight_requests", value=1)
 
         async def send_wrapper(message: dict[str, Any]) -> None:
             nonlocal status, response_started
@@ -158,26 +197,8 @@ class _RequestMiddleware:
                     content_length = 0
                 break
 
-        if content_length > self.max_body_bytes:
-            await self._send_json(
-                send,
-                413,
-                error_payload(
-                    f"request body exceeds {self.max_body_bytes} bytes",
-                    error_type="invalid_request_error",
-                    code="request_too_large",
-                ),
-                request_id,
-            )
-            status = 413
-            self._log_access(scope, request_id, status, started)
-            return
-
         try:
-            with request_context(request_id):
-                await self.app(scope, receive_wrapper, send_wrapper)
-        except _BodyTooLarge:
-            if not response_started:
+            if content_length > self.max_body_bytes:
                 await self._send_json(
                     send,
                     413,
@@ -189,7 +210,61 @@ class _RequestMiddleware:
                     request_id,
                 )
                 status = 413
+                return
+
+            if (
+                self.rate_limiter is not None
+                and self.rate_limiter.enabled
+                and path.startswith("/v1/")
+                and path not in _EXEMPT_FROM_RATE_LIMIT
+            ):
+                allowed, retry_after = self.rate_limiter.allow(self._rate_key(scope))
+                if not allowed:
+                    if self.metrics is not None:
+                        self.metrics.inc(
+                            "dtk_rate_limited_total",
+                            {"path": metric_path(path)},
+                        )
+                    await self._send_json(
+                        send,
+                        429,
+                        error_payload(
+                            "rate limit exceeded",
+                            error_type="rate_limit_error",
+                            code="rate_limit_exceeded",
+                        ),
+                        request_id,
+                        extra_headers=[
+                            (b"retry-after", str(max(1, int(retry_after + 0.999))).encode())
+                        ],
+                    )
+                    status = 429
+                    return
+
+            try:
+                with request_context(request_id), tracing_span(
+                    self.tracer,
+                    "dtk.http.request",
+                    method=method,
+                    path=metric_path(path),
+                ):
+                    await self.app(scope, receive_wrapper, send_wrapper)
+            except _BodyTooLarge:
+                if not response_started:
+                    await self._send_json(
+                        send,
+                        413,
+                        error_payload(
+                            f"request body exceeds {self.max_body_bytes} bytes",
+                            error_type="invalid_request_error",
+                            code="request_too_large",
+                        ),
+                        request_id,
+                    )
+                    status = 413
         finally:
+            if self.metrics is not None:
+                self.metrics.add_gauge("dtk_inflight_requests", value=-1)
             self._log_access(scope, request_id, status, started, total_body)
 
     def _log_access(
@@ -200,14 +275,28 @@ class _RequestMiddleware:
         started: float,
         body_bytes: int = 0,
     ) -> None:
+        duration = time.perf_counter() - started
+        path = str(scope.get("path") or "")
+        method = str(scope.get("method") or "")
+        if self.metrics is not None and path != "/metrics":
+            normalized = metric_path(path)
+            self.metrics.inc(
+                "dtk_http_requests_total",
+                {"method": method, "path": normalized, "status": str(status)},
+            )
+            self.metrics.observe(
+                "dtk_http_request_duration_seconds",
+                {"method": method, "path": normalized},
+                duration,
+            )
         log_event(
             self.logger,
             "http.request",
             request_id=request_id,
-            method=scope.get("method"),
-            path=scope.get("path"),
+            method=method or None,
+            path=path,
             status=status,
-            duration_ms=round((time.perf_counter() - started) * 1000.0, 3),
+            duration_ms=round(duration * 1000.0, 3),
             body_bytes=body_bytes or None,
         )
 
@@ -223,6 +312,8 @@ def _status_for(error: DecisionToolkitError) -> int:
         return 503
     if isinstance(error, AdapterNotImplementedError):
         return 501
+    if isinstance(error, ServerBusyError):
+        return 503
     if isinstance(error, AdapterNotAvailableError):
         return 503
     if isinstance(error, (InvalidQuestionError, InvalidRequestError, TruncationError)):
@@ -345,6 +436,12 @@ def create_app(
     timeout_seconds: float = 120.0,
     max_models: int = 2,
     warmup: bool = False,
+    max_concurrent: int = 4,
+    rate_limit: int = 0,
+    rate_window: float = 60.0,
+    rate_burst: int | None = None,
+    metrics_enabled: bool = True,
+    tracing: bool = False,
     log_level: str | int | None = None,
     log_format: str = "text",
 ) -> Any:
@@ -382,11 +479,26 @@ def create_app(
     if warmup:
         registry.warmup_default()
 
+    metrics = Metrics()
+    limiter = RateLimiter(rate_limit, rate_window, burst=rate_burst)
+    gate = ConcurrencyGate(max_concurrent)
+    tracer = configure_tracing(tracing)
+    executor = (
+        ThreadPoolExecutor(
+            max_workers=max(1, int(max_concurrent)),
+            thread_name_prefix="dtk-inference",
+        )
+        if max_concurrent > 0
+        else None
+    )
+
     @asynccontextmanager
     async def lifespan(_app: Any) -> Any:
         yield
         log_event(logger, "server.shutdown", model=registry.default_identifier)
         registry.close()
+        if executor is not None:
+            executor.shutdown(wait=False, cancel_futures=True)
 
     app = FastAPI(
         title="decision-toolkit",
@@ -406,6 +518,11 @@ def create_app(
         },
         "max_body_mb": max_body_mb,
         "timeout_seconds": timeout_seconds,
+        "max_concurrent": max_concurrent,
+        "rate_limit": rate_limit,
+        "rate_window": rate_window,
+        "metrics_enabled": metrics_enabled,
+        "tracing": bool(tracer),
     }
 
     def require_auth(authorization: str | None = Header(default=None)) -> None:
@@ -425,14 +542,93 @@ def create_app(
         return getattr(request.state, "request_id", None) or get_request_id() or new_request_id()
 
     async def run(func: Any, *args: Any, **kwargs: Any) -> Any:
-        if timeout_seconds and timeout_seconds > 0:
-            try:
-                return await asyncio.wait_for(
-                    asyncio.to_thread(func, *args, **kwargs), timeout=timeout_seconds
+        if not await gate.try_acquire():
+            metrics.inc("dtk_server_busy_total")
+            raise ServerBusyError(
+                "server is at capacity; retry later",
+                retry_after=1.0,
+            )
+        if metrics_enabled:
+            metrics.set_gauge("dtk_inference_inflight", value=gate.active)
+        try:
+            loop = asyncio.get_running_loop()
+            if executor is not None:
+                future = loop.run_in_executor(executor, partial(func, *args, **kwargs))
+            else:
+                future = asyncio.to_thread(func, *args, **kwargs)
+            if timeout_seconds and timeout_seconds > 0:
+                try:
+                    return await asyncio.wait_for(future, timeout=timeout_seconds)
+                except TimeoutError as error:
+                    raise HTTPException(status_code=504, detail="decision timed out") from error
+            return await future
+        finally:
+            await gate.release()
+            if metrics_enabled:
+                metrics.set_gauge("dtk_inference_inflight", value=gate.active)
+
+    async def run_decision(
+        selected: Any,
+        state: Any,
+        questions: Any,
+        request_id_value: str,
+    ) -> Any:
+        model_name = selected.identifier
+        variant_name = selected.variant or ""
+        was_loaded = selected.is_loaded
+        started = time.perf_counter()
+        try:
+            with tracing_span(
+                tracer,
+                "dtk.decision",
+                model=model_name,
+                variant=variant_name,
+                questions=len(questions),
+            ):
+                decision = await run(
+                    selected.decide,
+                    state,
+                    questions,
+                    request_id=request_id_value,
                 )
-            except TimeoutError as error:
-                raise HTTPException(status_code=504, detail="decision timed out") from error
-        return await asyncio.to_thread(func, *args, **kwargs)
+        except Exception:
+            metrics.inc(
+                "dtk_decisions_total",
+                {"model": model_name, "variant": variant_name, "status": "error"},
+            )
+            if not was_loaded:
+                metrics.observe(
+                    "dtk_model_load_seconds",
+                    {"model": model_name, "variant": variant_name, "result": "error"},
+                    time.perf_counter() - started,
+                )
+            raise
+        if not was_loaded and selected.is_loaded:
+            metrics.observe(
+                "dtk_model_load_seconds",
+                {"model": model_name, "variant": variant_name, "result": "ok"},
+                time.perf_counter() - started,
+            )
+        metrics.inc(
+            "dtk_decisions_total",
+            {"model": model_name, "variant": variant_name, "status": "ok"},
+        )
+        metrics.observe(
+            "dtk_decision_duration_seconds",
+            {"model": model_name, "variant": variant_name},
+            (decision.latency_ms or 0.0) / 1000.0,
+        )
+        metrics.inc(
+            "dtk_input_tokens_total",
+            {"model": model_name, "variant": variant_name},
+            decision.usage.input_tokens,
+        )
+        metrics.inc(
+            "dtk_output_tokens_total",
+            {"model": model_name, "variant": variant_name},
+            decision.usage.output_tokens,
+        )
+        return decision
 
     def catalog_state() -> tuple[ModelStore, set[tuple[str, str]], str | None]:
         store = registry.store
@@ -463,7 +659,26 @@ def create_app(
             },
             "registry": registry.describe(),
             "auth": bool(api_key),
+            "limits": {
+                "max_concurrent": max_concurrent,
+                "rate_limit": rate_limit,
+                "rate_window": rate_window,
+                "metrics": metrics_enabled,
+                "tracing": bool(tracer),
+            },
         }
+
+    if metrics_enabled:
+        @app.get("/metrics", include_in_schema=False)
+        def metrics_endpoint() -> PlainTextResponse:
+            metrics.set_gauge(
+                "dtk_model_cache_entries",
+                value=registry.loaded_count,
+            )
+            return PlainTextResponse(
+                metrics.render(),
+                media_type="text/plain; version=0.0.4; charset=utf-8",
+            )
 
     # ------------------------------------------------------------------ models
     @app.get("/v1/models", tags=["models"], dependencies=protected)
@@ -540,11 +755,11 @@ def create_app(
             )
         questions = systemone_questions(payload.questions)
         with registry.acquire(payload.model, payload.variant) as selected:
-            decision = await run(
-                selected.decide,
+            decision = await run_decision(
+                selected,
                 payload.state,
                 questions,
-                request_id=request_id(request),
+                request_id(request),
             )
         return systemone_response(decision)
 
@@ -584,11 +799,11 @@ def create_app(
             raise InvalidRequestError("question names must be unique")
         state_text, core_questions, names = openai_to_systemone(payload.input, wire_questions)
         with registry.acquire(payload.model, payload.variant) as selected:
-            decision = await run(
-                selected.decide,
+            decision = await run_decision(
+                selected,
                 state_text,
                 core_questions,
-                request_id=request_id(request),
+                request_id(request),
             )
         values_by_name = {
             name: question["_values"]
@@ -616,7 +831,10 @@ def create_app(
             error_code=getattr(error, "code", "decision_toolkit_error"),
             error=type(error).__name__,
         )
-        return JSONResponse(status_code=status, content=_error_body(error))
+        headers = {}
+        if isinstance(error, ServerBusyError):
+            headers["Retry-After"] = str(max(1, int(error.retry_after + 0.999)))
+        return JSONResponse(status_code=status, content=_error_body(error), headers=headers)
 
     @app.exception_handler(RequestValidationError)
     async def validation_handler(request: Request, error: RequestValidationError) -> JSONResponse:
@@ -684,12 +902,15 @@ def create_app(
             allow_origins=list(cors_origins),
             allow_methods=["*"],
             allow_headers=["*"],
-            expose_headers=["x-request-id"],
+            expose_headers=["x-request-id", "retry-after"],
         )
     app.add_middleware(
         _RequestMiddleware,
         max_body_bytes=int(max_body_mb * 1024 * 1024),
         logger_=access_logger,
+        rate_limiter=limiter,
+        metrics=metrics,
+        tracer=tracer,
     )
 
     log_event(

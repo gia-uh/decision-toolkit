@@ -10,7 +10,7 @@ There is no wheel/PyPI release yet. Work from the source tree:
 ```bash
 python -m venv .venv
 . .venv/bin/activate
-pip install pytest ruff PyYAML huggingface_hub fastapi httpx pydantic numpy
+pip install pytest ruff pip-audit PyYAML huggingface_hub fastapi httpx pydantic numpy
 # for real inference:
 pip install onnxruntime tokenizers
 PYTHONPATH=src pytest -q
@@ -65,13 +65,17 @@ same metric as the historical admission values in the model cards.
 ## Tests and lint
 
 ```bash
-ruff check src tests
+ruff check src tests bench
 PYTHONPATH=src pytest -q
+PYTHONPATH=src pytest -q -m fuzz        # malformed REST corpus
 python -m decision_toolkit --version
+pip-audit                             # dependency scan (CI runs this)
 ```
 
-CI runs these on Python 3.12 and 3.13 from source. It does **not** build a
-wheel; packaging is a later milestone.
+CI runs these on Python 3.12 and 3.13 from source, plus `pip-audit`. It does
+**not** build a wheel; packaging is a later milestone. See
+[OPERATIONS.md](docs/OPERATIONS.md) for rate limits, metrics, tracing and the
+load probe.
 
 ## Commits
 

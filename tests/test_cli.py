@@ -60,9 +60,16 @@ def test_parser_has_all_commands():
     for command, argv in valid.items():
         assert parser.parse_args(argv).command == command
 
-    serve = parser.parse_args(["serve", "--workers", "2", "--reload"])
+    serve = parser.parse_args(
+        ["serve", "--workers", "2", "--reload", "--max-concurrent", "3",
+         "--rate-limit", "10", "--no-metrics", "--tracing"]
+    )
     assert serve.workers == 2
     assert serve.reload is True
+    assert serve.max_concurrent == 3
+    assert serve.rate_limit == 10
+    assert serve.no_metrics is True
+    assert serve.tracing is True
 
 
 def test_parse_questions_adds_default_instructions():

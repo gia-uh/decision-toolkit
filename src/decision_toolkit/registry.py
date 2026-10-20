@@ -94,6 +94,12 @@ class ModelRegistry:
     def fixed(self) -> bool:
         return self._fixed is not None
 
+    @property
+    def loaded_count(self) -> int:
+        with self._lock:
+            loaded = 1 if self._fixed is not None and self._fixed.is_loaded else 0
+            return loaded + sum(1 for slot in self._slots.values() if slot.model.is_loaded)
+
     @staticmethod
     def _key(identifier: str, variant: str | None) -> str:
         return f"{identifier}@{variant or ''}"

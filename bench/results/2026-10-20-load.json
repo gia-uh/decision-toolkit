@@ -1,0 +1,31 @@
+{
+  "base_url": "http://127.0.0.1:8014",
+  "model": "gliner2.5-multi",
+  "concurrency": 10,
+  "requests": 30,
+  "server_settings": {
+    "max_concurrent": 4,
+    "rate_limit": 0
+  },
+  "generated_at": "2026-10-20T19:25:56+00:00",
+  "environment": {
+    "python": "3.13.2",
+    "platform": "Linux-6.14.6-061406-generic-x86_64-with-glibc2.40"
+  },
+  "warmup_status": 200,
+  "status_counts": {
+    "200": 4,
+    "503": 26
+  },
+  "errors": [],
+  "retry_after_count": 26,
+  "latency_ms": {
+    "n": 30,
+    "p50": 8.586799500335474,
+    "p95": 368.52496239953285,
+    "p99": 560.5844332900416
+  },
+  "elapsed_seconds": 0.613,
+  "throughput_rps": 48.912,
+  "ok": true
+}

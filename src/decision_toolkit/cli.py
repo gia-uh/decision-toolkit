@@ -212,6 +212,22 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--max-body-mb", type=float, default=16.0, help="Request body limit (default 16).")
     serve.add_argument("--timeout", type=float, default=120.0, help="Per-decision timeout in seconds.")
     serve.add_argument("--max-models", type=int, default=2, help="Idle models kept loaded (LRU).")
+    serve.add_argument(
+        "--max-concurrent",
+        type=int,
+        default=4,
+        help="Bounded inference concurrency (default 4).",
+    )
+    serve.add_argument(
+        "--rate-limit",
+        type=int,
+        default=0,
+        help="Requests per window per key (default 0: disabled).",
+    )
+    serve.add_argument("--rate-window", type=float, default=60.0, help="Rate-limit window seconds.")
+    serve.add_argument("--rate-burst", type=int, help="Token-bucket burst (default: --rate-limit).")
+    serve.add_argument("--no-metrics", action="store_true", help="Disable /metrics.")
+    serve.add_argument("--tracing", action="store_true", help="Enable optional OpenTelemetry spans.")
     serve.add_argument("--warmup", action="store_true", help="Warm the default model at startup.")
     serve.add_argument(
         "--log-level",
@@ -893,6 +909,12 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         "max_body_mb": args.max_body_mb,
         "timeout_seconds": args.timeout,
         "max_models": args.max_models,
+        "max_concurrent": args.max_concurrent,
+        "rate_limit": args.rate_limit,
+        "rate_window": args.rate_window,
+        "rate_burst": args.rate_burst,
+        "metrics_enabled": not args.no_metrics,
+        "tracing": args.tracing,
         "warmup": args.warmup,
         "log_level": log_level,
         "log_format": log_format,

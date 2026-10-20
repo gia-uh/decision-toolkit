@@ -63,6 +63,20 @@ Calibration smoke (`gliner2.5-multi`, 10 synthetic Spanish routing cases):
 accuracy `0.60`, Brier `0.173`, ECE `0.247`. This set is deliberately small and
 synthetic; use your own labelled data for a real calibration decision.
 
+## Load probe
+
+`bench/load.py` probes a running server concurrently and records the status mix,
+latency percentiles and throughput:
+
+```bash
+PYTHONPATH=src python bench/load.py --base-url http://127.0.0.1:8011 \
+  --concurrency 10 --requests 30 --server-max-concurrent 4 \
+  --output bench/results/2026-10-20-load.json
+```
+
+The committed result shows backpressure working: `503 server_busy` with
+`Retry-After`, no `500`s. See `docs/OPERATIONS.md`.
+
 ## Notes
 
 - Latency is measured **after** a warmup decision, so it excludes the first

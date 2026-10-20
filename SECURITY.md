@@ -26,8 +26,9 @@ Please do **not** open a public issue for a vulnerability. Use GitHub's
   provenance.
 - **REST auth**: Bearer auth is optional and disabled by default for local use.
   Enable it with `--api-key` or `DECISION_TOOLKIT_API_KEY` for any non-loopback
-  deployment. Put TLS and rate limiting in front of the server (rate limiting
-  is a later milestone).
+  deployment. Built-in per-key rate limiting and bounded inference concurrency
+  are available via `--rate-limit` and `--max-concurrent`; TLS/WAF still belong
+  in a reverse proxy.
 - **Logging**: states and question text are not logged by default. Access logs
   contain method, path, status, duration and request id.
 - **Untrusted inputs**: the core validates question shapes, limits, capabilities
@@ -41,3 +42,5 @@ Please do **not** open a public issue for a vulnerability. Use GitHub's
 - Keep the model cache private; it may contain downloaded proprietary or
   licensed model weights.
 - Re-run `dtk models verify --all` after copying a cache between machines.
+- `/metrics` is public by default on the bound interface; restrict it at the
+  network layer when exposing the server remotely, or use `--no-metrics`.

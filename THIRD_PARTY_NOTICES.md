@@ -47,6 +47,12 @@ license and model card before commercial use.
 | `pydantic` | wire schemas (via FastAPI) | MIT |
 | `starlette` | ASGI toolkit (via FastAPI) | BSD-3-Clause |
 
+### `[tracing]` extra
+
+| Package | Purpose | License |
+| --- | --- | --- |
+| `opentelemetry-api` | optional tracing spans | Apache-2.0 |
+
 ### Development / tests
 
 | Package | Purpose | License |
@@ -55,6 +61,7 @@ license and model card before commercial use.
 | `ruff` | lint/format | MIT |
 | `httpx` | HTTP test client | BSD-3-Clause |
 | `openai` | contract tests only (optional; not a runtime dependency) | Apache-2.0 |
+| `pip-audit` | CI dependency scan | Apache-2.0 |
 
 `transformers` is an optional runtime preference used by `engine.load_tokenizer`
 if installed; it is not required and not listed in `pyproject.toml`.

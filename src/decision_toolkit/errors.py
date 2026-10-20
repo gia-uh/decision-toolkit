@@ -97,6 +97,16 @@ class BackendFailureError(AdapterError):
     code = "backend_failure"
 
 
+class ServerBusyError(DecisionToolkitError):
+    """The server concurrency gate is full; the caller should retry later."""
+
+    code = "server_busy"
+
+    def __init__(self, message: str = "server is at capacity", retry_after: float = 1.0) -> None:
+        super().__init__(message)
+        self.retry_after = max(0.0, float(retry_after))
+
+
 class VerificationError(DecisionToolkitError):
     """A cached model failed verification (missing files, bad hashes, graph...)."""
 
@@ -121,6 +131,7 @@ __all__ = [
     "ModelNotDownloadedError",
     "ModelNotFoundError",
     "MultimodalNotSupportedError",
+    "ServerBusyError",
     "TruncationError",
     "UnsupportedCapabilityError",
     "VerificationError",
