@@ -1,7 +1,11 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.1.1` is
+All notable changes to this project are documented here. Version `0.1.2` is
 published on PyPI.
+
+## [0.1.2] — 2026-10-20
+
+Trusted Publishing validation release. No functional or model changes.
 
 ## [0.1.1] — 2026-10-20
 
@@ -69,5 +73,6 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
+[0.1.2]: https://pypi.org/project/decision-toolkit/0.1.2/
 [0.1.1]: https://pypi.org/project/decision-toolkit/0.1.1/
 [0.1.0]: https://pypi.org/project/decision-toolkit/0.1.0/

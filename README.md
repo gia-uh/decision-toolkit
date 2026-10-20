@@ -16,12 +16,12 @@ CLI. `dtk --help` and every subcommand help also include runnable examples.
 ## Installation
 
 ```bash
-pip install decision-toolkit              # library + CLI (0.1.1 on PyPI)
+pip install decision-toolkit              # library + CLI (0.1.2 on PyPI)
 pip install "decision-toolkit[onnx]"      # + onnxruntime, tokenizers (the model runtime)
 pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 ```
 
-PyPI: <https://pypi.org/project/decision-toolkit/0.1.1/>. See
+PyPI: <https://pypi.org/project/decision-toolkit/0.1.2/>. See
 [docs/RELEASE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/RELEASE.md)
 for the Trusted Publishing flow and clean-install checks.
 
