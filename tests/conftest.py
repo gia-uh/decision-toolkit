@@ -41,12 +41,21 @@ class FakeAdapter:
             elif qtype == "noul":
                 answers[key] = {"type": "noul", "noul": 0.7}
             else:
+                labels = list(question.get("criteria") or ["low", "mid", "high"])
+                probabilities = [0.25, 0.5, 0.25] if len(labels) == 3 else [
+                    1.0 / len(labels)
+                ] * len(labels)
                 answers[key] = {
                     "type": "score",
-                    "score": 0.5,
-                    "level": 1,
-                    "probabilities": {"0": 0.25, "1": 0.5, "2": 0.25},
-                    "legend": {"0": "low", "1": "mid", "2": "high"},
+                    "score": sum(
+                        index * probability for index, probability in enumerate(probabilities)
+                    ),
+                    "level": max(range(len(labels)), key=probabilities.__getitem__),
+                    "probabilities": {
+                        str(index): probability
+                        for index, probability in enumerate(probabilities)
+                    },
+                    "legend": {str(index): label for index, label in enumerate(labels)},
                 }
         return answers
 

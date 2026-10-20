@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -24,6 +25,33 @@ from contextvars import ContextVar
 from typing import Any
 
 _request_id: ContextVar[str | None] = ContextVar("decision_toolkit_request_id", default=None)
+
+
+class JsonLogFormatter(logging.Formatter):
+    """Render each record as one JSON object.
+
+    ``log_event`` already emits a JSON message; it is merged into the envelope
+    instead of being nested as an escaped string.
+    """
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload: dict[str, Any] = {
+            "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
+            "level": record.levelname,
+            "logger": record.name,
+        }
+        message = record.getMessage()
+        try:
+            parsed = json.loads(message)
+        except (TypeError, ValueError):
+            parsed = None
+        if isinstance(parsed, dict):
+            payload.update(parsed)
+        else:
+            payload["message"] = message
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+        return json.dumps(payload, default=str, ensure_ascii=False, sort_keys=True)
 
 
 def new_request_id() -> str:
@@ -75,7 +103,40 @@ def log_event(
     logger.log(level, "%s", json.dumps(payload, default=str, sort_keys=True, ensure_ascii=False))
 
 
+def configure_logging(
+    level: str | int = "INFO",
+    log_format: str = "text",
+    *,
+    logger_name: str = "decision_toolkit",
+) -> logging.Logger:
+    """Configure a stderr handler for the toolkit logger (server/CLI use).
+
+    The library itself never calls this. ``log_format="json"`` renders the
+    structured events as one JSON object per line.
+    """
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(level)
+    formatter = (
+        JsonLogFormatter()
+        if log_format == "json"
+        else logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+    )
+    handler = next(
+        (candidate for candidate in logger.handlers if getattr(candidate, "_dtk_handler", False)),
+        None,
+    )
+    if handler is None:
+        handler = logging.StreamHandler(sys.stderr)
+        handler._dtk_handler = True  # type: ignore[attr-defined]
+        logger.addHandler(handler)
+    handler.setFormatter(formatter)
+    logger.propagate = False
+    return logger
+
+
 __all__ = [
+    "JsonLogFormatter",
+    "configure_logging",
     "ensure_request_id",
     "get_request_id",
     "log_event",

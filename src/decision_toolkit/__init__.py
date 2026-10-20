@@ -23,12 +23,18 @@ from .errors import (
     InvalidRequestError,
     ModelNotDownloadedError,
     ModelNotFoundError,
+    MultimodalNotSupportedError,
     TruncationError,
     UnsupportedCapabilityError,
     VerificationError,
 )
 from .models import ModelStore
-from .observability import ensure_request_id, get_request_id, request_context
+from .observability import (
+    configure_logging,
+    ensure_request_id,
+    get_request_id,
+    request_context,
+)
 from .results import Answer, Classification, Decision, Usage
 from .schema import (
     Box,
@@ -67,6 +73,7 @@ __all__ = [
     "ModelNotDownloadedError",
     "ModelNotFoundError",
     "ModelStore",
+    "MultimodalNotSupportedError",
     "Noul",
     "Score",
     "State",
@@ -80,6 +87,7 @@ __all__ = [
     "brier_score",
     "choice",
     # observability
+    "configure_logging",
     "ensure_request_id",
     "expected_calibration_error",
     "get_request_id",

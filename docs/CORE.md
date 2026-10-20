@@ -279,7 +279,8 @@ This is the checklist against which the REST projection will be verified:
 
 ## Out of scope for phase 1
 
-- REST contract projection and standard compliance (phase 2).
+- REST contract projection and standard compliance — implemented in phase 2
+  (see [REST.md](REST.md)).
 - CLI workflows across the whole catalog (phase 3).
 - Pin/hash enforcement in the catalog and wheel/CI (phase 4).
 - Metrics server, rate limiting, load/fuzz testing (phase 5).

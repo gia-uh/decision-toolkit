@@ -140,6 +140,11 @@ class DecisionModel:
     def resolved(self) -> ResolvedModel:
         return self._resolve()
 
+    @property
+    def is_loaded(self) -> bool:
+        """Whether the adapter/engine have been loaded (warmup or first use)."""
+        return self._adapter is not None
+
     def _safe_adapter_name(self) -> str | None:
         """Adapter label for diagnostics; never masks the original error."""
         try:

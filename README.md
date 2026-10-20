@@ -102,12 +102,19 @@ dtk classify --model gliner2.5-multi \
 
 ```bash
 pip install "decision-toolkit[server]"
-dtk serve --model gliner2.5-multi --host 0.0.0.0 --port 8000
+dtk serve --model gliner2.5-multi --warmup \
+  --api-key "$DECISION_TOOLKIT_API_KEY" \
+  --log-format json
 ```
 
-Endpoints: `POST /v1/systemone`, `POST /v1/decisions` (OpenAI dialect),
-`GET /v1/models`, `GET /v1/info`, `GET /v1/health`, `GET /v1/ready`.
+Endpoints: `POST /v1/systemone` (System One 1.14), `POST /v1/decisions`
+(OpenAI Decisions beta), `GET /v1/models` (OpenAI shape),
+`GET /v1/decision-models` (rich catalog), `GET /v1/info`, `GET /health`,
+`GET /ready`. Requests may select `model` and `variant`; failures use the OpenAI
+`{"error": {...}}` envelope and every response carries `x-request-id`.
 `TYPESAFE_BASE_URL=http://localhost:8000` makes existing System One clients work.
+See [docs/REST.md](docs/REST.md) for the pinned contracts, limits, auth and
+the standard-evolution process.
 
 ## The catalog is curated
 

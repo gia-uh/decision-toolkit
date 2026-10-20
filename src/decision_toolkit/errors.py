@@ -73,6 +73,12 @@ class UnsupportedCapabilityError(DecisionToolkitError):
     code = "unsupported_capability"
 
 
+class MultimodalNotSupportedError(UnsupportedCapabilityError):
+    """The selected model is text-only; image/audio input is not available."""
+
+    code = "multimodal_not_supported"
+
+
 class TruncationError(DecisionToolkitError):
     """Strict mode was requested and the model had to truncate its input."""
 
@@ -114,6 +120,7 @@ __all__ = [
     "InvalidRequestError",
     "ModelNotDownloadedError",
     "ModelNotFoundError",
+    "MultimodalNotSupportedError",
     "TruncationError",
     "UnsupportedCapabilityError",
     "VerificationError",

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -102,6 +103,23 @@ def build_parser() -> argparse.ArgumentParser:
     _add_model_args(serve)
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument(
+        "--api-key",
+        help="Require `Authorization: Bearer <key>` (default: DECISION_TOOLKIT_API_KEY).",
+    )
+    serve.add_argument(
+        "--cors-origin",
+        action="append",
+        default=[],
+        metavar="ORIGIN",
+        help="Allow a browser origin (repeatable; e.g. http://localhost:3000).",
+    )
+    serve.add_argument("--max-body-mb", type=float, default=16.0, help="Request body limit (default 16).")
+    serve.add_argument("--timeout", type=float, default=120.0, help="Per-decision timeout in seconds.")
+    serve.add_argument("--max-models", type=int, default=2, help="Idle models kept loaded (LRU).")
+    serve.add_argument("--warmup", action="store_true", help="Warm the default model at startup.")
+    serve.add_argument("--log-level", default="INFO", help="Toolkit log level (default INFO).")
+    serve.add_argument("--log-format", choices=("text", "json"), default="text")
 
     # ----------------------------------------------------------------- doctor
     doctor = sub.add_parser("doctor", help="Environment and cache diagnostics.")
@@ -301,6 +319,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     try:
         import uvicorn
 
+        from .observability import configure_logging
         from .server import create_app
     except ImportError:
         print(
@@ -309,11 +328,21 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         )
         return 2
 
-    model = DecisionModel(
-        args.model, variant=args.variant, home=args.home, threads=args.threads
-    )
+    configure_logging(args.log_level, args.log_format)
+    api_key = args.api_key if args.api_key is not None else os.environ.get("DECISION_TOOLKIT_API_KEY")
     try:
-        app = create_app(model=model)
+        app = create_app(
+            model_id=args.model,
+            variant=args.variant,
+            home=args.home,
+            threads=args.threads,
+            api_key=api_key,
+            cors_origins=args.cors_origin,
+            max_body_mb=args.max_body_mb,
+            timeout_seconds=args.timeout,
+            max_models=args.max_models,
+            warmup=args.warmup,
+        )
     except ImportError:
         print(
             'the REST server needs the [server] extra: pip install "decision-toolkit[server]"',

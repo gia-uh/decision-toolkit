@@ -405,9 +405,17 @@ def openai_to_systemone(
 def systemone_answers_to_openai(
     answers: Mapping[str, Mapping[str, Any]],
     names: Sequence[str],
+    *,
+    values_by_name: Mapping[str, Sequence[Any]] | None = None,
 ) -> list[dict[str, Any]]:
-    """Translate System One answers into the OpenAI Decisions answer list."""
+    """Translate System One answers into the OpenAI Decisions answer list.
+
+    ``values_by_name`` maps a choice question to the original (possibly
+    non-string) values, so the response echoes ``true``/``1`` instead of the
+    string labels the System One projection uses internally.
+    """
     result: list[dict[str, Any]] = []
+    values_by_name = values_by_name or {}
     for name in names:
         answer = answers.get(name)
         if answer is None:
@@ -419,14 +427,17 @@ def systemone_answers_to_openai(
                            "probability": float(answer.get("noul", answer.get("p_true", 0.0)))})
         elif qtype == "choice":
             probabilities = answer.get("probabilities") or {}
+            original = values_by_name.get(name) or ()
+            lookup = {str(value): value for value in original}
             if isinstance(probabilities, Mapping):
-                entries = [{"value": label, "probability": float(p)}
+                entries = [{"value": lookup.get(label, label), "probability": float(p)}
                            for label, p in probabilities.items()]
             else:  # pragma: no cover - defensive for odd adapters
-                entries = [{"value": label, "probability": float(p)}
+                entries = [{"value": lookup.get(label, label), "probability": float(p)}
                            for label, p in dict(probabilities or {}).items()]
+            chosen = answer.get("choice")
             result.append({"type": "choice", "name": name,
-                           "choice": answer.get("choice"),
+                           "choice": lookup.get(chosen, chosen),
                            "probabilities": entries,
                            "confidence": answer.get("confidence", _max_probability(entries))})
         elif qtype == "score":
@@ -468,7 +479,7 @@ def _openai_input_to_state(input_value: Any) -> str:
                 parts: list[str] = []
                 for part in content:
                     if isinstance(part, Mapping):
-                        if part.get("type") == "input_text":
+                        if part.get("type") in {"input_text", "text"}:
                             parts.append(str(part.get("text", "")))
                         elif part.get("type") == "input_image":
                             raise InvalidQuestionError(

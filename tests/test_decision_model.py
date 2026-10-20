@@ -28,7 +28,7 @@ def test_decide_returns_typed_answers(fake_model):
     assert decision["team"].choice == "billing"
     assert decision["team"].confidence == 0.9
     assert decision["urgent"].noul == 0.7
-    assert decision["tone"].score == 0.5
+    assert decision["tone"].score == 1.0
     assert decision["tone"].level == 1
 
 
