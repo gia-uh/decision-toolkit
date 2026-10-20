@@ -49,5 +49,5 @@ decision.usage.to_dict()
 
 ## Trusted publishing
 
-Every release after `0.1.2` is published through GitHub OIDC to TestPyPI and
-PyPI. See [RELEASE.md](RELEASE.md).
+Every release from `0.1.2` onward is published through GitHub OIDC to TestPyPI
+and PyPI. See [RELEASE.md](RELEASE.md).

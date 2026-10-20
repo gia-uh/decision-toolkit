@@ -1,7 +1,14 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.1.2` is
+All notable changes to this project are documented here. Version `0.1.3` is
 published on PyPI.
+
+## [0.1.3] — 2026-10-20
+
+Infrastructure release: CI builds and clean-installs the wheel on every PR;
+release verification installs from TestPyPI before PyPI and from PyPI before
+the GitHub release; MkDocs documentation is published to GitHub Pages; PyPI
+environment protection and updated GitHub Actions. No runtime or model changes.
 
 ## [0.1.2] — 2026-10-20
 
@@ -73,6 +80,7 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
+[0.1.3]: https://pypi.org/project/decision-toolkit/0.1.3/
 [0.1.2]: https://pypi.org/project/decision-toolkit/0.1.2/
 [0.1.1]: https://pypi.org/project/decision-toolkit/0.1.1/
 [0.1.0]: https://pypi.org/project/decision-toolkit/0.1.0/
