@@ -20,6 +20,7 @@ PyPI: <https://pypi.org/project/decision-toolkit/>
 - [Core API](CORE.md) — the superset used by every surface.
 - [REST](REST.md) — System One 1.14 + OpenAI Decisions beta.
 - [CLI](CLI.md) — operational commands and batch workflows.
+- [Variants and quantization](VARIANTS.md) — every catalogued build and how to download/select it.
 - [Operations](OPERATIONS.md) — rate limits, metrics, tracing and runbook.
 - [Benchmarks](BENCH.md) — reproducible latency/parity/calibration.
 - [Models](models/README.md) — the curated catalog.

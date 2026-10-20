@@ -38,6 +38,9 @@ from decision_toolkit import (
 | `register_adapter(name, factory)` | In-process third-party adapter. |
 | `ModelStore(...)` | Cache: download, import, verify, use, resolve. |
 
+Variants (quantizations) are selected by name; see
+[Variants and quantization](VARIANTS.md) for the catalog and commands.
+
 ## Types and serialization
 
 - `State(text="...", assets=())` or a plain string/JSON object.
@@ -66,7 +69,7 @@ model_info().to_dict()
 ## Lifecycle and concurrency
 
 ```python
-with DecisionModel("gliner2.5-multi") as model:
+with DecisionModel("gliner2.5-multi", variant="fp16") as model:
     model.warmup()
     decision = model.decide("...", {"urgent": noul("Today?")})
 # sessions released here
@@ -284,6 +287,6 @@ This is the checklist against which the REST projection will be verified:
 - CLI workflows across the whole catalog — implemented in phase 3 (see
   [CLI.md](CLI.md)).
 - Pin/hash enforcement and source CI are implemented in phase 4; wheel,
-  PyPI and distribution tagging are deferred to phase 6.
+  PyPI and distribution tagging are documented in [RELEASE.md](RELEASE.md).
 - Metrics server, rate limiting and load/fuzz testing are server-side phase 5
   features; see [OPERATIONS.md](OPERATIONS.md).

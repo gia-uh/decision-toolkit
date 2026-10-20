@@ -5,7 +5,7 @@
 - **License:** Apache-2.0
 - **Parameters:** 395M · **Architecture:** Ettin encoder 400M
 
-## Variant
+## Default variant
 
 | | |
 |---|---|
@@ -13,7 +13,19 @@
 | Files | `onnx/model_q8f16.onnx`, `tokenizer.web.json`, `opendecider.json` |
 | Quantization | q8f16 |
 | Download | 468.8 MB |
-| Role | default (an `fp16` quality variant is also catalogued) |
+| Role | default; `fp16` is a quality variant |
+
+## Variants
+
+| Variant | Quantization | Size | Role | Install |
+| --- | --- | ---: | --- | --- |
+| `q8f16` * | int8/fp16 | 468.8 MB | default | `dtk models download opendecider-nano --variant q8f16` |
+| `fp16` | fp16 | 791.9 MB | quality | `dtk models download opendecider-nano --variant fp16` |
+
+`dtk models download opendecider-nano` gets `q8f16`; `--variant fp16` downloads
+the quality build. Select one with
+`dtk models use opendecider-nano --variant <name>`. See
+[Variants and quantization](../VARIANTS.md).
 
 ## Reproducibility
 
@@ -48,8 +60,13 @@
 ## Usage
 
 ```bash
-dtk models download opendecider-nano
+dtk models download opendecider-nano                      # q8f16 default
+dtk models download opendecider-nano --variant fp16       # quality variant
 dtk decide --model opendecider-nano --state "I was charged twice…" \
+    --q team='choice:billing|technical|other' --q urgent='noul:Needs a reply today?'
+
+dtk decide --model opendecider-nano --variant fp16 \
+    --state "I was charged twice…" \
     --q team='choice:billing|technical|other' --q urgent='noul:Needs a reply today?'
 ```
 

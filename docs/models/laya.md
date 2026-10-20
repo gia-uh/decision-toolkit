@@ -5,7 +5,7 @@
 - **License:** Apache-2.0
 - **Parameters:** 421M · **Architecture:** ModernBERT-large · **Language:** English
 
-## Variant
+## Default variant
 
 | | |
 |---|---|
@@ -14,6 +14,15 @@
 | Quantization | int8 (q8) |
 | Download | 527.9 MB |
 | Role | default |
+
+## Variants
+
+| Variant | Quantization | Size | Role | Install |
+| --- | --- | ---: | --- | --- |
+| `q8` * | int8 | 527.9 MB | default | `dtk models download laya --variant q8` |
+
+This is the only catalogued build. The upstream repository does not publish an
+fp32 build; see [Variants and quantization](../VARIANTS.md).
 
 ## Reproducibility
 

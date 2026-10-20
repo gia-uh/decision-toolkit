@@ -90,6 +90,36 @@ DecisionModel("opendecider-nano").decide("I was charged twice.", {
 })
 ```
 
+## Variants and quantizations
+
+`dtk models list` shows every catalogued variant, marks the default with `*`
+and reports which variants are cached. `dtk models variants <id>` shows sizes,
+roles and the exact download command.
+
+```bash
+dtk models list --quant
+dtk models variants gliner2.5-multi
+
+# install a non-default quantization into the local model cache
+dtk models download gliner2.5-multi --variant fp32
+
+# select it persistently, or for one call
+dtk models use gliner2.5-multi --variant fp32
+dtk decide --model gliner2.5-multi --variant fp32 \
+  --state "Meeting with Acme." --q 'cat=choice:meeting|tasks|other' --json
+```
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("gliner2.5-multi", variant="fp32")
+```
+
+Downloading is the installation step; there is no separate pip extra per
+quantization. Only verified builds are selectable. See
+[Variants and quantization](VARIANTS.md) for the full table, including the
+`opendecider-nano` q8f16/fp16 pair.
+
 ## REST
 
 ```bash
@@ -163,10 +193,17 @@ curl -s http://127.0.0.1:8000/metrics | head
 ## CLI
 
 ```bash
-# catalog and cache
+# catalog, variants and cache
 dtk models list --adapter --quant
+dtk models variants gliner2.5-multi
 dtk models list --json
 dtk models current --json
+
+# download and select a non-default quantization
+dtk models download gliner2.5-multi --variant fp32
+dtk models use gliner2.5-multi --variant fp32
+dtk decide --model gliner2.5-multi --variant fp32 \
+  --state "Meeting with Acme." --q 'cat=choice:meeting|tasks|other' --json
 
 # one decision
 dtk decide --model gliner2.5-multi \
@@ -189,8 +226,9 @@ dtk decide --model gliner2.5-decide \
   --q 'intent=choice:refund_request|seat_change' \
   --output-jsonl decisions.jsonl
 
-# variants and pinned evidence
-dtk models variants gliner2.5-multi --json
+# variant details and pinned evidence
+dtk models variants opendecider-nano --json
+dtk models verify gliner2.5-multi --variant fp32
 dtk models verify --all --json
 ```
 

@@ -10,11 +10,11 @@ CLI.
 | Command | Purpose |
 | --- | --- |
 | `dtk models` | Inspect the local cache and the curated catalog. |
-| `dtk models list` | Catalog, default variants and cache state (`--license`, `--quant`, `--adapter`). |
-| `dtk models variants <id>` | Every real variant of a catalog model. |
-| `dtk models download <id>` | Download the default or `--variant` build (`--force`, `--dry-run`). |
-| `dtk models use <id>` | Set the persistent current model (`--variant`). |
-| `dtk models current` | Show the current model (JSON includes the variant). |
+| `dtk models list` | Every catalog variant, default (`*`) and cached variants (`--license`, `--quant`, `--adapter`). |
+| `dtk models variants <id>` | Every real variant of one model, with size, role and exact install command. |
+| `dtk models download <id>` | Download the default or `--variant` quantization (`--force`, `--dry-run`). |
+| `dtk models use <id>` | Set the persistent current model and variant (`--variant`). |
+| `dtk models current` | Show the current model (text as `id@variant`; JSON separates them). |
 | `dtk models delete <id>` | Delete a cached variant, or `--all-variants --yes`. |
 | `dtk models verify` | Verify files/hashes/sessions for one model or `--all`. |
 | `dtk models import` | Import a custom ONNX directory with `--adapter` and `--files`. |
@@ -134,23 +134,60 @@ dtk decide --model gliner2.5-multi \
 - A per-line `id`/`name` is copied to the output.
 - Omit `--output-jsonl` to stream to stdout.
 
-## Variants
+## Variants and quantization
+
+A quantization is a **variant**. `dtk models list` always shows every catalogued
+variant and marks the default with `*`; the `cached` column shows which variants
+are already downloaded.
+
+| Model | Variants (default *) | Quantization | Size |
+| --- | --- | --- | ---: |
+| `gliner2.5-multi` | `fp16`*, `fp32` | fp16 / fp32 | 577.1 / 1131.9 MB |
+| `gliner2.5-decide` | `q4f16`* | q4/fp16 | 523.5 MB |
+| `laya` | `q8`* | int8 | 527.9 MB |
+| `julia-1` | `fp32`* | fp32 | 618.2 MB |
+| `opendecider-nano` | `q8f16`*, `fp16` | int8/fp16 / fp16 | 468.8 / 791.9 MB |
 
 ```bash
-dtk models use laya --variant q8
+# inspect, including the exact download command for each variant
+dtk models list --quant
+dtk models variants gliner2.5-multi
+dtk models variants opendecider-nano --json
+
+# download a different quantization into the cache (does not activate it)
+dtk models download gliner2.5-multi --variant fp32
+dtk models download gliner2.5-multi --variant fp32 --dry-run
+dtk models download gliner2.5-multi --variant fp32 --force
+
+# select it persistently, or only for one command
+dtk models use gliner2.5-multi --variant fp32
+dtk models current
+# gliner2.5-multi@fp32
 dtk models current --json
-# {"current": "laya", "variant": "q8"}
+# {"current": "gliner2.5-multi", "variant": "fp32"}
+dtk decide --model gliner2.5-multi --variant fp16 --state "..." --q 'cat=choice:a|b'
 
-dtk models download laya --variant q8 --dry-run --json
-dtk models download laya --variant q8 --force
-
+# verify or remove a specific variant
+dtk models verify gliner2.5-multi --variant fp32
+dtk models delete gliner2.5-multi --variant fp32
 dtk models delete laya --all-variants --yes
 dtk models verify --all --json
 ```
 
-`models list --json` always includes license, quant, adapter, capabilities,
-variants and cached variants; the text table adds those columns only on
-request (`--license`, `--quant`, `--adapter`).
+Downloading is the installation step for a model variant: there is no separate
+`pip install` per quantization. Variants coexist in the cache. `download` does
+not change the selection; `use` persists it, and `--variant` on a decision,
+classification or serve command overrides it for that command. If `--variant`
+is omitted, the catalog default is used unless `dtk models use` selected another
+one.
+
+`models list --json` always includes license, quant, adapter, capabilities, all
+variants, the default variant, cached variants, `current` and `current_variant`.
+The text table always shows variants and cached variants; `--license`, `--quant`
+and `--adapter` add their columns.
+
+See [Variants and quantization](VARIANTS.md) for the full table and cache
+layout.
 
 ## Custom models
 
@@ -218,8 +255,10 @@ dtk completion fish | source
 
 ```bash
 dtk models list --adapter --quant
-dtk models download gliner2.5-multi
-dtk decide --model gliner2.5-multi \
+dtk models variants gliner2.5-multi
+dtk models download gliner2.5-multi --variant fp32
+dtk models use gliner2.5-multi --variant fp32
+dtk decide --model gliner2.5-multi --variant fp32 \
   --state "Acme agreed a 10% discount and will sign next week." \
   --q 'cat=choice:meeting|task|contact|idea|other' --json
 dtk classify --model laya --text "Dentist next Tuesday at 9" \
@@ -235,5 +274,5 @@ dtk doctor --json
 - It does not have a compatibility obligation to System One/OpenAI; those are
   REST contracts.
 - Metrics/rate limiting are server-side phase 5 features; see
-  [OPERATIONS.md](OPERATIONS.md). Wheel/PyPI and distribution tagging are
-  deferred to phase 6.
+  [OPERATIONS.md](OPERATIONS.md). Wheel/PyPI releases are documented in
+  [RELEASE.md](RELEASE.md).

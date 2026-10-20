@@ -1,12 +1,26 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.1.5` is
+All notable changes to this project are documented here. Version `0.1.6` is
 published on PyPI.
 
-## [Unreleased]
+## [0.1.6] — 2026-10-20
+
+Variant catalog and selection release. `dtk models list` now exposes every
+quantization, `dtk models variants` prints the exact install command, and a
+variant selected with `dtk models use` is honored by later commands. Release
+verification now installs the published wheel URL from the registry JSON API,
+avoiding simple-index cache delays.
 
 ### Fixed
 
+- `dtk models list` now shows every catalogued variant, marks the default with
+  `*` and lists cached variants. `dtk models variants` prints the exact download
+  command for each variant, and `download --dry-run` reports all available
+  variants.
+- A variant selected with `dtk models use <id> --variant <name>` is now used by
+  later commands that name the model without repeating `--variant`.
+- Added a complete variants/quantization table and download/select examples to
+  the README, CLI reference, model cards and the new variants guide.
 - Release verification resolves the published wheel URL from the TestPyPI/PyPI
   JSON API and installs it with uv, avoiding simple-index cache delays.
 
@@ -102,7 +116,7 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
-[Unreleased]: https://github.com/gia-uh/decision-toolkit/compare/v0.1.5...HEAD
+[0.1.6]: https://pypi.org/project/decision-toolkit/0.1.6/
 [0.1.5]: https://pypi.org/project/decision-toolkit/0.1.5/
 [0.1.4]: https://test.pypi.org/project/decision-toolkit/0.1.4/
 [0.1.3]: https://pypi.org/project/decision-toolkit/0.1.3/

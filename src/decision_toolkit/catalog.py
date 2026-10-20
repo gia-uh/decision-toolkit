@@ -455,7 +455,10 @@ def select_variant(model: CatalogModel, name: str | None = None) -> Variant:
     for variant in model.variants:
         if variant.name == name:
             return variant
-    available = ", ".join(variant.name for variant in model.variants) or "(none)"
+    available = ", ".join(
+        f"{variant.name} (default)" if variant.role == "default" else variant.name
+        for variant in model.variants
+    ) or "(none)"
     raise ModelNotFoundError(f"{model.id!r} has no variant {name!r}; available: {available}")
 
 

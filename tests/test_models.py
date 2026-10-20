@@ -208,6 +208,16 @@ def test_resolve_variant_override(store, fake_snapshot):
     assert resolved.variant.name == "fp32"
 
 
+def test_resolve_explicit_model_uses_persisted_variant(store, fake_snapshot):
+    store.download("gliner2.5-multi", variant="fp16")
+    store.download("gliner2.5-multi", variant="fp32")
+    store.use("gliner2.5-multi", variant="fp32")
+    resolved = store.resolve("gliner2.5-multi")
+    assert resolved.variant.name == "fp32"
+    # An explicit per-call variant still wins over the persisted selection.
+    assert store.resolve("gliner2.5-multi", variant="fp16").variant.name == "fp16"
+
+
 def test_resolve_accepts_local_paths_and_hub_refs(store, tmp_path):
     local = tmp_path / "handmade"
     local.mkdir()

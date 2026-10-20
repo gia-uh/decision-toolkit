@@ -511,6 +511,10 @@ class ModelStore:
             identifier = self.config.current
             if variant is None:
                 variant = self.config.current_variant
+        elif variant is None and identifier == self.config.current:
+            # An explicit model id still honors the persisted variant selected
+            # with `dtk models use <id> --variant <name>`.
+            variant = self.config.current_variant
         if identifier is None:
             raise ModelNotFoundError(
                 "no model given and none in use; pass a model id or run `dtk models use <id>`"

@@ -5,7 +5,7 @@
 - **License:** Apache-2.0
 - **Parameters:** 287M · **Architecture:** GLiNER2.5 multi-v1 · **Languages:** multilingual
 
-## Variant
+## Default variant
 
 | | |
 |---|---|
@@ -13,7 +13,18 @@
 | Files | `fp16_25/encoder_fp16.onnx`, `fp32_25/classifier_fp32.onnx`, `fp16_25/tokenizer.json` |
 | Quantization | fp16 encoder + fp32 classifier |
 | Download | 577 MB |
-| Role | default (a `fp32` quality variant is also catalogued) |
+| Role | default; `fp32` is a quality variant |
+
+## Variants
+
+| Variant | Quantization | Size | Role | Install |
+| --- | --- | ---: | --- | --- |
+| `fp16` * | fp16 encoder + fp32 classifier | 577.1 MB | default | `dtk models download gliner2.5-multi --variant fp16` |
+| `fp32` | fp32 encoder + fp32 classifier | 1131.9 MB | quality | `dtk models download gliner2.5-multi --variant fp32` |
+
+`dtk models download gliner2.5-multi` gets `fp16`; `--variant fp32` downloads
+the quality build alongside it. `dtk models use gliner2.5-multi --variant fp32`
+makes it persistent. See [Variants and quantization](../VARIANTS.md).
 
 ## Reproducibility
 
@@ -47,8 +58,14 @@
 ## Usage
 
 ```bash
-dtk models download gliner2.5-multi
+dtk models download gliner2.5-multi                       # fp16 default
+dtk models download gliner2.5-multi --variant fp32        # quality variant
 dtk decide --model gliner2.5-multi --state "Meeting with Acme: 10% discount…" \
+    --q cat='choice:meeting|tasks|contact|idea|other'
+
+# use the quality variant for one request
+dtk decide --model gliner2.5-multi --variant fp32 \
+    --state "Meeting with Acme: 10% discount…" \
     --q cat='choice:meeting|tasks|contact|idea|other'
 ```
 

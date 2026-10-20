@@ -5,7 +5,7 @@
 - **License:** Apache-2.0
 - **Parameters:** 340M · **Architecture:** DeBERTa-v3-large · **Language:** English only
 
-## Variant
+## Default variant
 
 | | |
 |---|---|
@@ -14,6 +14,15 @@
 | Quantization | q4f16 (4-bit MatMul, fp16 elsewhere) |
 | Download | 523.5 MB |
 | Role | default |
+
+## Variants
+
+| Variant | Quantization | Size | Role | Install |
+| --- | --- | ---: | --- | --- |
+| `q4f16` * | q4/fp16 | 523.5 MB | default | `dtk models download gliner2.5-decide --variant q4f16` |
+
+This is the only catalogued and verified build. There is no fp16 or fp32 variant
+in the toolkit; see [Variants and quantization](../VARIANTS.md).
 
 ## Reproducibility
 

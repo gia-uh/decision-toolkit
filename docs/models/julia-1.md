@@ -5,7 +5,7 @@
 - **License:** Apache-2.0
 - **Parameters:** 141M · **Architecture:** mmBERT-small · **Languages:** 52 locales (MASSIVE)
 
-## Variant
+## Default variant
 
 | | |
 |---|---|
@@ -14,6 +14,16 @@
 | Quantization | fp32 |
 | Download | 618.2 MB |
 | Role | default |
+
+## Variants
+
+| Variant | Quantization | Size | Role | Install |
+| --- | --- | ---: | --- | --- |
+| `fp32` * | fp32 | 618.2 MB | default | `dtk models download julia-1 --variant fp32` |
+
+The official fp32 build is the only verified variant. A community int8 export
+exists but was not validated and is not catalogued; see
+[Variants and quantization](../VARIANTS.md).
 
 ## Reproducibility
 

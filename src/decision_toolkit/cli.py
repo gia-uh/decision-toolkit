@@ -88,6 +88,7 @@ def build_parser() -> argparse.ArgumentParser:
     _with_examples(
         parser,
         "dtk models list --json",
+        "dtk models variants gliner2.5-multi",
         "dtk decide --model gliner2.5-multi --state \"Meeting with Acme.\" --q 'cat=choice:meeting|tasks|other'",
         "dtk classify --model laya --text \"Dentist next Tuesday\" --labels reminder,task,idea",
         "dtk serve --model gliner2.5-multi --warmup",
@@ -97,14 +98,19 @@ def build_parser() -> argparse.ArgumentParser:
     models = _with_examples(
         sub.add_parser("models", help="Model cache and curated catalog."),
         "dtk models",
-        "dtk models list --json",
+        "dtk models list --quant",
+        "dtk models variants gliner2.5-multi",
     )
     _add_json(models)
     models_sub = models.add_subparsers(dest="models_command")
 
     models_list = _with_examples(
-        models_sub.add_parser("list", help="The curated library (adapter, variants)."),
-        "dtk models list --adapter --quant",
+        models_sub.add_parser(
+            "list", help="Catalog variants, default and cache state."
+        ),
+        "dtk models list",
+        "dtk models list --quant",
+        "dtk models list --adapter --license",
         "dtk models list --json",
     )
     _add_json(models_list)
@@ -113,7 +119,10 @@ def build_parser() -> argparse.ArgumentParser:
     models_list.add_argument("--adapter", action="store_true", dest="show_adapter")
 
     models_variants = _with_examples(
-        models_sub.add_parser("variants", help="Variants of a catalog model."),
+        models_sub.add_parser(
+            "variants",
+            help="Every quantization/variant, with size, role and install command.",
+        ),
         "dtk models variants gliner2.5-multi",
         "dtk models variants gliner2.5-multi --json",
     )
@@ -124,11 +133,16 @@ def build_parser() -> argparse.ArgumentParser:
         models_sub.add_parser(
             "download", help="Download one variant (the only network command)."
         ),
+        "dtk models variants gliner2.5-multi",
         "dtk models download gliner2.5-multi --dry-run",
         "dtk models download gliner2.5-multi --variant fp32 --force",
     )
     models_download.add_argument("model", help="Catalog id.")
-    models_download.add_argument("--variant", help="Variant name (default: the catalog default).")
+    models_download.add_argument(
+        "--variant",
+        metavar="NAME",
+        help="Variant/quantization; see `dtk models variants <model>` (default: catalog default).",
+    )
     models_download.add_argument("--revision", help="Pin a revision.")
     models_download.add_argument("--force", action="store_true", help="Replace an existing download.")
     models_download.add_argument("--dry-run", action="store_true", help="Show what would be downloaded.")
@@ -136,11 +150,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     models_use = _with_examples(
         models_sub.add_parser("use", help="Set the model (and optional variant) in use."),
+        "dtk models use gliner2.5-multi --variant fp32",
         "dtk models use laya --variant q8",
         "dtk models use julia-1 --json",
     )
     models_use.add_argument("model")
-    models_use.add_argument("--variant", help="Variant name.")
+    models_use.add_argument(
+        "--variant",
+        metavar="NAME",
+        help="Variant/quantization; see `dtk models variants <model>`.",
+    )
     _add_json(models_use)
 
     models_current = _with_examples(
@@ -156,7 +175,11 @@ def build_parser() -> argparse.ArgumentParser:
         "dtk models delete laya --all-variants --yes",
     )
     models_delete.add_argument("model")
-    models_delete.add_argument("--variant", help="Variant name (default: any cached variant).")
+    models_delete.add_argument(
+        "--variant",
+        metavar="NAME",
+        help="Variant name (default: any cached variant).",
+    )
     models_delete.add_argument(
         "--all-variants", action="store_true", help="Delete every cached variant of the model."
     )
@@ -169,7 +192,11 @@ def build_parser() -> argparse.ArgumentParser:
         "dtk models verify --all --json",
     )
     models_verify.add_argument("model", nargs="?", help="Cached model id (omit with --all).")
-    models_verify.add_argument("--variant", help="Variant name.")
+    models_verify.add_argument(
+        "--variant",
+        metavar="NAME",
+        help="Variant name; see `dtk models variants <model>`.",
+    )
     models_verify.add_argument("--all", action="store_true", dest="verify_all", help="Verify every cached variant.")
     _add_json(models_verify)
 
@@ -187,6 +214,8 @@ def build_parser() -> argparse.ArgumentParser:
     decide = _with_examples(
         sub.add_parser("decide", help="Answer typed questions about a state (System One)."),
         "dtk decide --model gliner2.5-multi --state \"Meeting with Acme.\" "
+        "--q 'cat=choice:meeting|tasks|other'",
+        "dtk decide --model gliner2.5-multi --variant fp32 --state \"Meeting with Acme.\" "
         "--q 'cat=choice:meeting|tasks|other'",
         "dtk decide --model laya --state-file state.txt --questions-file questions.yaml",
         "dtk decide --model gliner2.5-decide --input-jsonl states.jsonl "
@@ -232,6 +261,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--labels reminder,task,idea --json",
         "dtk classify --model gliner2.5-multi --text-file note.txt "
         "--labels-file categories.yaml --threshold 0.6",
+        "dtk classify --model opendecider-nano --variant fp16 --text \"Charged twice\" "
+        "--labels billing,technical --json",
     )
     _add_model_args(classify)
     classify_group = classify.add_mutually_exclusive_group(required=True)
@@ -251,6 +282,7 @@ def build_parser() -> argparse.ArgumentParser:
     serve = _with_examples(
         sub.add_parser("serve", help="Run the REST server (needs the [server] extra)."),
         "dtk serve --model gliner2.5-multi --warmup",
+        "dtk serve --model gliner2.5-multi --variant fp32 --warmup",
         "dtk serve --model laya --api-key secret --max-concurrent 4 "
         "--rate-limit 120 --rate-window 60",
     )
@@ -387,7 +419,11 @@ def _add_model_args(parser: argparse.ArgumentParser) -> None:
         "--model",
         help="Catalog id, cached variant, local path or 'org/name' (default: the model in use).",
     )
-    parser.add_argument("--variant", help="Variant name (default: the catalog default).")
+    parser.add_argument(
+        "--variant",
+        metavar="NAME",
+        help="Variant/quantization; see `dtk models variants <model>` (default: catalog default).",
+    )
     parser.add_argument("--threads", type=int, default=4, help="ONNX Runtime threads (default 4).")
     _add_custom_args(parser)
 
@@ -538,12 +574,18 @@ def _cached_set(store: ModelStore) -> set[tuple[str, str]]:
     return {(entry.identifier, entry.variant) for entry in store.entries()}
 
 
-def _catalog_payload(model: catalog.CatalogModel, cached: set[tuple[str, str]], current: str | None) -> dict[str, Any]:
+def _catalog_payload(
+    model: catalog.CatalogModel,
+    cached: set[tuple[str, str]],
+    current: str | None,
+    current_variant: str | None = None,
+) -> dict[str, Any]:
     payload = model.info.to_dict()
     payload["cached_variants"] = [
         variant.name for variant in model.variants if (model.id, variant.name) in cached
     ]
     payload["current"] = model.id == current
+    payload["current_variant"] = current_variant if model.id == current else None
     return payload
 
 
@@ -626,7 +668,9 @@ def _cmd_models(args: argparse.Namespace) -> int:
             if as_json:
                 _json_out(payload)
             else:
-                print(store.current() or "(none)")
+                current = store.current()
+                variant = store.current_variant()
+                print(f"{current}@{variant}" if current and variant else current or "(none)")
             return EXIT_OK
         entries = store.entries()
         if as_json:
@@ -657,32 +701,43 @@ def _cmd_models(args: argparse.Namespace) -> int:
     if command == "list":
         cached = _cached_set(store)
         current = store.current()
-        payloads = [_catalog_payload(model, cached, current) for model in catalog.CATALOG]
+        current_variant = store.current_variant()
+        payloads = [
+            _catalog_payload(model, cached, current, current_variant)
+            for model in catalog.CATALOG
+        ]
         if as_json:
             _json_out(payloads)
             return EXIT_OK
-        headers = ["", "id", "default"]
+        headers = ["", "id", "variants"]
         if args.show_adapter:
             headers.append("adapter")
         if args.show_license:
             headers.append("license")
         if args.show_quant:
             headers.append("quant")
-        headers.append("cache")
+        headers.append("cached")
         rows = []
         for model, payload in zip(catalog.CATALOG, payloads):
             default = model.default_variant
-            label = default.name if default else "—"
-            row: list[Any] = ["★" if model.id == current else " ", model.id, label]
+            variants = ", ".join(
+                f"{variant.name}*" if variant is default else variant.name
+                for variant in model.variants
+            ) or "—"
+            row: list[Any] = ["★" if model.id == current else " ", model.id, variants]
             if args.show_adapter:
                 row.append(model.adapter)
             if args.show_license:
                 row.append(model.license)
             if args.show_quant:
-                row.append(default.quant if default else "—")
-            row.append("✓" if payload["cached_variants"] else "")
+                row.append(
+                    ", ".join(variant.quant for variant in model.variants) or "—"
+                )
+            cached_label = ", ".join(payload["cached_variants"]) or "—"
+            row.append(cached_label)
             rows.append(row)
         _print_table(headers, rows)
+        print("\n* default variant. Use `dtk models variants <id>` for details and install commands.")
         return EXIT_OK
 
     if command == "variants":
@@ -694,6 +749,7 @@ def _cmd_models(args: argparse.Namespace) -> int:
             "id": model.id,
             "adapter": model.adapter,
             "status": model.status,
+            "default_variant": model.default_variant.name if model.default_variant else None,
             "capabilities": model.capabilities.to_dict(),
             "variants": [
                 _variant_payload(variant, cached, model.id) for variant in model.variants
@@ -705,8 +761,9 @@ def _cmd_models(args: argparse.Namespace) -> int:
         print(f"{model.id} · adapter={model.adapter} · status={model.status}")
         for variant in model.variants:
             cached_mark = " ✓" if (model.id, variant.name) in cached else ""
+            label = f"{variant.name}*" if variant is model.default_variant else variant.name
             print(
-                f"  {variant.name:8s} {variant.quant:10s} {variant.size_mb:7.1f} MB  "
+                f"  {label:8s} {variant.quant:10s} {variant.size_mb:7.1f} MB  "
                 f"role={variant.role:8s} repo={variant.repo}{cached_mark}"
             )
             print(f"           revision: {variant.revision or '(unpinned)'}")
@@ -716,8 +773,15 @@ def _cmd_models(args: argparse.Namespace) -> int:
             if variant.parity:
                 summary = ", ".join(f"{key}={value}" for key, value in variant.parity.items())
                 print(f"           parity: {summary}")
+            print(
+                f"           download: dtk models download {model.id} "
+                f"--variant {variant.name}"
+            )
         if not model.variants:
             print("  (no downloadable ONNX variant yet)")
+        else:
+            print(f"\nselected variant: dtk models use {model.id} --variant <name>")
+            print(f"one-off request:  dtk decide --model {model.id} --variant <name> ...")
         return EXIT_OK
 
     if command == "download":
@@ -726,8 +790,20 @@ def _cmd_models(args: argparse.Namespace) -> int:
             raise ModelNotFoundError(f"unknown catalog model: {args.model}")
         chosen = catalog.select_variant(model, args.variant)
         if args.dry_run:
+            cached = _cached_set(store)
             payload = {
                 "identifier": model.id,
+                "default_variant": model.default_variant.name if model.default_variant else None,
+                "available_variants": [
+                    {
+                        "name": variant.name,
+                        "quant": variant.quant,
+                        "size_mb": variant.size_mb,
+                        "role": variant.role,
+                        "cached": (model.id, variant.name) in cached,
+                    }
+                    for variant in model.variants
+                ],
                 "variant": chosen.name,
                 "repo": chosen.repo,
                 "revision": chosen.revision,
@@ -737,15 +813,19 @@ def _cmd_models(args: argparse.Namespace) -> int:
                 "extra_files": list(chosen.extra_files),
                 "sha256": dict(chosen.sha256),
                 "extra_sha256": dict(chosen.extra_sha256),
-                "cached": (model.id, chosen.name) in _cached_set(store),
+                "cached": (model.id, chosen.name) in cached,
             }
             if as_json:
                 _json_out(payload)
             else:
+                available = ", ".join(
+                    f"{variant.name}{'*' if variant is model.default_variant else ''}"
+                    for variant in model.variants
+                )
                 _info(
                     args,
                     f"would download {model.id}@{chosen.name} from {chosen.repo} "
-                    f"({chosen.size_mb:.1f} MB)",
+                    f"({chosen.size_mb:.1f} MB); variants: {available}",
                 )
             return EXIT_OK
         entry = store.download(
@@ -758,6 +838,12 @@ def _cmd_models(args: argparse.Namespace) -> int:
             _json_out(_entry_payload(entry))
         else:
             _info(args, f"downloaded {entry.identifier}@{entry.variant} -> {entry.path}")
+            _info(
+                args,
+                f"select it with `dtk models use {entry.identifier} "
+                f"--variant {entry.variant}` or pass `--variant {entry.variant}` "
+                "to a command",
+            )
         return EXIT_OK
 
     if command == "use":

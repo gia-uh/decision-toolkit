@@ -303,5 +303,5 @@ at `http://localhost:8000/v1`.
   (see [OPERATIONS.md](OPERATIONS.md)).
 - CLI batch/JSONL and custom-model workflows are implemented in phase 3
   (see [CLI.md](CLI.md)).
-- Pinned catalog hashes and source-only CI are implemented in phase 4; wheel,
-  PyPI and distribution tagging are deferred to phase 6.
+- Pinned catalog hashes and source CI are implemented in phase 4; wheel,
+  PyPI and distribution tagging are documented in [RELEASE.md](RELEASE.md).

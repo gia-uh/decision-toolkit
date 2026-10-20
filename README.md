@@ -21,7 +21,7 @@ and CLI. `dtk --help` and every subcommand help also include runnable examples.
 ## Installation
 
 ```bash
-uv pip install decision-toolkit              # library + CLI (0.1.5 on PyPI)
+uv pip install decision-toolkit              # library + CLI (0.1.6 on PyPI)
 uv pip install "decision-toolkit[onnx]"      # + onnxruntime, tokenizers (the model runtime)
 uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 ```
@@ -29,7 +29,7 @@ uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 The project is managed with [uv](https://docs.astral.sh/uv/) and ships a committed `uv.lock`. Published
 wheels remain compatible with `pip` for environments that do not use uv.
 
-PyPI: <https://pypi.org/project/decision-toolkit/0.1.5/>. See
+PyPI: <https://pypi.org/project/decision-toolkit/0.1.6/>. See
 [docs/RELEASE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/RELEASE.md)
 for the Trusted Publishing flow and clean-install checks.
 
@@ -103,10 +103,10 @@ logging events and the expressiveness inventory.
 **2. As a CLI**
 
 ```bash
-dtk models list --adapter --quant                # catalog, variants and cache state
+dtk models list --quant                          # every variant, default, cache state
 dtk models variants gliner2.5-multi --json       # real variants (quant, size, role)
-dtk models download gliner2.5-multi --dry-run    # show the download first
-dtk models use gliner2.5-multi --variant fp16
+dtk models download gliner2.5-multi --variant fp32  # install another quantization
+dtk models use gliner2.5-multi --variant fp32       # select it persistently
 dtk models current --json                        # includes the current variant
 dtk decide --model gliner2.5-multi \
     --state "Meeting with Acme: 10% discount, sign next week." \
@@ -158,13 +158,13 @@ is understood and verified:
 Every variant points to files that exist. No placeholders, no speculative
 adapters (there is no generic "any ONNX" adapter).
 
-| id | adapter | status | default variant |
+| id | adapter | status | variants (default *) |
 | --- | --- | --- | --- |
-| `gliner2.5-multi` | `gliner2` | **m0** — verified end-to-end (9/15, 353 ms) | `fp16` (577 MB) |
-| `gliner2.5-decide` | `gliner2-decide` | **m0** — fused export verified (refund 0.944, 912 ms; English-only) | `q4f16` (524 MB) |
-| `laya` | `laya` | **m0** — verified against torch (Δp ≤ 0.005) | `q8` (528 MB) |
-| `julia-1` | `julia` | **m0** — verified: 100/100 argmax parity, 329 ms | `fp32` (618 MB) |
-| `opendecider-nano` | `opendecider` | **m0** — official build; prompt ported from pinned code (530 ms) | `q8f16` (469 MB) |
+| `gliner2.5-multi` | `gliner2` | **m0** — verified end-to-end (9/15, 353 ms) | `fp16`* (577 MB); `fp32` (1132 MB) |
+| `gliner2.5-decide` | `gliner2-decide` | **m0** — fused export verified (refund 0.944, 912 ms; English-only) | `q4f16`* (524 MB) |
+| `laya` | `laya` | **m0** — verified against torch (Δp ≤ 0.005) | `q8`* (528 MB) |
+| `julia-1` | `julia` | **m0** — verified: 100/100 argmax parity, 329 ms | `fp32`* (618 MB) |
+| `opendecider-nano` | `opendecider` | **m0** — official build; prompt ported from pinned code (530 ms) | `q8f16`* (469 MB); `fp16` (792 MB) |
 
 **Only `m0` models are in the catalog.** Researched-but-unavailable models
 (planned, conversion pending, broken exports) are listed in
@@ -175,20 +175,43 @@ Per-model cards with the contract, measured evidence and known limitations:
 
 ## Variants and quantization
 
-A quantization is a **variant** of a model, with its real repo, files and role:
+A quantization is a **variant** of a model: a real, pinned ONNX build with its
+own repo files, size and role. A `*` in the table above marks the default.
+`dtk models list` always shows every catalogued variant and what is cached:
 
-```yaml
-gliner2.5-multi:
-  fp16:  encoder_fp16.onnx + classifier_fp32.onnx      # 577 MB  default
-  fp32:  encoder_fp32.onnx + classifier_fp32.onnx      # 1132 MB quality
+```bash
+dtk models list                      # all variants; * = default
+dtk models list --quant              # add the quantization labels
+dtk models variants gliner2.5-multi  # full details for one model
 ```
 
-- `dtk models download <id>` gets the **default** variant; `--variant fp32` gets
-  another.
-- A variant becomes default only after passing the parity gate (top-1 ≥ 99%,
-  mean |Δp| ≤ 0.02, accuracy delta ≤ 1 pp against the fp32 build on a fixed
-  sample) and measuring latency on CPU.
-- Unverified variants are never default. No silent fallback.
+`dtk models download` fetches a variant into the model cache; it does not change
+the active selection. Downloading one quantization does not remove the others:
+
+```bash
+dtk models download gliner2.5-multi                     # default fp16
+dtk models download gliner2.5-multi --variant fp32      # quality build
+dtk models download opendecider-nano --variant fp16     # quality build
+dtk models download gliner2.5-multi --variant fp32 --dry-run
+```
+
+Select a downloaded variant persistently, or use it for one request:
+
+```bash
+dtk models use gliner2.5-multi --variant fp32
+dtk models current --json          # {"current": "...", "variant": "fp32"}
+dtk decide --model gliner2.5-multi --variant fp16 --state "..." --q 'cat=choice:a|b'
+```
+
+From Python: `DecisionModel("gliner2.5-multi", variant="fp32")`. The variant
+must already be downloaded. If a variant is omitted, the catalog default is
+used unless `dtk models use` selected another one.
+
+A variant becomes default only after passing the parity gate (top-1 ≥ 99%,
+mean |Δp| ≤ 0.02, accuracy delta ≤ 1 pp against the fp32 build on a fixed
+sample) and measuring latency on CPU. Unverified conversions are not catalogued
+and never become a silent fallback. See [Variants and quantization](https://uhgia.org/decision-toolkit/VARIANTS/)
+for the complete table, cache behavior and commands.
 
 ## Operations
 
@@ -222,8 +245,9 @@ Latency/parity/calibration evidence is reproducible with the harness in
 [`bench/`](https://github.com/gia-uh/decision-toolkit/tree/main/bench) and documented in [docs/BENCH.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/BENCH.md). CI runs
 lint, unit/contract tests and a CLI smoke from source on Python 3.12/3.13.
 
-There is **no wheel or PyPI release yet**; packaging is a later milestone. See
-[CHANGELOG.md](https://github.com/gia-uh/decision-toolkit/blob/main/CHANGELOG.md), [CONTRIBUTING.md](https://github.com/gia-uh/decision-toolkit/blob/main/CONTRIBUTING.md),
+Wheel, sdist and Trusted Publishing releases are documented in
+[RELEASE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/RELEASE.md).
+See [CHANGELOG.md](https://github.com/gia-uh/decision-toolkit/blob/main/CHANGELOG.md), [CONTRIBUTING.md](https://github.com/gia-uh/decision-toolkit/blob/main/CONTRIBUTING.md),
 [SECURITY.md](https://github.com/gia-uh/decision-toolkit/blob/main/SECURITY.md) and
 [THIRD_PARTY_NOTICES.md](https://github.com/gia-uh/decision-toolkit/blob/main/THIRD_PARTY_NOTICES.md).
 

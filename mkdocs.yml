@@ -38,6 +38,7 @@ nav:
   - CLI: CLI.md
   - Operations: OPERATIONS.md
   - Benchmarks: BENCH.md
+  - Variants and quantization: VARIANTS.md
   - Models:
       - Overview: models/README.md
       - GLiNER2.5 multi: models/gliner2.5-multi.md

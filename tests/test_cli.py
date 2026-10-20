@@ -79,12 +79,18 @@ def test_help_contains_runnable_examples(capsys):
     output = capsys.readouterr().out
     assert "examples:" in output
     assert "dtk models list --json" in output
+    assert "dtk models variants gliner2.5-multi" in output
     assert "dtk decide --model" in output
 
     with pytest.raises(SystemExit) as excinfo:
         cli.main(["models", "list", "--help"])
     assert excinfo.value.code == 0
     assert "examples:" in capsys.readouterr().out
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["models", "download", "--help"])
+    assert excinfo.value.code == 0
+    assert "dtk models variants" in capsys.readouterr().out
 
 
 def test_parse_questions_adds_default_instructions():
@@ -172,6 +178,20 @@ def test_models_list_text(home, capsys):
         assert model_id in output
     assert "d3-lite" not in output
     assert "waitlist" not in output
+    assert "fp16*" in output and "fp32" in output
+    assert "q4f16*" in output
+    assert "default variant" in output
+
+
+def test_models_list_shows_all_cached_variants(home, fake_snapshot, capsys):
+    store = ModelStore(home=home)
+    store.download("gliner2.5-multi", variant="fp16")
+    store.download("gliner2.5-multi", variant="fp32")
+    assert cli.main(["--home", str(home), "models", "list"]) == 0
+    output = _out(capsys)
+    row = next(line for line in output.splitlines() if "gliner2.5-multi" in line)
+    assert "fp16*, fp32" in row
+    assert "fp16, fp32" in row
 
 
 def test_models_list_json_and_columns(home, capsys):
@@ -193,6 +213,7 @@ def test_models_list_json_and_columns(home, capsys):
     assert entry["adapter"] == "gliner2"
     assert entry["license"] == "apache-2.0"
     assert entry["default_variant"] == "fp16"
+    assert entry["current_variant"] is None
     assert entry["variants"][0]["quant"] == "fp16"
 
     assert cli.main(
@@ -202,6 +223,8 @@ def test_models_list_json_and_columns(home, capsys):
     assert "license" in text
     assert "quant" in text
     assert "adapter" in text
+    assert "fp16*, fp32" in text
+    assert "fp16, fp32" in text
 
 
 def test_models_variants_text_and_json(home, capsys):
@@ -211,12 +234,15 @@ def test_models_variants_text_and_json(home, capsys):
     assert "577.1" in text and "1131.9" in text
     assert "latency p50" in text
     assert "parity:" in text and "baseline=" in text
+    assert "download: dtk models download gliner2.5-multi --variant fp32" in text
+    assert "selected variant: dtk models use gliner2.5-multi" in text
 
     assert cli.main(
         ["--home", str(home), "models", "variants", "gliner2.5-multi", "--json"]
     ) == 0
     payload = json.loads(_out(capsys))
     assert payload["adapter"] == "gliner2"
+    assert payload["default_variant"] == "fp16"
     assert {variant["name"] for variant in payload["variants"]} == {"fp16", "fp32"}
     assert payload["variants"][0]["revision"]
     assert payload["variants"][0]["sha256"]
@@ -239,6 +265,14 @@ def test_models_use_variant_and_current_json(home, capsys):
         "current": "gliner2.5-multi",
         "variant": "fp16",
     }
+    assert cli.main(["--home", str(home), "models", "current"]) == 0
+    assert _out(capsys).strip() == "gliner2.5-multi@fp16"
+    assert cli.main(["--home", str(home), "models", "list", "--json"]) == 0
+    catalog_entry = next(
+        item for item in json.loads(_out(capsys)) if item["id"] == "gliner2.5-multi"
+    )
+    assert catalog_entry["current"] is True
+    assert catalog_entry["current_variant"] == "fp16"
 
     assert cli.main(["--home", str(home), "models", "use", "julia-1"]) == 0
     capsys.readouterr()
@@ -261,6 +295,8 @@ def test_models_download_dry_run_and_force(home, fake_snapshot, capsys):
     payload = json.loads(_out(capsys))
     assert payload["repo"] == "jugaadsrl/gliner2.5-multi-v1-onnx"
     assert payload["variant"] == "fp16"
+    assert payload["default_variant"] == "fp16"
+    assert {item["name"] for item in payload["available_variants"]} == {"fp16", "fp32"}
     assert fake_snapshot == []
 
     assert cli.main(
