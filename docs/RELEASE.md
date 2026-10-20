@@ -109,8 +109,11 @@ No long-lived PyPI token is needed; the workflow uses GitHub OIDC
 From GitHub Actions, run `release` with `target=testpypi`. It builds and uploads
 to TestPyPI without publishing to PyPI or creating a GitHub release.
 
-## Pre-release status
+## Published release
 
-The repository can build and install cleanly, but **no artifact has been
-uploaded yet**. The actual upload requires the PyPI/TestPyPI trusted publisher
-configuration and GitHub environment approval described above.
+`0.1.0` was published to PyPI on 2026-10-20 from the verified wheel and sdist:
+
+<https://pypi.org/project/decision-toolkit/0.1.0/>
+
+The tag-triggered workflow remains the preferred path for future releases once
+the TestPyPI/PyPI trusted publishers and protected environments are configured.

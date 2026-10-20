@@ -1,9 +1,9 @@
 # Changelog
 
-All notable changes to this project are documented here. The project has not
-published a distribution artifact yet; versions are repository milestones.
+All notable changes to this project are documented here. Version `0.1.0` is
+published on PyPI.
 
-## [Unreleased]
+## [0.1.0] — 2026-10-20
 
 ### Phase 6 — packaging
 
@@ -13,8 +13,9 @@ published a distribution artifact yet; versions are repository milestones.
   REST server work from the installed artifact.
 - Added a Trusted Publishing release workflow for TestPyPI → PyPI and GitHub
   Releases.
-- No artifact has been uploaded yet; PyPI/TestPyPI publishing requires the
-  configured environments and approval.
+- Published `0.1.0` to PyPI:
+  <https://pypi.org/project/decision-toolkit/0.1.0/>.
+- Trusted Publishing workflow is available for future TestPyPI/PyPI releases.
 - Added `docs/RELEASE.md`.
 
 ### Phase 5 — operations
@@ -63,6 +64,4 @@ published a distribution artifact yet; versions are repository milestones.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
-## [0.1.0] — unreleased
-
-The version is not tagged or packaged yet. Wheel/PyPI construction is deferred.
+[0.1.0]: https://pypi.org/project/decision-toolkit/0.1.0/
