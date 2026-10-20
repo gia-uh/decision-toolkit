@@ -5,6 +5,18 @@ published a distribution artifact yet; versions are repository milestones.
 
 ## [Unreleased]
 
+### Phase 6 — packaging
+
+- Added `py.typed`, project URLs, co-author metadata and sdist inclusion.
+- Wheel and sdist build successfully; `twine check` passes with current tooling.
+- Wheel installs in a clean venv with `[onnx,server,tracing]`; `dtk` and the
+  REST server work from the installed artifact.
+- Added a Trusted Publishing release workflow for TestPyPI → PyPI and GitHub
+  Releases.
+- No artifact has been uploaded yet; PyPI/TestPyPI publishing requires the
+  configured environments and approval.
+- Added `docs/RELEASE.md`.
+
 ### Phase 5 — operations
 
 - Per-key rate limiting with `429` + `Retry-After` (disabled by default).

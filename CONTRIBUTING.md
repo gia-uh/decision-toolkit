@@ -72,10 +72,10 @@ python -m decision_toolkit --version
 pip-audit                             # dependency scan (CI runs this)
 ```
 
-CI runs these on Python 3.12 and 3.13 from source, plus `pip-audit`. It does
-**not** build a wheel; packaging is a later milestone. See
-[OPERATIONS.md](docs/OPERATIONS.md) for rate limits, metrics, tracing and the
-load probe.
+CI runs these on Python 3.12 and 3.13 from source, plus `pip-audit`. A separate
+tag-triggered release workflow builds and publishes the wheel; see
+[RELEASE.md](docs/RELEASE.md). For rate limits, metrics, tracing and the load
+probe see [OPERATIONS.md](docs/OPERATIONS.md).
 
 ## Commits
 

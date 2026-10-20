@@ -10,16 +10,20 @@ contract** (how a model is fed and read). Three thin surfaces over the same API:
 
 Co-developed by [GIA-UH](https://github.com/gia-uh) and [Syalia S.R.L.](https://github.com/syalia-srl).
 
-**Examples:** [docs/EXAMPLES.md](docs/EXAMPLES.md) covers the library, REST and
+**Examples:** [docs/EXAMPLES.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/EXAMPLES.md) covers the library, REST and
 CLI. `dtk --help` and every subcommand help also include runnable examples.
 
 ## Installation
 
 ```bash
-pip install decision-toolkit              # library + CLI (light base)
+pip install decision-toolkit              # library + CLI (once v0.1.0 is on PyPI)
 pip install "decision-toolkit[onnx]"      # + onnxruntime, tokenizers (the model runtime)
 pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 ```
+
+Pre-release: the artifact is built and verified locally, but not uploaded yet.
+See [docs/RELEASE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/RELEASE.md) for the Trusted Publishing flow and
+clean-install checks.
 
 ## Three ways to use it
 
@@ -85,7 +89,7 @@ decision.truncated, decision.warnings
 validated before inference (`box`/assets are rejected by text-only models).
 Custom adapters can be registered with `register_adapter`; local ONNX models
 can be opened with `DecisionModel.from_onnx(...)`. See
-[docs/CORE.md](docs/CORE.md) for the full phase 1 contract, error taxonomy,
+[docs/CORE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/CORE.md) for the full phase 1 contract, error taxonomy,
 logging events and the expressiveness inventory.
 
 **2. As a CLI**
@@ -111,7 +115,7 @@ dtk models verify --all --json
 
 `dtk` has consistent exit codes (`0` ok, `1` runtime, `2` usage, `3`
 verification), `--json` everywhere, quiet/verbose modes and no tracebacks for
-expected failures. See [docs/CLI.md](docs/CLI.md) for questions files, JSONL
+expected failures. See [docs/CLI.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/CLI.md) for questions files, JSONL
 batch, custom `--adapter/--files`, config and completion.
 
 **3. As a REST service (optional extra)**
@@ -129,7 +133,7 @@ Endpoints: `POST /v1/systemone` (System One 1.14), `POST /v1/decisions`
 `GET /ready`. Requests may select `model` and `variant`; failures use the OpenAI
 `{"error": {...}}` envelope and every response carries `x-request-id`.
 `TYPESAFE_BASE_URL=http://localhost:8000` makes existing System One clients work.
-See [docs/REST.md](docs/REST.md) for the pinned contracts, limits, auth and
+See [docs/REST.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/REST.md) for the pinned contracts, limits, auth and
 the standard-evolution process.
 
 ## The catalog is curated
@@ -156,10 +160,10 @@ adapters (there is no generic "any ONNX" adapter).
 
 **Only `m0` models are in the catalog.** Researched-but-unavailable models
 (planned, conversion pending, broken exports) are listed in
-[docs/ROADMAP.md](docs/ROADMAP.md) and are not downloadable through the toolkit.
+[docs/ROADMAP.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/ROADMAP.md) and are not downloadable through the toolkit.
 
 Per-model cards with the contract, measured evidence and known limitations:
-[docs/models](docs/models/).
+[docs/models](https://github.com/gia-uh/decision-toolkit/tree/main/docs/models).
 
 ## Variants and quantization
 
@@ -193,7 +197,7 @@ PYTHONPATH=src python bench/load.py --base-url http://127.0.0.1:8000 \
   --concurrency 10 --requests 30
 ```
 
-See [docs/OPERATIONS.md](docs/OPERATIONS.md) for metric names, alerts, the
+See [docs/OPERATIONS.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/OPERATIONS.md) for metric names, alerts, the
 runbook and the multi-worker caveat.
 
 ## Reproducibility
@@ -207,13 +211,13 @@ dtk models verify --all --json    # exit 3 if any file/hash/session fails
 ```
 
 Latency/parity/calibration evidence is reproducible with the harness in
-[`bench/`](bench/) and documented in [docs/BENCH.md](docs/BENCH.md). CI runs
+[`bench/`](https://github.com/gia-uh/decision-toolkit/tree/main/bench) and documented in [docs/BENCH.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/BENCH.md). CI runs
 lint, unit/contract tests and a CLI smoke from source on Python 3.12/3.13.
 
 There is **no wheel or PyPI release yet**; packaging is a later milestone. See
-[CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md),
-[SECURITY.md](SECURITY.md) and
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[CHANGELOG.md](https://github.com/gia-uh/decision-toolkit/blob/main/CHANGELOG.md), [CONTRIBUTING.md](https://github.com/gia-uh/decision-toolkit/blob/main/CONTRIBUTING.md),
+[SECURITY.md](https://github.com/gia-uh/decision-toolkit/blob/main/SECURITY.md) and
+[THIRD_PARTY_NOTICES.md](https://github.com/gia-uh/decision-toolkit/blob/main/THIRD_PARTY_NOTICES.md).
 
 ## Custom ONNX (at your own risk)
 
@@ -251,8 +255,8 @@ PYTHONPATH=src pytest -m integration -o addopts=""   # real model, opt-in
 
 No wheel or editable install is required while the project is pre-distribution.
 CI runs the same source-tree commands on Python 3.12/3.13. See
-[CONTRIBUTING.md](CONTRIBUTING.md).
+[CONTRIBUTING.md](https://github.com/gia-uh/decision-toolkit/blob/main/CONTRIBUTING.md).
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](https://github.com/gia-uh/decision-toolkit/blob/main/LICENSE).

@@ -12,6 +12,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 authors = [
     { name = "Yudivián Almeida Cruz", email = "yudivian@gmail.com" },
+    { name = "Syalia S.R.L." },
 ]
 keywords = [
     "decision-models",
@@ -24,7 +25,7 @@ keywords = [
     "routing",
 ]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -32,6 +33,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
 dependencies = [
@@ -61,11 +63,34 @@ dev = [
     "pip-audit>=2",
 ]
 
+[project.urls]
+Homepage = "https://github.com/gia-uh/decision-toolkit"
+Repository = "https://github.com/gia-uh/decision-toolkit"
+Issues = "https://github.com/gia-uh/decision-toolkit/issues"
+Documentation = "https://github.com/gia-uh/decision-toolkit/tree/main/docs"
+Changelog = "https://github.com/gia-uh/decision-toolkit/blob/main/CHANGELOG.md"
+
 [project.scripts]
 dtk = "decision_toolkit.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/decision_toolkit"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/decision_toolkit",
+    "/docs",
+    "/bench",
+    "/tests",
+    "/.github",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/CONTRIBUTING.md",
+    "/SECURITY.md",
+    "/THIRD_PARTY_NOTICES.md",
+    "/LICENSE",
+    "/pyproject.toml",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
