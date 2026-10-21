@@ -135,7 +135,7 @@ def build_parser() -> argparse.ArgumentParser:
         ),
         "dtk models variants gliner2.5-multi",
         "dtk models download gliner2.5-multi --dry-run",
-        "dtk models download gliner2.5-multi --variant fp32 --force",
+        "dtk models download gliner2.5-multi --variant fp32 --dry-run",
     )
     models_download.add_argument("model", help="Catalog id.")
     models_download.add_argument(

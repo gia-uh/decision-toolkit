@@ -76,9 +76,11 @@ uv run dtk --version
 uv run pip-audit                # dependency scan (CI runs this)
 ```
 
-CI runs these on Python 3.12 and 3.13, plus `pip-audit`. The tag-triggered
-release workflow builds and publishes the wheel with uv; see
-[RELEASE.md](docs/RELEASE.md). For rate limits, metrics, tracing and the load
+CI runs these on Python 3.12 and 3.13, plus `pip-audit`. `tests/test_help_examples.py`
+parses every example printed by `dtk --help` and checks referenced catalog
+models/variants; run the full examples against a populated cache before a
+release. The tag-triggered release workflow builds and publishes the wheel with
+uv; see [RELEASE.md](docs/RELEASE.md). For rate limits, metrics, tracing and the load
 probe see [OPERATIONS.md](docs/OPERATIONS.md).
 
 ## Commits
