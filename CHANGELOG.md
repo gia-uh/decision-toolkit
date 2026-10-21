@@ -1,7 +1,14 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.4.1` is
+All notable changes to this project are documented here. Version `0.4.2` is
 published on PyPI.
+
+## [0.4.2] — 2026-10-21
+
+Documentation cleanup: removed internal project language (`m0`, phase numbers,
+waitlist), removed the public catalog proposal and roadmap pages, and rewrote
+the model-card index for users. Every model card now includes library, CLI and
+REST snippets for every variant. No runtime changes.
 
 ## [0.4.1] — 2026-10-21
 
@@ -216,6 +223,7 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
+[0.4.2]: https://pypi.org/project/decision-toolkit/0.4.2/
 [0.4.1]: https://pypi.org/project/decision-toolkit/0.4.1/
 [0.4.0]: https://pypi.org/project/decision-toolkit/0.4.0/
 [0.3.1]: https://pypi.org/project/decision-toolkit/0.3.1/
