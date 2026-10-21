@@ -1,7 +1,14 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.4.0` is
+All notable changes to this project are documented here. Version `0.4.1` is
 published on PyPI.
+
+## [0.4.1] — 2026-10-21
+
+Catalog presentation patch: every variant now carries its REST alias
+(`id@variant`) in `dtk models list`, `--json` and `dtk models variants`. Model
+cards include copy-paste loading examples for library, CLI and REST for every
+variant. No model or runtime changes.
 
 ## [0.4.0] — 2026-10-21
 
@@ -209,6 +216,7 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
+[0.4.1]: https://pypi.org/project/decision-toolkit/0.4.1/
 [0.4.0]: https://pypi.org/project/decision-toolkit/0.4.0/
 [0.3.1]: https://pypi.org/project/decision-toolkit/0.3.1/
 [0.3.0]: https://pypi.org/project/decision-toolkit/0.3.0/

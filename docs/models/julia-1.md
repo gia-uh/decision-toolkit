@@ -55,6 +55,40 @@ exists but was not validated and is not catalogued; see
 - Historical benchmarks used 1024 tokens; accuracy at 8k is not established by the export.
 - The tokenizer uses `<mask>/<bos>/<eos>`; both conventions are handled, but this checkpoint's tokenizer is the `<...>` one.
 
+## Loading each variant
+
+REST selects the quantization through the standard `model` field using the
+alias `julia-1@variant`; there is no `variant` field in the request body.
+
+### `fp32` (fp32, default)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("julia-1", variant="fp32")
+```
+
+**CLI**
+
+```bash
+dtk models download julia-1 --variant fp32
+dtk models use julia-1 --variant fp32
+dtk decide --model julia-1 --variant fp32 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "julia-1@fp32", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
 ## Usage
 
 ```bash

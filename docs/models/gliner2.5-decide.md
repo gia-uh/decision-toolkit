@@ -54,6 +54,40 @@ in the toolkit; see [Variants and quantization](../VARIANTS.md).
 - Quantized q4f16; the fp16/fp32 builds may resolve the sentiment example differently.
 - The model card's examples are "potential outputs", not guarantees; validate on your data.
 
+## Loading each variant
+
+REST selects the quantization through the standard `model` field using the
+alias `gliner2.5-decide@variant`; there is no `variant` field in the request body.
+
+### `q4f16` (q4/fp16, default)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("gliner2.5-decide", variant="q4f16")
+```
+
+**CLI**
+
+```bash
+dtk models download gliner2.5-decide --variant q4f16
+dtk models use gliner2.5-decide --variant q4f16
+dtk decide --model gliner2.5-decide --variant q4f16 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gliner2.5-decide@q4f16", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
 ## Usage
 
 ```bash

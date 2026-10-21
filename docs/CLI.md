@@ -151,6 +151,9 @@ are already downloaded.
 | `open-jev-deberta-v3-large` | `fp16`*, `fp32`, `q4`, `q4f16` | fp16 / fp32 / q4 / q4-fp16 | 883.5 / 1757.9 / 486.7 / 357.0 MB |
 | `strands-decider-2b` | `q4f16`*, `q8` | q4-fp16 / int8 | 1113.6 / 1821.4 MB |
 
+Each row is also addressable over REST as `model = "<id>@<variant>"`; the alias
+is printed by `dtk models list` and by `dtk models variants <id>`.
+
 ```bash
 # inspect, including the exact download command for each variant
 dtk models list --quant

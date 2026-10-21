@@ -21,7 +21,7 @@ and CLI. `dtk --help` and every subcommand help also include runnable examples.
 ## Installation
 
 ```bash
-uv pip install decision-toolkit              # library + CLI (0.4.0 on PyPI)
+uv pip install decision-toolkit              # library + CLI (0.4.1 on PyPI)
 uv pip install "decision-toolkit[onnx]"      # + onnxruntime, tokenizers (the model runtime)
 uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 ```
@@ -29,7 +29,7 @@ uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 The project is managed with [uv](https://docs.astral.sh/uv/) and ships a committed `uv.lock`. Published
 wheels remain compatible with `pip` for environments that do not use uv.
 
-PyPI: <https://pypi.org/project/decision-toolkit/0.4.0/>. See
+PyPI: <https://pypi.org/project/decision-toolkit/0.4.1/>. See
 [docs/RELEASE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/RELEASE.md)
 for the Trusted Publishing flow and clean-install checks.
 
@@ -172,6 +172,9 @@ adapters (there is no generic "any ONNX" adapter).
 | `laya-multilingual` | `laya` | **m0** — fused ONNX; upstream parity (37 ms) | `fp16`* (682 MB); `fp32` (1326 MB) |
 | `open-jev-deberta-v3-large` | `open-jev` | **m0** — Open-Jev DeBERTa v3 large repro; 0.854 in-domain (241 ms) | `fp16`* (884 MB); `fp32` (1758 MB); `q4` (487 MB); `q4f16` (357 MB) |
 | `strands-decider-2b` | `strands-decider` | **m0** — reference fixture match (719 ms) | `q4f16`* (1114 MB); `q8` (1821 MB) |
+
+Each variant has a REST alias in the form `id@variant`; `dtk models list` prints
+the alias next to every variant.
 
 **Only `m0` models are in the catalog.** Researched-but-unavailable models
 (planned, conversion pending, broken exports) are listed in

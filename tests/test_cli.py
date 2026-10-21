@@ -220,6 +220,7 @@ def test_models_list_json_and_columns(home, capsys):
     assert entry["license"] == "apache-2.0"
     assert entry["default_variant"] == "fp16"
     assert entry["current_variant"] is None
+    assert entry["variants"][0]["alias"] == "gliner2.5-multi@fp16"
     assert entry["variants"][0]["quant"] == "fp16"
 
     assert cli.main(
@@ -242,6 +243,7 @@ def test_models_variants_text_and_json(home, capsys):
     assert "577.1" in text and "1131.9" in text
     assert "latency p50" in text
     assert "parity:" in text and "baseline=" in text
+    assert "alias:    gliner2.5-multi@fp32" in text
     assert "download: dtk models download gliner2.5-multi --variant fp32" in text
     assert "selected variant: dtk models use gliner2.5-multi" in text
 
@@ -251,6 +253,7 @@ def test_models_variants_text_and_json(home, capsys):
     payload = json.loads(_out(capsys))
     assert payload["adapter"] == "gliner2"
     assert payload["default_variant"] == "fp16"
+    assert payload["variants"][0]["alias"] == "gliner2.5-multi@fp16"
     assert {variant["name"] for variant in payload["variants"]} == {"fp16", "fp32"}
     assert payload["variants"][0]["revision"]
     assert payload["variants"][0]["sha256"]

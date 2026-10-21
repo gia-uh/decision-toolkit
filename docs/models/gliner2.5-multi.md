@@ -55,6 +55,69 @@ makes it persistent. See [Variants and quantization](../VARIANTS.md).
 - English/multilingual tokenizer fallback: the run above used the raw `tokenizers` fallback; a `transformers` tokenizer may change scores slightly.
 - Benchmarked on a synthetic Spanish routing set; validate on your own data.
 
+## Loading each variant
+
+REST selects the quantization through the standard `model` field using the
+alias `gliner2.5-multi@variant`; there is no `variant` field in the request body.
+
+### `fp16` (fp16, default)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("gliner2.5-multi", variant="fp16")
+```
+
+**CLI**
+
+```bash
+dtk models download gliner2.5-multi --variant fp16
+dtk models use gliner2.5-multi --variant fp16
+dtk decide --model gliner2.5-multi --variant fp16 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gliner2.5-multi@fp16", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
+### `fp32` (fp32, quality)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("gliner2.5-multi", variant="fp32")
+```
+
+**CLI**
+
+```bash
+dtk models download gliner2.5-multi --variant fp32
+dtk models use gliner2.5-multi --variant fp32
+dtk decide --model gliner2.5-multi --variant fp32 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gliner2.5-multi@fp32", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
 ## Usage
 
 ```bash

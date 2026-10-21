@@ -57,6 +57,69 @@ the quality build. Select one with
 - No independent parity dataset (the official benchmark inputs are hashed).
 - The export's tokenizer is a web tokenizer (`tokenizer.web.json`), loaded through the `tokenizers` fallback.
 
+## Loading each variant
+
+REST selects the quantization through the standard `model` field using the
+alias `opendecider-nano@variant`; there is no `variant` field in the request body.
+
+### `q8f16` (int8/fp16, default)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("opendecider-nano", variant="q8f16")
+```
+
+**CLI**
+
+```bash
+dtk models download opendecider-nano --variant q8f16
+dtk models use opendecider-nano --variant q8f16
+dtk decide --model opendecider-nano --variant q8f16 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "opendecider-nano@q8f16", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
+### `fp16` (fp16, quality)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("opendecider-nano", variant="fp16")
+```
+
+**CLI**
+
+```bash
+dtk models download opendecider-nano --variant fp16
+dtk models use opendecider-nano --variant fp16
+dtk decide --model opendecider-nano --variant fp16 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "opendecider-nano@fp16", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
 ## Usage
 
 ```bash

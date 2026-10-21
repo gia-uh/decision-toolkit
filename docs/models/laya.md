@@ -61,6 +61,40 @@ fp32 build; see [Variants and quantization](../VARIANTS.md).
 - **English checkpoint.** The multilingual checkpoint is a different model (mmBERT-base) and has no split public export yet.
 - q8 quantization; the fp32 build was not published in this repo.
 
+## Loading each variant
+
+REST selects the quantization through the standard `model` field using the
+alias `laya@variant`; there is no `variant` field in the request body.
+
+### `q8` (int8, default)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("laya", variant="q8")
+```
+
+**CLI**
+
+```bash
+dtk models download laya --variant q8
+dtk models use laya --variant q8
+dtk decide --model laya --variant q8 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "laya@q8", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
 ## Usage
 
 ```bash

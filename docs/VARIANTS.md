@@ -18,23 +18,23 @@ have not passed the catalog gates are not exposed as variants.
 A `*` marks the default variant. It is used when `--variant` is omitted and no
 other variant was selected with `dtk models use`.
 
-| Model | Variant | Quantization | Size | Role | Download |
-| --- | --- | --- | ---: | --- | --- |
-| `gliner2.5-multi` | `fp16` * | fp16 encoder + fp32 classifier | 577.1 MB | default | `dtk models download gliner2.5-multi --variant fp16` |
-| `gliner2.5-multi` | `fp32` | fp32 encoder + fp32 classifier | 1131.9 MB | quality | `dtk models download gliner2.5-multi --variant fp32` |
-| `gliner2.5-decide` | `q4f16` * | q4/fp16 | 523.5 MB | default | `dtk models download gliner2.5-decide --variant q4f16` |
-| `laya` | `q8` * | int8 | 527.9 MB | default | `dtk models download laya --variant q8` |
-| `julia-1` | `fp32` * | fp32 | 618.2 MB | default | `dtk models download julia-1 --variant fp32` |
-| `opendecider-nano` | `q8f16` * | int8/fp16 | 468.8 MB | default | `dtk models download opendecider-nano --variant q8f16` |
-| `opendecider-nano` | `fp16` | fp16 | 791.9 MB | quality | `dtk models download opendecider-nano --variant fp16` |
-| `laya-multilingual` | `fp16` * | fp16 | 681.8 MB | default | `dtk models download laya-multilingual --variant fp16` |
-| `laya-multilingual` | `fp32` | fp32 | 1325.6 MB | quality | `dtk models download laya-multilingual --variant fp32` |
-| `open-jev-deberta-v3-large` | `fp16` * | fp16 | 883.5 MB | default | `dtk models download open-jev-deberta-v3-large --variant fp16` |
-| `open-jev-deberta-v3-large` | `fp32` | fp32 | 1757.9 MB | quality | `dtk models download open-jev-deberta-v3-large --variant fp32` |
-| `open-jev-deberta-v3-large` | `q4` | q4 | 486.7 MB | edge | `dtk models download open-jev-deberta-v3-large --variant q4` |
-| `open-jev-deberta-v3-large` | `q4f16` | q4/fp16 | 357.0 MB | edge | `dtk models download open-jev-deberta-v3-large --variant q4f16` |
-| `strands-decider-2b` | `q4f16` * | q4/fp16 | 1113.6 MB | default | `dtk models download strands-decider-2b --variant q4f16` |
-| `strands-decider-2b` | `q8` | int8 | 1821.4 MB | quality | `dtk models download strands-decider-2b --variant q8` |
+| Model | Variant | REST alias | Quantization | Size | Role | Download |
+| --- | --- | --- | --- | ---: | --- | --- |
+| `gliner2.5-multi` | `fp16` * | `gliner2.5-multi@fp16` | fp16 | 577.1 MB | default | `dtk models download gliner2.5-multi --variant fp16` |
+| `gliner2.5-multi` | `fp32` | `gliner2.5-multi@fp32` | fp32 | 1131.9 MB | quality | `dtk models download gliner2.5-multi --variant fp32` |
+| `gliner2.5-decide` | `q4f16` * | `gliner2.5-decide@q4f16` | q4/fp16 | 523.5 MB | default | `dtk models download gliner2.5-decide --variant q4f16` |
+| `laya` | `q8` * | `laya@q8` | int8 | 527.9 MB | default | `dtk models download laya --variant q8` |
+| `julia-1` | `fp32` * | `julia-1@fp32` | fp32 | 618.2 MB | default | `dtk models download julia-1 --variant fp32` |
+| `opendecider-nano` | `q8f16` * | `opendecider-nano@q8f16` | int8/fp16 | 468.8 MB | default | `dtk models download opendecider-nano --variant q8f16` |
+| `opendecider-nano` | `fp16` | `opendecider-nano@fp16` | fp16 | 791.9 MB | quality | `dtk models download opendecider-nano --variant fp16` |
+| `laya-multilingual` | `fp16` * | `laya-multilingual@fp16` | fp16 | 681.8 MB | default | `dtk models download laya-multilingual --variant fp16` |
+| `laya-multilingual` | `fp32` | `laya-multilingual@fp32` | fp32 | 1325.6 MB | quality | `dtk models download laya-multilingual --variant fp32` |
+| `open-jev-deberta-v3-large` | `q4f16` | `open-jev-deberta-v3-large@q4f16` | q4/fp16 | 357.0 MB | edge | `dtk models download open-jev-deberta-v3-large --variant q4f16` |
+| `open-jev-deberta-v3-large` | `fp16` * | `open-jev-deberta-v3-large@fp16` | fp16 | 883.5 MB | default | `dtk models download open-jev-deberta-v3-large --variant fp16` |
+| `open-jev-deberta-v3-large` | `q4` | `open-jev-deberta-v3-large@q4` | q4 | 486.7 MB | edge | `dtk models download open-jev-deberta-v3-large --variant q4` |
+| `open-jev-deberta-v3-large` | `fp32` | `open-jev-deberta-v3-large@fp32` | fp32 | 1757.9 MB | quality | `dtk models download open-jev-deberta-v3-large --variant fp32` |
+| `strands-decider-2b` | `q4f16` * | `strands-decider-2b@q4f16` | q4/fp16 | 1113.6 MB | default | `dtk models download strands-decider-2b --variant q4f16` |
+| `strands-decider-2b` | `q8` | `strands-decider-2b@q8` | int8 | 1821.4 MB | quality | `dtk models download strands-decider-2b --variant q8` |
 
 Models with a single row have only one catalogued, verified build. That does
 not mean other conversions do not exist upstream; it means they have not passed

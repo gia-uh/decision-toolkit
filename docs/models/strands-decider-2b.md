@@ -73,6 +73,69 @@ for 3 days!`):
   probabilities need to be closest to the reference.
 - No image/audio support in this text-only projection.
 
+## Loading each variant
+
+REST selects the quantization through the standard `model` field using the
+alias `strands-decider-2b@variant`; there is no `variant` field in the request body.
+
+### `q4f16` (q4/fp16, default)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("strands-decider-2b", variant="q4f16")
+```
+
+**CLI**
+
+```bash
+dtk models download strands-decider-2b --variant q4f16
+dtk models use strands-decider-2b --variant q4f16
+dtk decide --model strands-decider-2b --variant q4f16 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "strands-decider-2b@q4f16", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
+### `q8` (int8, quality)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("strands-decider-2b", variant="q8")
+```
+
+**CLI**
+
+```bash
+dtk models download strands-decider-2b --variant q8
+dtk models use strands-decider-2b --variant q8
+dtk decide --model strands-decider-2b --variant q8 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "strands-decider-2b@q8", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
 ## Usage
 
 ```bash

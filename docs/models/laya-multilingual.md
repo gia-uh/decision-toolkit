@@ -68,6 +68,69 @@ the full-precision build. Select one with
 - The adapter uses the fused graph path; the English split checkpoint remains a
   separate catalog entry (`laya`).
 
+## Loading each variant
+
+REST selects the quantization through the standard `model` field using the
+alias `laya-multilingual@variant`; there is no `variant` field in the request body.
+
+### `fp16` (fp16, default)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("laya-multilingual", variant="fp16")
+```
+
+**CLI**
+
+```bash
+dtk models download laya-multilingual --variant fp16
+dtk models use laya-multilingual --variant fp16
+dtk decide --model laya-multilingual --variant fp16 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "laya-multilingual@fp16", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
+### `fp32` (fp32, quality)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("laya-multilingual", variant="fp32")
+```
+
+**CLI**
+
+```bash
+dtk models download laya-multilingual --variant fp32
+dtk models use laya-multilingual --variant fp32
+dtk decide --model laya-multilingual --variant fp32 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "laya-multilingual@fp32", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
 ## Usage
 
 ```bash

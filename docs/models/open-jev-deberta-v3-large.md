@@ -67,6 +67,127 @@ and re-check thresholds. See [Variants and quantization](../VARIANTS.md).
 - It chooses among supplied options; it cannot generate explanations.
 - This is an independent Open-Jev DeBERTa v3 large reproduction, not an official TypeSafe model.
 
+## Loading each variant
+
+REST selects the quantization through the standard `model` field using the
+alias `open-jev-deberta-v3-large@variant`; there is no `variant` field in the request body.
+
+### `q4f16` (q4/fp16, edge)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("open-jev-deberta-v3-large", variant="q4f16")
+```
+
+**CLI**
+
+```bash
+dtk models download open-jev-deberta-v3-large --variant q4f16
+dtk models use open-jev-deberta-v3-large --variant q4f16
+dtk decide --model open-jev-deberta-v3-large --variant q4f16 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "open-jev-deberta-v3-large@q4f16", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
+### `fp16` (fp16, default)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("open-jev-deberta-v3-large", variant="fp16")
+```
+
+**CLI**
+
+```bash
+dtk models download open-jev-deberta-v3-large --variant fp16
+dtk models use open-jev-deberta-v3-large --variant fp16
+dtk decide --model open-jev-deberta-v3-large --variant fp16 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "open-jev-deberta-v3-large@fp16", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
+### `q4` (q4, edge)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("open-jev-deberta-v3-large", variant="q4")
+```
+
+**CLI**
+
+```bash
+dtk models download open-jev-deberta-v3-large --variant q4
+dtk models use open-jev-deberta-v3-large --variant q4
+dtk decide --model open-jev-deberta-v3-large --variant q4 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "open-jev-deberta-v3-large@q4", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
+### `fp32` (fp32, quality)
+
+**Library**
+
+```python
+from decision_toolkit import DecisionModel
+
+model = DecisionModel("open-jev-deberta-v3-large", variant="fp32")
+```
+
+**CLI**
+
+```bash
+dtk models download open-jev-deberta-v3-large --variant fp32
+dtk models use open-jev-deberta-v3-large --variant fp32
+dtk decide --model open-jev-deberta-v3-large --variant fp32 \
+  --state "..." --q 'urgent=noul:Is this urgent?'
+```
+
+**REST**
+
+```bash
+curl -s http://127.0.0.1:8000/v1/systemone \
+  -H "Content-Type: application/json" \
+  -d '{"model": "open-jev-deberta-v3-large@fp32", "state": "...",
+       "questions": {"urgent": {"type": "noul",
+                     "instructions": "Is this urgent?"}}}}'
+```
+
 ## Usage
 
 ```bash

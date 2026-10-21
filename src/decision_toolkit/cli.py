@@ -592,6 +592,7 @@ def _catalog_payload(
 def _variant_payload(variant: catalog.Variant, cached: set[tuple[str, str]], model_id: str) -> dict[str, Any]:
     return {
         "name": variant.name,
+        "alias": f"{model_id}@{variant.name}",
         "quant": variant.quant,
         "size_mb": variant.size_mb,
         "role": variant.role,
@@ -709,7 +710,7 @@ def _cmd_models(args: argparse.Namespace) -> int:
         if as_json:
             _json_out(payloads)
             return EXIT_OK
-        headers = ["", "id", "variant", "quant", "role", "size", "cached"]
+        headers = ["", "id", "variant", "alias", "quant", "role", "size", "cached"]
         if args.show_adapter:
             headers.insert(2, "adapter")
         if args.show_license:
@@ -732,6 +733,7 @@ def _cmd_models(args: argparse.Namespace) -> int:
                     "★" if is_current else "",
                     model.id,
                     label,
+                    f"{model.id}@{variant.name}",
                     variant.quant,
                     variant.role,
                     f"{variant.size_mb:.1f} MB",
@@ -781,6 +783,7 @@ def _cmd_models(args: argparse.Namespace) -> int:
             if variant.parity:
                 summary = ", ".join(f"{key}={value}" for key, value in variant.parity.items())
                 print(f"           parity: {summary}")
+            print(f"           alias:    {model.id}@{variant.name}")
             print(
                 f"           download: dtk models download {model.id} "
                 f"--variant {variant.name}"

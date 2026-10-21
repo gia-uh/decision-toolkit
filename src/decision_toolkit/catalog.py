@@ -158,6 +158,7 @@ class ModelInfo:
             "variants": [
                 {
                     "name": variant.name,
+                    "alias": f"{self.id}@{variant.name}",
                     "quant": variant.quant,
                     "size_mb": variant.size_mb,
                     "role": variant.role,
