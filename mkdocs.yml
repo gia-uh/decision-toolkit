@@ -4,6 +4,8 @@ site_url: https://gia-uh.github.io/decision-toolkit/
 repo_url: https://github.com/gia-uh/decision-toolkit
 repo_name: gia-uh/decision-toolkit
 edit_uri: edit/main/docs/
+copyright: MIT — GIA-UH and Syalia S.R.L.
+
 docs_dir: docs
 site_dir: site
 
