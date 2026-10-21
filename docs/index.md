@@ -18,7 +18,7 @@ PyPI: <https://pypi.org/project/decision-toolkit/>
 
 - [Examples](EXAMPLES.md) — library, REST and CLI.
 - [Core API](CORE.md) — the superset used by every surface.
-- [REST](REST.md) — System One 1.14 + OpenAI Decisions beta.
+- [REST](REST.md) — TypeSafe System One + OpenAI Decisions beta.
 - [CLI](CLI.md) — operational commands and batch workflows.
 - [Variants and quantization](VARIANTS.md) — every catalogued build and how to download/select it.
 - [Operations](OPERATIONS.md) — rate limits, metrics, tracing and runbook.

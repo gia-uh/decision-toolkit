@@ -75,8 +75,11 @@ def test_fuzz_requests_never_return_500(path):
         assert response.status_code != 500, (path, payload, response.text)
         if response.status_code >= 400:
             body = response.json()
-            assert "error" in body
-            assert body["error"]["message"]
+            if path == "/v1/systemone":
+                assert "detail" in body
+            else:
+                assert "error" in body
+                assert body["error"]["message"]
 
 
 def test_fuzz_auth_headers_never_return_500():
@@ -109,4 +112,5 @@ def test_fuzz_systemone_question_shapes_never_return_500():
         )
         assert response.status_code != 500, (questions, response.text)
         if response.status_code >= 400:
-            assert "error" in response.json()
+            body = response.json()
+            assert "detail" in body or "error" in body

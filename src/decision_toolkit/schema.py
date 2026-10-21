@@ -28,7 +28,7 @@ from .errors import InvalidQuestionError, InvalidRequestError
 #: Wire limits (System One as served by TypeSafe Jev; LLM gateway limits are stricter).
 MAX_CHOICE_OPTIONS = 255
 MAX_SCORE_LEVELS = 10
-MIN_SCORE_LEVELS = 2
+MIN_SCORE_LEVELS = 1
 
 QuestionValue = Union["Choice", "Noul", "Score", "Box", Mapping[str, Any]]
 

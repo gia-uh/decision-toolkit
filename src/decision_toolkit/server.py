@@ -2,7 +2,7 @@
 
 The server is deliberately a **thin, versioned projection** of the core:
 
-* ``POST /v1/systemone`` — System One 1.14 (TypeSafe compatible).
+* ``POST /v1/systemone`` — TypeSafe System One (OpenAPI 0.2.0 subset).
 * ``POST /v1/decisions`` — OpenAI Decisions beta dialect.
 * ``GET /v1/models`` / ``GET /v1/models/{id}`` — OpenAI model-list shape.
 * ``GET /v1/decision-models`` — rich catalog/capability metadata.
@@ -506,8 +506,8 @@ def create_app(
         title="decision-toolkit",
         version=__version__,
         description=(
-            "Local-first decision models. System One 1.14 and OpenAI Decisions "
-            "beta are projections of the same programmatic core."
+            "Local-first decision models. TypeSafe System One (OpenAPI 0.2.0) "
+            "and OpenAI Decisions beta are projections of the same core."
         ),
         lifespan=lifespan,
     )
@@ -770,6 +770,11 @@ def create_app(
         },
     )
     async def systemone(payload: SystemOneRequest, request: Request) -> SystemOneResponse:
+        if payload.assets:
+            raise MultimodalNotSupportedError(
+                "System One assets/images are not supported by the text-only models "
+                "in this catalog"
+            )
         _validate_files([*(payload.files or []), *(payload.images or [])], kind="images")
         if _has_media(payload.state):
             raise MultimodalNotSupportedError(
@@ -836,7 +841,6 @@ def create_app(
         return openai_response(
             decision,
             names,
-            safety_identifier=payload.safety_identifier,
             values_by_name=values_by_name,
         )
 
@@ -844,6 +848,28 @@ def create_app(
     @app.exception_handler(DecisionToolkitError)
     async def toolkit_error_handler(request: Request, error: DecisionToolkitError) -> JSONResponse:
         status = _status_for(error)
+        if request.url.path.startswith("/v1/systemone") and status == 400:
+            log_event(
+                logger,
+                "rest.validation_error",
+                level=logging.WARNING,
+                request_id=request_id(request),
+                path=request.url.path,
+                status=422,
+                error_code=getattr(error, "code", "invalid_request"),
+            )
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "detail": [
+                        {
+                            "loc": ["body"],
+                            "msg": str(error),
+                            "type": getattr(error, "code", "invalid_request"),
+                        }
+                    ]
+                },
+            )
         log_event(
             logger,
             "rest.error",
@@ -861,7 +887,23 @@ def create_app(
 
     @app.exception_handler(RequestValidationError)
     async def validation_handler(request: Request, error: RequestValidationError) -> JSONResponse:
+        from fastapi.encoders import jsonable_encoder
+
         errors = error.errors()
+        if request.url.path.startswith("/v1/systemone"):
+            log_event(
+                logger,
+                "rest.validation_error",
+                level=logging.WARNING,
+                request_id=request_id(request),
+                path=request.url.path,
+                status=422,
+                error_code="invalid_request",
+            )
+            return JSONResponse(
+                status_code=422,
+                content={"detail": jsonable_encoder(errors)},
+            )
         first = errors[0] if errors else {}
         location = ".".join(str(item) for item in first.get("loc", ()) if item != "body")
         message = first.get("msg", "invalid request")

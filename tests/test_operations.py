@@ -165,7 +165,7 @@ def test_logs_and_errors_do_not_leak_state_question_or_token(caplog):
         )
 
     assert response.status_code == 200
-    assert bad.status_code == 400
+    assert bad.status_code == 422
     text = caplog.text
     assert "SECRET_STATE_123" not in text
     assert "SECRET_QUESTION" not in text

@@ -132,6 +132,7 @@ dtk serve --model gliner2.5-multi --warmup --port 8000
 curl -s http://127.0.0.1:8000/v1/systemone \
   -H "Content-Type: application/json" \
   -d '{
+    "model": "gliner2.5-multi",
     "state": "Meeting with Acme: 10% discount, sign next week.",
     "questions": {
       "cat": {
@@ -150,6 +151,7 @@ curl -s http://127.0.0.1:8000/v1/systemone \
 curl -s http://127.0.0.1:8000/v1/decisions \
   -H "Content-Type: application/json" \
   -d '{
+    "model": "gliner2.5-multi",
     "input": "Please change my seat to an aisle.",
     "questions": [{
       "type": "choice",
@@ -162,6 +164,8 @@ curl -s http://127.0.0.1:8000/v1/decisions \
     }]
   }' | jq
 ```
+
+`variant` is a decision-toolkit extension; omit it for a standard client.
 
 ### Model per request and auth
 

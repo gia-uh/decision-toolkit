@@ -8,7 +8,6 @@ metadata in the namespaced ``x_decision_toolkit`` extension.
 from __future__ import annotations
 
 import json
-import time
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -41,7 +40,29 @@ def systemone_questions(
         data = question.model_dump()
         if data.get("criteria") is None:
             data.pop("criteria", None)
-        data["instructions"] = canonical_instructions(data["instructions"])
+        instructions = data.get("instructions")
+        if instructions is None:
+            instructions = {
+                "choice": "Which choice best fits the state?",
+                "noul": "Is this true?",
+                "score": "Score the state on the given scale.",
+                "box": "Locate the requested region.",
+            }.get(data["type"], "Answer the question.")
+        data["instructions"] = canonical_instructions(instructions)
+        if data["type"] == "choice":
+            data["criteria"] = {
+                label: None if description is None else canonical_instructions(description)
+                for label, description in data["criteria"].items()
+            }
+        elif data["type"] == "noul" and data.get("criteria"):
+            data["criteria"] = {
+                key: None if meaning is None else canonical_instructions(meaning)
+                for key, meaning in data["criteria"].items()
+            }
+        elif data["type"] == "score":
+            data["criteria"] = [
+                canonical_instructions(level) for level in data["criteria"]
+            ]
         projected[name] = data
     return projected
 
@@ -59,7 +80,7 @@ def _answer_metadata(decision: Decision) -> dict[str, Any]:
 
 
 def project_systemone_answer(answer: Answer) -> dict[str, Any]:
-    """Project one core answer onto the System One 1.14 fields."""
+    """Project one core answer onto the TypeSafe System One fields."""
     if answer.type == "choice":
         projected: dict[str, Any] = {
             "type": "choice",
@@ -100,7 +121,7 @@ def systemone_response(decision: Decision) -> SystemOneResponse:
         answers=answers,
         usage=SystemOneUsage(
             input_tokens=decision.usage.input_tokens,
-            output_tokens=0,
+            output_tokens=decision.usage.output_tokens,
         ),
         x_decision_toolkit={
             "spec": SYSTEMONE_SPEC,
@@ -120,7 +141,6 @@ def openai_response(
     decision: Decision,
     names: Sequence[str],
     *,
-    safety_identifier: str | None = None,
     values_by_name: Mapping[str, Sequence[Any]] | None = None,
 ) -> dict[str, Any]:
     """Build the OpenAI Decisions response envelope."""
@@ -130,18 +150,22 @@ def openai_response(
         values_by_name=values_by_name,
     )
     return {
-        "id": decision.id or f"dec_{int(time.time() * 1000)}",
-        "object": "response",
-        "created_at": int(time.time()),
-        "status": "completed",
         "model": decision.model or "unknown",
         "answers": answers,
         "usage": {
             "input_tokens": decision.usage.input_tokens,
-            "output_tokens": 0,
-            "total_tokens": decision.usage.input_tokens,
+            "output_tokens": decision.usage.output_tokens,
+            "total_tokens": (
+                decision.usage.input_tokens + decision.usage.output_tokens
+            ),
+            "input_tokens_details": {
+                "cached_tokens": 0,
+                "cache_write_tokens": 0,
+            },
+            "output_tokens_details": {
+                "reasoning_tokens": 0,
+            },
         },
-        "safety_identifier": safety_identifier,
         "x_decision_toolkit": {
             "spec": OPENAI_DECISIONS_SPEC,
             "request_id": decision.request_id,

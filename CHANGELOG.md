@@ -1,7 +1,30 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.1.7` is
+All notable changes to this project are documented here. Version `0.2.0` is
 published on PyPI.
+
+## [0.2.0] — 2026-10-20
+
+REST conformance correction. The previous documentation called the TypeSafe
+contract "System One 1.14"; that version was not real. The public TypeSafe API
+schema is `0.2.0`. This release aligns the request/response shapes and error
+behavior with the published schemas, documents unsupported vision/assets as an
+explicit text-only limitation, and removes invented OpenAI response fields.
+
+### Fixed
+
+- System One is now pinned to the published TypeSafe API schema `0.2.0`, not
+  the invented `1.14` label. `/v1/info` reports `0.2.0`.
+- System One accepts rich instructions/criteria, the standard `assets` field,
+  one-level scores and non-negative `output_tokens`; schema validation returns
+  `422` with a FastAPI-style `detail` array. Assets/images return `501` because
+  the catalog is text-only.
+- OpenAI Decisions responses now expose the public `model`, `answers` and
+  `usage` fields (including usage details), without invented `id`, `object`,
+  `created_at`, `status` or `safety_identifier` fields. Toolkit metadata remains
+  namespaced under `x_decision_toolkit`.
+- `variant` is explicitly documented as a local extension, not a TypeSafe or
+  OpenAI field. Standard clients select a model and omit it.
 
 ## [0.1.7] — 2026-10-20
 
@@ -128,7 +151,7 @@ README correction. No code or model behavior changed.
 
 ### Phase 2 — REST
 
-- Versioned System One 1.14 and OpenAI Decisions beta projections.
+- Versioned System One and OpenAI Decisions beta projections.
 - Bearer auth, per-request model/variant, usage, standard error envelope.
 - OpenAI-shaped `/v1/models`, rich `/v1/decision-models`, readiness `503`.
 - Request ids, access logs, body limits, CORS and timeouts.
@@ -138,6 +161,7 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
+[0.2.0]: https://pypi.org/project/decision-toolkit/0.2.0/
 [0.1.7]: https://pypi.org/project/decision-toolkit/0.1.7/
 [0.1.6]: https://pypi.org/project/decision-toolkit/0.1.6/
 [0.1.5]: https://pypi.org/project/decision-toolkit/0.1.5/

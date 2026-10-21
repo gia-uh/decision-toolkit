@@ -1,7 +1,7 @@
 # Core programmatic API (phase 1)
 
 The programmatic API is the **superset**: the most expressive layer of the
-toolkit. The REST server is a standards-compliant projection of a subset of
+toolkit. The REST server is a documented, conformance-tested projection of a subset of
 this API, and the CLI is our own operational subset. Nothing in this document
 belongs to a wire contract.
 

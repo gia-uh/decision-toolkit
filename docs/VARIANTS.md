@@ -46,13 +46,15 @@ precedence is:
 | --- | --- | --- |
 | Library | `DecisionModel("gliner2.5-multi", variant="fp32")` | persisted variant for the current model, else catalog default |
 | CLI | `--variant fp32` | variant selected by `dtk models use`, else catalog default |
-| REST | `"variant": "fp32"` in the request body | server `--variant`, else persisted variant for the current model, else catalog default |
+| REST (local extension) | `"variant": "fp32"` in the request body | server `--variant`, else persisted variant for the current model, else catalog default |
 
 `DecisionModel.variant` and the CLI report the selected variant (`id@variant` in
-`dtk models current`). REST responses expose it under
-`x_decision_toolkit.variant`; `/v1/decision-models` includes `current` and
-`current_variant`, plus all `variants` and `cached_variants`. A server started
-with `--model`/`--variant` reports that default in `/v1/info` and `/ready`.
+`dtk models current`). REST responses expose it under the namespaced
+`x_decision_toolkit.variant` extension; `/v1/decision-models` includes
+`current` and `current_variant`, plus all `variants` and `cached_variants`.
+`variant` is **not** part of TypeSafe or OpenAI; standard clients should omit it
+and rely on the server's `--variant`/persisted default. A server started with
+`--model`/`--variant` reports that default in `/v1/info` and `/ready`.
 
 The variant must have been downloaded before a library call or REST request
 loads it. An unknown variant returns a model-not-found error; a known but

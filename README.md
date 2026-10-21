@@ -21,7 +21,7 @@ and CLI. `dtk --help` and every subcommand help also include runnable examples.
 ## Installation
 
 ```bash
-uv pip install decision-toolkit              # library + CLI (0.1.7 on PyPI)
+uv pip install decision-toolkit              # library + CLI (0.2.0 on PyPI)
 uv pip install "decision-toolkit[onnx]"      # + onnxruntime, tokenizers (the model runtime)
 uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 ```
@@ -29,7 +29,7 @@ uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 The project is managed with [uv](https://docs.astral.sh/uv/) and ships a committed `uv.lock`. Published
 wheels remain compatible with `pip` for environments that do not use uv.
 
-PyPI: <https://pypi.org/project/decision-toolkit/0.1.7/>. See
+PyPI: <https://pypi.org/project/decision-toolkit/0.2.0/>. See
 [docs/RELEASE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/RELEASE.md)
 for the Trusted Publishing flow and clean-install checks.
 
@@ -135,12 +135,16 @@ dtk serve --model gliner2.5-multi --warmup \
   --log-format json
 ```
 
-Endpoints: `POST /v1/systemone` (System One 1.14), `POST /v1/decisions`
+Endpoints: `POST /v1/systemone` (TypeSafe System One), `POST /v1/decisions`
 (OpenAI Decisions beta), `GET /v1/models` (OpenAI shape),
 `GET /v1/decision-models` (rich catalog), `GET /v1/info`, `GET /health`,
-`GET /ready`. Requests may select `model` and `variant`; failures use the OpenAI
-`{"error": {...}}` envelope and every response carries `x-request-id`.
-`TYPESAFE_BASE_URL=http://localhost:8000` makes existing System One clients work.
+`GET /ready`. Requests select `model`; `variant` is a documented local extension,
+not part of either public API. System One request validation uses the TypeSafe
+`422 {"detail": [...]}` shape; OpenAI Decisions uses its
+`{"error": {...}}` envelope. Every response carries `x-request-id`.
+A standard System One client that sends `model`, `state` and `questions` can
+point at `http://localhost:8000`; image/asset and `box` requests are outside the
+current text-only subset.
 See [docs/REST.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/REST.md) for the pinned contracts, limits, auth and
 the standard-evolution process.
 

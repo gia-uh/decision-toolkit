@@ -49,7 +49,6 @@ def test_score_builder():
     [
         lambda: Choice(instructions=" "),
         lambda: Noul(instructions=""),
-        lambda: Score(instructions="x", criteria=["only-one"]),
         lambda: Score(instructions="x", criteria=[f"l{i}" for i in range(11)]),
         lambda: Noul(instructions="x", criteria={"maybe": "y"}),
         lambda: Score(instructions="x", criteria=["ok", " "]),
@@ -108,7 +107,7 @@ def test_parse_question_spec_score_and_noul():
 
 @pytest.mark.parametrize(
     "spec",
-    ["noul", "weird:a|b", "choice:", "score:only", "choice:a||b", ""],
+    ["noul", "weird:a|b", "choice:", "score:", "choice:a||b", ""],
 )
 def test_parse_question_spec_errors(spec):
     with pytest.raises(InvalidQuestionError):

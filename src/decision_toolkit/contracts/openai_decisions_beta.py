@@ -5,7 +5,7 @@ The projection mirrors the dialect already used by the toolkit's
 
 * request: ``input`` (string or message list) + ``questions`` list
 * questions: ``predicate`` / ``choice`` / ``score``
-* response: ``id``, ``object``, ``created_at``, ``model``, ``answers``, ``usage``
+* response: ``model``, ``answers``, ``usage`` (the public beta envelope)
 * errors: the OpenAI ``{"error": {message, type, param, code}}`` envelope
 
 The upstream Decisions API is still beta; this module pins the shape and is the
@@ -73,8 +73,6 @@ class OpenAIDecisionsRequest(BaseModel):
     )
     model: str | None = None
     variant: str | None = None
-    safety_identifier: str | None = None
-
     @model_validator(mode="after")
     def _validate_input(self) -> OpenAIDecisionsRequest:
         if self.input is None:
@@ -104,19 +102,17 @@ class OpenAIUsage(BaseModel):
     input_tokens: int = Field(ge=0)
     output_tokens: int = Field(ge=0)
     total_tokens: int = Field(ge=0)
+    input_tokens_details: dict[str, int] = Field(default_factory=dict)
+    output_tokens_details: dict[str, int] = Field(default_factory=dict)
 
 
 class OpenAIDecisionsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    id: str
-    object: Literal["response"] = "response"
-    created_at: int
-    status: Literal["completed"] = "completed"
     model: str
     answers: list[OpenAIDecisionAnswer]
     usage: OpenAIUsage
-    safety_identifier: str | None = None
+    # Namespaced toolkit extension; ignored by standard clients.
     x_decision_toolkit: dict[str, Any] = Field(default_factory=dict)
 
 

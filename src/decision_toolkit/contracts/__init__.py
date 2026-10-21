@@ -1,9 +1,9 @@
 """Versioned wire contracts for the REST surface.
 
-The programmatic core is the superset. These modules are the standards-compliant
+The programmatic core is the superset. These modules are the conformance-tested
 projections of a subset of it:
 
-* ``systemone_v1`` — System One 1.14 (TypeSafe compatible).
+* ``systemone_v1`` — TypeSafe System One API (OpenAPI 0.2.0 subset).
 * ``openai_decisions_beta`` — OpenAI Decisions beta dialect.
 
 Each module owns its request/response models. ``mapping`` contains only pure

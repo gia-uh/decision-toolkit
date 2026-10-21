@@ -1,16 +1,20 @@
 # REST projection (phase 2)
 
-REST is a **standards-compliant projection** of the programmatic core, not a
-second implementation. The core remains the superset; the server selects a
-subset, maps it to a pinned wire contract, and adds transport concerns (auth,
-request ids, limits, CORS, logging).
+REST is a **documented projection** of the programmatic core, not a second
+implementation. The core remains the superset; the server selects a supported
+subset, maps it to the published wire contracts, and adds transport concerns
+(auth, request ids, limits, CORS, logging).
 
 ```
 Programmatic core (superset)
-        │  pure projection + conformance
+        │  pure projection + conformance tests
         ▼
-REST (subset; System One 1.14 + OpenAI Decisions beta)
+REST (supported subset; TypeSafe System One + OpenAI Decisions beta)
 ```
+
+Compatibility is tested against the published shapes, not against a local
+invention. The current models are text-only, so image/assets and `box` requests
+are explicitly rejected rather than silently approximated.
 
 The wire models live in `decision_toolkit/contracts/`, the multi-model registry
 in `decision_toolkit/registry.py`, and `server.py` contains only transport and
@@ -18,20 +22,21 @@ FastAPI glue.
 
 ## Pinned contracts
 
-| Contract | Version | Module |
-| --- | --- | --- |
-| System One (TypeSafe-compatible) | `1.14` | `contracts/systemone_v1.py` |
-| OpenAI Decisions | `beta` | `contracts/openai_decisions_beta.py` |
+| Contract | Version | Reference | Module |
+| --- | --- | --- | --- |
+| TypeSafe System One | API schema `0.2.0` | <https://docs.typesafe.ai/api> | `contracts/systemone_v1.py` |
+| OpenAI Decisions | `beta` | <https://developers.openai.com/api/docs/guides/decisions> | `contracts/openai_decisions_beta.py` |
 
-`GET /v1/info` exposes both versions. The reference for System One is the
-TypeSafe 1.14 API as implemented by llama.cpp's `POST /v1/systemone`; the
-OpenAI dialect is the beta Decisions shape already translated by the toolkit.
+`GET /v1/info` exposes both versions. "System One 1.14" was an incorrect label
+in earlier documentation; the published TypeSafe API schema is `0.2.0`. The
+implementation targets that schema and the published OpenAI beta shape, with the
+limitations listed below.
 
 ## Endpoints
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `POST` | `/v1/systemone` | System One 1.14 decision. |
+| `POST` | `/v1/systemone` | TypeSafe System One decision. |
 | `POST` | `/v1/decisions` | OpenAI Decisions beta decision. |
 | `GET` | `/v1/models` | OpenAI model-list shape. |
 | `GET` | `/v1/models/{id}` | One model in the OpenAI shape. |
@@ -44,28 +49,33 @@ OpenAI dialect is the beta Decisions shape already translated by the toolkit.
 Toolkit-only metadata is under `x_decision_toolkit`, never mixed into standard
 fields. `/v1/decision-models` is the rich, non-standard catalog endpoint.
 
-## Variants
+## Variants (local extension)
 
-Both decision endpoints accept an optional `variant` alongside `model`:
+Neither TypeSafe nor OpenAI has a `variant` request field: the public APIs select
+a model by name. Quantization is a **decision-toolkit extension**:
 
-- Request `variant` wins.
+- Request `variant` wins when a local client sends it.
 - Otherwise, a server started with `dtk serve --variant` uses that default.
 - Otherwise, the variant selected with `dtk models use` is used when the server
   is serving the current model.
 - Otherwise, the catalog default (the `*` variant in `dtk models list`) is used.
 
-The selected variant is echoed in `x_decision_toolkit.variant`.
+Standard clients should omit `variant`; they work with the server default. A
+standard-only integration can run one server per variant, or use the server's
+`--variant` setting. The selected variant is exposed in the namespaced
+`x_decision_toolkit.variant` extension, never in a standard field.
 `/v1/models`, `/v1/models/{id}`, `/v1/decision-models`, `/v1/info` and `/ready`
 expose the configured catalog variants, the default, cached variants, and the
 current selection. See [Variants and quantization](VARIANTS.md) for the catalog
 and download/select commands.
 
-## System One 1.14
+## System One (TypeSafe API schema 0.2.0)
 
-Request:
+Request (standard fields, plus the optional local `model` routing extension):
 
 ```json
 {
+  "model": "gliner2.5-multi",
   "state": "I was charged twice and nobody replied.",
   "questions": {
     "route": {
@@ -104,9 +114,9 @@ Response:
       "confidence": 0.4
     }
   },
-  "usage": {"input_tokens": 239, "output_tokens": 0},
+  "usage": {"input_tokens": 239, "output_tokens": 12},
   "x_decision_toolkit": {
-    "spec": "1.14",
+    "spec": "0.2.0",
     "request_id": "req-123",
     "variant": "fp16",
     "adapter": "gliner2",
@@ -121,16 +131,23 @@ Response:
 
 Standard fields:
 
-- `usage.output_tokens` is **always 0** (decisions generate no text).
+- `usage.output_tokens` is a non-negative count. The current core reports the
+  tokenizer count of the serialized answers (it may be non-zero); do not assume
+  it is always zero.
 - `usage.input_tokens` comes from the core token accounting.
 - The full core usage, including the explicit `estimated` flag, is under
   `x_decision_toolkit.usage`.
-- `choice` requires a non-empty criteria object; `score` needs 2–10 levels;
-  `noul` may omit criteria. Invalid bodies return `400`.
-- `files`/`images` accept data URLs only. Text-only models return `501` with
-  `code: "multimodal_not_supported"`; malformed/non-data URLs return `400`.
-- `model` and `variant` are optional routing extensions for a multi-model local
-  server. An unqualified request uses the configured default model.
+- `choice` requires a non-empty criteria object; System One `score` accepts
+  `1`–`10` ordered levels; `noul` may omit criteria.
+- Request-schema and question-validation failures return `422` with the
+  FastAPI-style `{"detail": [...]}` body used by the TypeSafe schema. Model
+  lookup, capability and transport failures keep their HTTP status and the
+  documented error envelope.
+- Standard `assets` are accepted by the schema but return `501` because the
+  current catalog is text-only. Legacy `files`/`images` fields are local
+  extensions; valid data URLs also return `501`, malformed values return `422`.
+- `model` is optional only as a local convenience; standard clients send it.
+  `variant` is a local extension, not part of the TypeSafe schema.
 
 ## OpenAI Decisions beta
 
@@ -146,9 +163,7 @@ Request:
     {"type": "score", "name": "urgency", "instructions": "How urgent?",
      "levels": [{"label": "low"}, {"label": "high"}]}
   ],
-  "safety_identifier": "user-hash",
-  "model": "gliner2.5-multi",
-  "variant": "fp16"
+  "model": "gliner2.5-multi"
 }
 ```
 
@@ -156,10 +171,6 @@ Response:
 
 ```json
 {
-  "id": "req-123",
-  "object": "response",
-  "created_at": 1790000000,
-  "status": "completed",
   "model": "gliner2.5-multi",
   "answers": [
     {"type": "predicate", "name": "refund", "probability": 0.93},
@@ -172,8 +183,13 @@ Response:
                        {"value": 1, "label": "high", "probability": 0.8}],
      "confidence": 0.8}
   ],
-  "usage": {"input_tokens": 92, "output_tokens": 0, "total_tokens": 92},
-  "safety_identifier": "user-hash",
+  "usage": {
+    "input_tokens": 92,
+    "output_tokens": 12,
+    "total_tokens": 104,
+    "input_tokens_details": {"cached_tokens": 0, "cache_write_tokens": 0},
+    "output_tokens_details": {"reasoning_tokens": 0}
+  },
   "x_decision_toolkit": {
     "spec": "beta",
     "request_id": "req-123",
@@ -182,15 +198,20 @@ Response:
     "latency_ms": 350.1,
     "truncated": false,
     "warnings": [],
-    "usage": {"input_tokens": 92, "output_tokens": 10, "total_tokens": 102, "estimated": true}
+    "usage": {"input_tokens": 92, "output_tokens": 12, "total_tokens": 104, "estimated": true}
   }
 }
 ```
 
-- Original choice values (numbers, booleans, strings) are echoed back, not the
-  internal System One labels.
+- The public beta response fields are `model`, `answers` and `usage`; there is
+  no invented `id`, `object`, `created_at`, `status` or `safety_identifier`.
+- Original choice values are echoed back, not the internal System One labels.
+  The published beta accepts string/boolean values; the toolkit also accepts
+  numbers as a local extension.
 - Duplicate question names return `400`.
-- Images in `input` return `501` (`multimodal_not_supported`).
+- Images in `input` return `501` (`multimodal_not_supported`); the published
+  beta supports inline images, but the current catalog has no vision model.
+- `variant` is a local extension; standard clients omit it.
 - OpenAI SDK clients can list models (`client.models.list()`) and parse the
   error envelope (`{"error": {message, type, param, code}}`).
 
@@ -222,9 +243,11 @@ A model is not "ready" merely because it is configured:
 
 ## Limits and transport
 
-- 1–128 questions.
-- 1–255 choice options; 2–10 score levels.
-- 8 files/images maximum (the current catalog supports 0).
+- 1–128 questions (local limit; the TypeSafe schema has no maximum).
+- 1–255 choice options; 1–10 System One score levels; OpenAI score levels
+  require at least 2.
+- 8 legacy files/images maximum (the current catalog supports 0); standard
+  `assets` and images are rejected with `501`.
 - Request body limit (`--max-body-mb`, default 16) returns `413`.
 - Per-decision timeout (`--timeout`, default 120 s) returns `504`.
 - CORS origins are explicit (`--cors-origin`, repeatable).
@@ -235,22 +258,22 @@ A model is not "ready" merely because it is configured:
 
 ## Error mapping
 
-All errors use `{"error": {"message", "type", "param", "code"}}`.
+`/v1/systemone` request-validation failures follow the TypeSafe schema:
+`422` with `{"detail": [...]}`. `/v1/decisions` validation and toolkit domain
+errors use the OpenAI envelope
+`{"error": {"message", "type", "param", "code"}}`.
 
-| Condition | HTTP | code |
+| Condition | System One | OpenAI Decisions |
 | --- | --- | --- |
-| Invalid question/body | `400` | `invalid_question` / `invalid_request` |
-| Unsupported capability (`box`, assets) | `400` | `unsupported_capability` |
-| Unknown model | `404` | `model_not_found` |
-| Model not downloaded | `503` | `model_not_downloaded` |
-| Adapter unavailable | `503` | `adapter_not_available` |
-| Adapter not implemented | `501` | `adapter_not_implemented` |
-| Images/audio unsupported | `501` | `multimodal_not_supported` |
-| Truncation in strict mode | `400` | `truncated_input` |
-| Body too large | `413` | `request_too_large` |
-| Missing/invalid bearer | `401` | `authentication_error` |
-| Timeout | `504` | `timeout` |
-| Backend failure | `500` | `backend_failure` / `adapter_error` |
+| Request-schema validation | `422` + `detail` | `400` + error envelope |
+| Toolkit question validation | `422` + `detail` | `400` + error envelope |
+| Unknown model | `404` | `404` |
+| Model not downloaded | `503` | `503` |
+| Unsupported `box` / assets / images | `501` | `501` |
+| Truncation in strict mode | `400` | `400` |
+| Body too large | `413` | `413` |
+| Missing/invalid bearer | `401` | `401` |
+| Timeout | `504` | `504` |
 
 The CLI/REST never parse error strings to decide behavior; they use the stable
 `code`.
@@ -277,16 +300,17 @@ Adding a new spec version means adding a new module, not editing the old one.
 
 ## Compatibility matrix (current)
 
-| Feature | System One 1.14 | OpenAI Decisions beta |
+| Feature | System One (TypeSafe 0.2.0) | OpenAI Decisions beta |
 | --- | --- | --- |
 | `choice` / `noul` / `score` | yes | `choice` / `predicate` / `score` |
 | `box` | typed by core; rejected by current text models | no |
 | Text state | yes | `input` string |
 | JSON state | yes | message/string `input` |
-| Images | `501` for current models | `501` for current models |
-| Usage | `input_tokens` + `output_tokens=0` | input/output/total |
-| Per-request model/variant | extension | `model` + `variant` extension |
-| Errors | OpenAI-style envelope | OpenAI envelope |
+| Images/assets | `501` for current models | `501` for current models |
+| Usage | `input_tokens` + non-negative `output_tokens` | input/output/total + details |
+| Per-request model | standard field; optional local default | standard field; optional local default |
+| `variant` | local extension | local extension |
+| Validation errors | `422` + `detail` | `400` + envelope |
 | Auth / CORS / limits | server-level | server-level |
 
 ## Running
@@ -303,8 +327,8 @@ at `http://localhost:8000/v1`.
 
 ## Testing
 
-- System One contract tests cover the exact request/response fields, usage
-  `output_tokens=0`, invalid request matrix and image status codes.
+- System One contract tests cover the published request/response fields,
+  non-negative usage, the invalid request matrix and image/asset status codes.
 - OpenAI contract tests use the official `openai` Python SDK for
   `models.list()` and error-envelope parsing.
 - Equivalence tests send the same core decision through HTTP and compare

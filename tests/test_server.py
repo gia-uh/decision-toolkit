@@ -79,7 +79,7 @@ def test_ready_is_503_until_the_default_model_is_warm(home):
 def test_info_exposes_pinned_contract_versions(client):
     info = client.get("/v1/info").json()
     assert info["name"] == "decision-toolkit"
-    assert info["contracts"]["systemone"] == "1.14"
+    assert info["contracts"]["systemone"] == "0.2.0"
     assert info["contracts"]["openai_decisions"] == "beta"
     assert info["registry"]["default_model"] == "(none)"
 
@@ -248,7 +248,7 @@ def test_systemone_exact_success_shape(client):
     body = response.json()
     assert body["model"] == "(none)"
     assert body["usage"]["input_tokens"] > 0
-    assert body["usage"]["output_tokens"] == 0
+    assert body["usage"]["output_tokens"] > 0
     assert list(body["answers"]) == ["route", "urgency", "angry"]
 
     route = body["answers"]["route"]
@@ -269,7 +269,7 @@ def test_systemone_exact_success_shape(client):
     assert angry["type"] == "noul"
     assert angry["noul"] == 0.7
 
-    assert body["x_decision_toolkit"]["spec"] == "1.14"
+    assert body["x_decision_toolkit"]["spec"] == "0.2.0"
     assert body["x_decision_toolkit"]["usage"]["estimated"] is True
 
 
@@ -280,24 +280,87 @@ def test_systemone_exact_success_shape(client):
         {"state": "x"},
         {"state": "x", "questions": {}},
         {"state": "x", "questions": {"q": {"type": "unknown", "instructions": "x"}}},
-        {"state": "x", "questions": {"q": {"type": "noul"}}},
+        {"state": "x", "questions": {"q": {"type": "noul", "instructions": 123}}},
         {"state": "x", "questions": {"q": {"type": "choice", "instructions": "x"}}},
         {
             "state": "x",
             "questions": {"q": {"type": "choice", "instructions": "x", "criteria": {}}},
         },
-        {
-            "state": "x",
-            "questions": {"q": {"type": "score", "instructions": "x", "criteria": ["one"]}},
-        },
     ],
 )
-def test_systemone_invalid_requests_use_the_error_envelope(client, payload):
+def test_systemone_invalid_requests_use_the_validation_detail(client, payload):
     response = client.post("/v1/systemone", json=payload)
-    assert response.status_code == 400
-    error = response.json()["error"]
-    assert error["type"] == "invalid_request_error"
-    assert error["message"]
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail and detail[0]["msg"]
+
+
+def test_systemone_accepts_standard_rich_instructions_and_criteria(client):
+    response = client.post(
+        "/v1/systemone",
+        json={
+            "state": {"message": "I was charged twice."},
+            "questions": {
+                "route": {
+                    "type": "choice",
+                    "instructions": {"task": "route the message"},
+                    "criteria": {
+                        "billing": {"meaning": "payments and refunds"},
+                        "other": ["anything else"],
+                    },
+                },
+                "severity": {
+                    "type": "score",
+                    "instructions": "How severe?",
+                    "criteria": [{"label": "low"}, ["high"]],
+                },
+            },
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["answers"]["route"]["type"] == "choice"
+    assert body["answers"]["severity"]["type"] == "score"
+
+
+def test_systemone_accepts_single_level_score(client):
+    response = client.post(
+        "/v1/systemone",
+        json={
+            "state": "x",
+            "questions": {
+                "severity": {
+                    "type": "score",
+                    "instructions": "How severe?",
+                    "criteria": ["only level"],
+                }
+            },
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["answers"]["severity"]["type"] == "score"
+
+
+def test_systemone_accepts_assets_field_but_rejects_unsupported_vision(client):
+    response = client.post(
+        "/v1/systemone",
+        json={
+            "model": "gliner2.5-multi",
+            "state": "photo",
+            "assets": {
+                "photo": {
+                    "type": "image",
+                    "format": "png",
+                    "data_base64": "AAAA",
+                }
+            },
+            "questions": {
+                "q": {"type": "noul", "instructions": "Is it valid?"}
+            },
+        },
+    )
+    assert response.status_code == 501
+    assert response.json()["error"]["code"] == "multimodal_not_supported"
 
 
 def test_embedded_images_are_501_in_both_contracts(client):
@@ -346,13 +409,14 @@ def test_systemone_images_are_501_and_bad_urls_are_400(client):
     response = client.post(
         "/v1/systemone", json=_systemone_body(images=["https://example.test/image.png"])
     )
-    assert response.status_code == 400
-    assert response.json()["error"]["type"] == "invalid_request_error"
+    assert response.status_code == 422
+    assert response.json()["detail"]
 
     response = client.post(
         "/v1/systemone", json=_systemone_body(images=[data_url] * 9)
     )
-    assert response.status_code == 400
+    assert response.status_code == 422
+    assert response.json()["detail"]
 
 
 # -------------------------------------------------------------- openai dialect
@@ -376,17 +440,19 @@ def test_decisions_exact_success_shape(client):
                     "levels": [{"label": "low"}, {"label": "high"}],
                 },
             ],
-            "safety_identifier": "user-hash",
         },
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["id"]
-    assert body["object"] == "response"
-    assert body["status"] == "completed"
+    assert set(body) == {"model", "answers", "usage", "x_decision_toolkit"}
     assert body["model"] == "(none)"
-    assert body["safety_identifier"] == "user-hash"
-    assert body["usage"]["output_tokens"] == 0
+    assert body["usage"]["input_tokens"] >= 0
+    assert body["usage"]["output_tokens"] > 0
+    assert body["usage"]["total_tokens"] == (
+        body["usage"]["input_tokens"] + body["usage"]["output_tokens"]
+    )
+    assert "input_tokens_details" in body["usage"]
+    assert "output_tokens_details" in body["usage"]
     assert body["answers"][0] == {
         "type": "predicate",
         "name": "refund",
@@ -631,7 +697,7 @@ def test_openai_sdk_can_post_a_decision(client):
             ],
         },
     )
-    assert payload["object"] == "response"
+    assert payload["model"]
     assert payload["answers"][0]["type"] == "predicate"
 
 
