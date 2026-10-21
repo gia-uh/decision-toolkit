@@ -147,7 +147,8 @@ Standard fields:
   current catalog is text-only. Legacy `files`/`images` fields are local
   extensions; valid data URLs also return `501`, malformed values return `422`.
 - `model` is optional only as a local convenience; standard clients send it.
-  `variant` is a local extension, not part of the TypeSafe schema.
+  There is no `variant` request field; the chosen variant is reported as
+  `x_decision_toolkit.variant` in the response.
 
 ## OpenAI Decisions beta
 
@@ -211,7 +212,8 @@ Response:
 - Duplicate question names return `400`.
 - Images in `input` return `501` (`multimodal_not_supported`); the published
   beta supports inline images, but the current catalog has no vision model.
-- `variant` is a local extension; standard clients omit it.
+- `x_decision_toolkit.variant` is a response extension; standard clients ignore
+  it, and the request has no `variant` field.
 - OpenAI SDK clients can list models (`client.models.list()`) and parse the
   error envelope (`{"error": {message, type, param, code}}`).
 
@@ -309,7 +311,8 @@ Adding a new spec version means adding a new module, not editing the old one.
 | Images/assets | `501` for current models | `501` for current models |
 | Usage | `input_tokens` + non-negative `output_tokens` | input/output/total + details |
 | Per-request model | standard field; optional local default | standard field; optional local default |
-| `variant` | local extension | local extension |
+| `variant` request field | not present | not present |
+| `x_decision_toolkit.variant` response | extension | extension |
 | Validation errors | `422` + `detail` | `400` + envelope |
 | Auth / CORS / limits | server-level | server-level |
 

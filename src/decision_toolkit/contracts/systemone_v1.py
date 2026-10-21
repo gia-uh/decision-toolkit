@@ -13,7 +13,7 @@ documentation at ``https://docs.typesafe.ai/api``:
 * unsupported image/asset input returns ``501`` because the current catalog is
   text-only
 
-``model`` and ``variant`` remain optional routing extensions for the local
+``model`` remains an optional routing extension for the local
 multi-model server; standard clients send ``model``. Toolkit-specific metadata
 lives under ``x_decision_toolkit`` so standard fields keep their meaning.
 """
@@ -103,9 +103,9 @@ class SystemOneQuestion(BaseModel):
 class SystemOneRequest(BaseModel):
     """System One request body.
 
-    ``model`` and ``variant`` are routing extensions: System One itself does not
-    require a model field, but a multi-model local server does. They are
-    optional and standard clients can omit them.
+    ``model`` is a routing extension: System One itself does not require a model
+    field, but a multi-model local server does. It is optional and standard
+    clients can omit it.
     """
 
     model_config = ConfigDict(extra="forbid")

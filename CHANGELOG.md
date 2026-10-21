@@ -1,7 +1,14 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.4.3` is
+All notable changes to this project are documented here. Version `0.4.4` is
 published on PyPI.
+
+## [0.4.4] — 2026-10-21
+
+Documentation correction: removed the remaining wording that described
+`variant` as a request extension. System One and OpenAI request bodies have no
+`variant` field; quantization is selected with the model alias and the chosen
+variant is reported under `x_decision_toolkit` in responses. No runtime changes.
 
 ## [0.4.3] — 2026-10-21
 
@@ -235,6 +242,7 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
+[0.4.4]: https://pypi.org/project/decision-toolkit/0.4.4/
 [0.4.3]: https://pypi.org/project/decision-toolkit/0.4.3/
 [0.4.2]: https://pypi.org/project/decision-toolkit/0.4.2/
 [0.4.1]: https://pypi.org/project/decision-toolkit/0.4.1/

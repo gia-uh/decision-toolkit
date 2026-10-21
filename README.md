@@ -32,7 +32,7 @@ uv pip install "decision-toolkit[onnx,server]" # + REST server (FastAPI)
 The project is managed with [uv](https://docs.astral.sh/uv/) and ships a committed `uv.lock`. Published
 wheels remain compatible with `pip` for environments that do not use uv.
 
-PyPI: <https://pypi.org/project/decision-toolkit/0.4.3/>. See
+PyPI: <https://pypi.org/project/decision-toolkit/0.4.4/>. See
 [docs/RELEASE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/RELEASE.md)
 for the Trusted Publishing flow and clean-install checks.
 
