@@ -66,7 +66,7 @@ and
 The model cards retain the historical cold-start measurements used when each
 variant was admitted. The harness reports **post-warmup steady-state** latency,
 which is lower. Compare like with like: use the harness when comparing commits
-or machines; use the card values only as historical admission evidence.
+or machines; use the card values only as historical reference measurements.
 
 ## Adding a case
 

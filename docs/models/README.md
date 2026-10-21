@@ -1,8 +1,8 @@
 # Model cards
 
-Verified `m0` models. Each card documents the adapter contract, the real download,
-the measured evidence and the known limitations. Models that are not `m0` have no
-card on purpose: they are not part of the curated library yet.
+These are the models available through `decision-toolkit`. Each card explains
+how to load and use the model, its variants, the measured evidence and its
+known limitations.
 
 | Model | Adapter | Variants (default *) | Pinned | Latency (CPU) | Evidence |
 |---|---|---|---|---|---|
@@ -18,16 +18,5 @@ card on purpose: they are not part of the curated library yet.
 A `*` marks the default. To inspect sizes, hashes and exact commands, run
 `dtk models variants <id>` or read [Variants and quantization](../VARIANTS.md).
 
-Latencies above are the historical admission measurements. Reproducible
-post-warmup measurements and the exact command are in
-[BENCH.md](../BENCH.md).
-
-## What a card must contain
-
-1. Status and adapter (the model contract).
-2. Every catalogued variant: repo, files, quantization, download size and role.
-3. Measured evidence: latency on CPU, parity/accuracy against a named baseline.
-4. Known limitations (language, export layout, quantization, benchmark scope).
-5. A runnable usage example.
-6. Provenance of the export.
-7. The pinned revision and SHA256 per file, plus the verify/bench command.
+Latencies above are CPU measurements. Reproducible post-warmup measurements
+and the exact command are in [BENCH.md](../BENCH.md).

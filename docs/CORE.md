@@ -1,4 +1,4 @@
-# Core programmatic API (phase 1)
+# Core API
 
 The programmatic API is the **superset**: the most expressive layer of the
 toolkit. The REST server is a documented, conformance-tested projection of a subset of
@@ -207,7 +207,7 @@ Events emitted by `decision_toolkit.*` loggers:
 Each event is a compact JSON object with `event`, `request_id`, model identity,
 variant, adapter, question count, token counts, latency, truncation and error
 code. State and question text are **not** logged by default. The CLI/REST
-layers configure formatting and destinations in later phases.
+layers configure formatting and destinations separately.
 
 ## Extensibility
 
@@ -254,9 +254,9 @@ Registration is in-process (no daemon, no plugin server).
 - `resolve(id, variant=...)`: local directory + role → file map + adapter for
   the core.
 
-## Phase 1 expressiveness inventory
+## Capabilities and limits
 
-This is the checklist against which the REST projection will be verified:
+The core exposes the following capabilities:
 
 | Capability | Core status |
 | --- | --- |
@@ -280,13 +280,12 @@ This is the checklist against which the REST projection will be verified:
 | Model store | atomic download, hashes, verify, import metadata |
 | Multi-label | capability flag + validation; no adapter yet |
 
-## Out of scope for phase 1
+## Not part of the core
 
-- REST contract projection and standard compliance — implemented in phase 2
-  (see [REST.md](REST.md)).
-- CLI workflows across the whole catalog — implemented in phase 3 (see
-  [CLI.md](CLI.md)).
-- Pin/hash enforcement and source CI are implemented in phase 4; wheel,
-  PyPI and distribution tagging are documented in [RELEASE.md](RELEASE.md).
-- Metrics server, rate limiting and load/fuzz testing are server-side phase 5
-  features; see [OPERATIONS.md](OPERATIONS.md).
+- REST contract projection and standard compliance are implemented in the
+  server; see [REST.md](REST.md).
+- CLI workflows across the catalog are implemented in [CLI.md](CLI.md).
+- Catalog pinning and source CI are implementation details; packaging is
+  documented in [RELEASE.md](RELEASE.md).
+- Metrics, rate limiting and load/fuzz testing are server-side features; see
+  [OPERATIONS.md](OPERATIONS.md).

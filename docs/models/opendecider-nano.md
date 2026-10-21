@@ -1,6 +1,5 @@
 # OpenDecider nano
 
-- **Status:** `m0` (official build; prompt/readout ported from pinned code)
 - **Adapter:** `opendecider` — single graph, softmax over `[MASK]` marker logits
 - **License:** Apache-2.0
 - **Parameters:** 395M · **Architecture:** Ettin encoder 400M

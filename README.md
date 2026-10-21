@@ -97,7 +97,7 @@ decision.truncated, decision.warnings
 validated before inference (`box`/assets are rejected by text-only models).
 Custom adapters can be registered with `register_adapter`; local ONNX models
 can be opened with `DecisionModel.from_onnx(...)`. See
-[docs/CORE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/CORE.md) for the full phase 1 contract, error taxonomy,
+[docs/CORE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/CORE.md) for the full API contract, error taxonomy,
 logging events and the expressiveness inventory.
 
 **2. As a CLI**
@@ -148,37 +148,25 @@ current text-only subset.
 See [docs/REST.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/REST.md) for the pinned contracts, limits, auth and
 the standard-evolution process.
 
-## The catalog is curated
+## Models and variants
 
-The catalog is **ours**, not a mirror of HuggingFace. A model enters only when it
-is understood and verified:
+The catalog lists models that are runnable with the toolkit today. Every entry
+has a real ONNX export, verified files and measured behavior; nothing is listed
+as a placeholder.
 
-1. clean commercial license;
-2. an adapter whose contract we can implement **from a real export**;
-3. a real ONNX export on the Hub;
-4. measured parity against the original on a fixed sample;
-5. CPU-viable latency.
-
-Every variant points to files that exist. No placeholders, no speculative
-adapters (there is no generic "any ONNX" adapter).
-
-| id | adapter | status | variants (default *) |
+| id | adapter | verification | variants (default *) |
 | --- | --- | --- | --- |
-| `gliner2.5-multi` | `gliner2` | **m0** — verified end-to-end (9/15, 353 ms) | `fp16`* (577 MB); `fp32` (1132 MB) |
-| `gliner2.5-decide` | `gliner2-decide` | **m0** — fused export verified (refund 0.944, 912 ms; English-only) | `q4f16`* (524 MB) |
-| `laya` | `laya` | **m0** — verified against torch (Δp ≤ 0.005) | `q8`* (528 MB) |
-| `julia-1` | `julia` | **m0** — verified: 100/100 argmax parity, 329 ms | `fp32`* (618 MB) |
-| `opendecider-nano` | `opendecider` | **m0** — official build; prompt ported from pinned code (530 ms) | `q8f16`* (469 MB); `fp16` (792 MB) |
-| `laya-multilingual` | `laya` | **m0** — fused ONNX; upstream parity (37 ms) | `fp16`* (682 MB); `fp32` (1326 MB) |
-| `open-jev-deberta-v3-large` | `open-jev` | **m0** — Open-Jev DeBERTa v3 large repro; 0.854 in-domain (241 ms) | `fp16`* (884 MB); `fp32` (1758 MB); `q4` (487 MB); `q4f16` (357 MB) |
-| `strands-decider-2b` | `strands-decider` | **m0** — reference fixture match (719 ms) | `q4f16`* (1114 MB); `q8` (1821 MB) |
+| `gliner2.5-multi` | `gliner2` | verified end-to-end (9/15, 353 ms) | `fp16`* (577 MB); `fp32` (1132 MB) |
+| `gliner2.5-decide` | `gliner2-decide` | fused export verified (refund 0.944, 912 ms; English-only) | `q4f16`* (524 MB) |
+| `laya` | `laya` | verified against torch (Δp ≤ 0.005) | `q8`* (528 MB) |
+| `julia-1` | `julia` | verified: 100/100 argmax parity, 329 ms | `fp32`* (618 MB) |
+| `opendecider-nano` | `opendecider` | official build; prompt ported from pinned code (530 ms) | `q8f16`* (469 MB); `fp16` (792 MB) |
+| `laya-multilingual` | `laya` | fused ONNX; upstream parity (37 ms) | `fp16`* (682 MB); `fp32` (1326 MB) |
+| `open-jev-deberta-v3-large` | `open-jev` | Open-Jev DeBERTa v3 large reproduction; 0.854 in-domain (241 ms) | `fp16`* (884 MB); `fp32` (1758 MB); `q4` (487 MB); `q4f16` (357 MB) |
+| `strands-decider-2b` | `strands-decider` | reference fixture match (719 ms) | `q4f16`* (1114 MB); `q8` (1821 MB) |
 
 Each variant has a REST alias in the form `id@variant`; `dtk models list` prints
 the alias next to every variant.
-
-**Only `m0` models are in the catalog.** Researched-but-unavailable models
-(planned, conversion pending, broken exports) are listed in
-[docs/ROADMAP.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/ROADMAP.md) and are not downloadable through the toolkit.
 
 Per-model cards with the contract, measured evidence and known limitations:
 [docs/models](https://github.com/gia-uh/decision-toolkit/tree/main/docs/models).
@@ -219,7 +207,7 @@ standard `model` field. The base id uses the server/persisted default. There is
 no `variant` field in the request body; `/v1/models` lists both the base model
 and every alias, and two aliases can be loaded concurrently.
 
-A variant becomes default only after passing the parity gate (top-1 ≥ 99%,
+A variant becomes default only after passing the verification criteria (top-1 ≥ 99%,
 mean |Δp| ≤ 0.02, accuracy delta ≤ 1 pp against the fp32 build on a fixed
 sample) and measuring latency on CPU. Unverified conversions are not catalogued
 and never become a silent fallback. See [Variants and quantization](https://gia-uh.github.io/decision-toolkit/VARIANTS/)
@@ -265,7 +253,7 @@ See [CHANGELOG.md](https://github.com/gia-uh/decision-toolkit/blob/main/CHANGELO
 
 ## Custom ONNX (at your own risk)
 
-You can run any ONNX file with an adapter you trust — outside the curated
+You can run any ONNX file with an adapter you trust — outside the
 catalog:
 
 ```python

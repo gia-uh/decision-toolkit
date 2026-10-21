@@ -1,6 +1,5 @@
 # Laya (English)
 
-- **Status:** `m0` (verified against the torch runtime)
 - **Adapter:** `laya` — split encoder + head with `marker_pos` / `qtype`
 - **License:** Apache-2.0
 - **Parameters:** 421M · **Architecture:** ModernBERT-large · **Language:** English

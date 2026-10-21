@@ -1,6 +1,5 @@
 # GLiNER2.5-Decide
 
-- **Status:** `m0` (verified end-to-end)
 - **Adapter:** `gliner2-decide` — fused graph with `[L]` label markers and `[SEP_STRUCT]`
 - **License:** Apache-2.0
 - **Parameters:** 340M · **Architecture:** DeBERTa-v3-large · **Language:** English only

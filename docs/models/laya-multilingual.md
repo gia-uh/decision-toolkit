@@ -1,6 +1,5 @@
 # Laya multilingual
 
-- **Status:** `m0` (fused ONNX export verified end-to-end)
 - **Adapter:** `laya` — fused encoder + decision head, `marker_pos` / `qtype`, calibrated temperatures
 - **License:** Apache-2.0
 - **Parameters:** 322M · **Architecture:** mmBERT-base · **Languages:** 100+ languages

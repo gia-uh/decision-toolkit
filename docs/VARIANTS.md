@@ -11,7 +11,7 @@ local model cache. Variants of the same model coexist, so you can compare them
 without deleting the default.
 
 Only catalogued and verified builds are selectable. Community conversions that
-have not passed the catalog gates are not exposed as variants.
+have not passed the catalog checks are not exposed as variants.
 
 ## Available variants
 
@@ -38,7 +38,7 @@ other variant was selected with `dtk models use`.
 
 Models with a single row have only one catalogued, verified build. That does
 not mean other conversions do not exist upstream; it means they have not passed
-the parity, hash and license gates for this catalog.
+the parity, hash and license checks for this catalog.
 
 ## One selection model across surfaces
 
@@ -202,7 +202,7 @@ The variant currently in use cannot be deleted.
 
 ## Why some models have only one variant
 
-The catalog is curated, not a mirror. A variant is admitted only with a pinned
+The catalog is verified, not a mirror. A variant is admitted only with a pinned
 revision, a real ONNX export, SHA256 per file, a clean license and measured
 parity/latency. An upstream repository may contain fp32, fp16, int8 or q4
 builds that are not in the toolkit because they have not been validated.

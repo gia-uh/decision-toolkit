@@ -1,4 +1,4 @@
-# CLI (phase 3)
+# CLI
 
 `dtk` is our own operational surface. Unlike REST, it has **no external
 standard** to comply with: it is consistent with itself, script-friendly, and a
@@ -9,7 +9,7 @@ CLI.
 
 | Command | Purpose |
 | --- | --- |
-| `dtk models` | Inspect the local cache and the curated catalog. |
+| `dtk models` | Inspect the local cache and the model catalog. |
 | `dtk models list` | Every catalog variant, default (`*`) and cached variants (`--license`, `--quant`, `--adapter`). |
 | `dtk models variants <id>` | Every real variant of one model, with size, role and exact install command. |
 | `dtk models download <id>` | Download the default or `--variant` quantization (`--force`, `--dry-run`). |
@@ -244,8 +244,7 @@ dtk serve --model gliner2.5-multi --warmup \
 - `--workers N` and `--reload` use an internal uvicorn factory; `--reload`
   is for development and cannot be combined with `--workers > 1`.
 - `--max-models`, `--max-body-mb`, `--timeout`, `--warmup`, `--api-key`,
-  `--cors-origin`, `--log-level` and `--log-format` are the server's phase 2
-  controls.
+  `--cors-origin`, `--log-level` and `--log-format` are server controls.
 - Custom `--adapter`/`--files` also apply to the server's default model.
 
 ## Completion
@@ -281,6 +280,6 @@ dtk doctor --json
   config), but still does not reimplement inference.
 - It does not have a compatibility obligation to System One/OpenAI; those are
   REST contracts.
-- Metrics/rate limiting are server-side phase 5 features; see
+- Metrics and rate limiting are server-side features; see
   [OPERATIONS.md](OPERATIONS.md). Wheel/PyPI releases are documented in
   [RELEASE.md](RELEASE.md).

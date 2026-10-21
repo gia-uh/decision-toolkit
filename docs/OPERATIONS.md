@@ -1,6 +1,6 @@
-# Operations (phase 5)
+# Operations
 
-This document covers the operational behavior added in phase 5: rate limits,
+This document covers operational behavior: rate limits,
 backpressure, metrics, tracing, load testing and the PII contract. Packaging is
 still a later milestone.
 

@@ -1,6 +1,5 @@
 # Open-Jev DeBERTa v3 large
 
-- **Status:** `m0` (ONNX export verified end-to-end)
 - **Adapter:** `open-jev` — one sequence, span-pooled option scoring
 - **License:** Apache-2.0
 - **Parameters:** ~435M · **Architecture:** DeBERTa-v3-large + span head

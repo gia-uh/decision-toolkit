@@ -1,6 +1,5 @@
 # Julia 1
 
-- **Status:** `m0` (official ONNX verified against published PyTorch logits)
 - **Adapter:** `julia` — single graph with `marker_pos` / `qtype`
 - **License:** Apache-2.0
 - **Parameters:** 141M · **Architecture:** mmBERT-small · **Languages:** 52 locales (MASSIVE)

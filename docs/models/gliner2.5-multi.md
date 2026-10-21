@@ -1,6 +1,5 @@
 # GLiNER2.5 multi (v1 + classifier)
 
-- **Status:** `m0` (verified end-to-end)
 - **Adapter:** `gliner2` — split encoder + classifier, schema with `[P]` / `[C]` / `[DESCRIPTION]` / `[SEP_TEXT]`
 - **License:** Apache-2.0
 - **Parameters:** 287M · **Architecture:** GLiNER2.5 multi-v1 · **Languages:** multilingual

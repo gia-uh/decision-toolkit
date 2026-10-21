@@ -1,4 +1,4 @@
-# REST projection (phase 2)
+# REST API
 
 REST is a **documented projection** of the programmatic core, not a second
 implementation. The core remains the superset; the server selects a supported
@@ -337,11 +337,11 @@ at `http://localhost:8000/v1`.
 - Transport tests cover auth, request ids, 413, CORS, readiness and per-request
   model selection.
 
-## Out of scope for phase 2
+## Not implemented by this server
 
-- Metrics/Prometheus, rate limiting and load tests are implemented in phase 5
-  (see [OPERATIONS.md](OPERATIONS.md)).
-- CLI batch/JSONL and custom-model workflows are implemented in phase 3
-  (see [CLI.md](CLI.md)).
-- Pinned catalog hashes and source CI are implemented in phase 4; wheel,
-  PyPI and distribution tagging are documented in [RELEASE.md](RELEASE.md).
+- Metrics, rate limiting and load testing are implemented as server-side
+  features; see [OPERATIONS.md](OPERATIONS.md).
+- CLI batch/JSONL and custom-model workflows are in the CLI; see [CLI.md](CLI.md).
+- Pinned catalog hashes and CI are implementation details; packaging is
+  documented in [RELEASE.md](RELEASE.md).
+- Images/assets and `box` are rejected because the current catalog is text-only.

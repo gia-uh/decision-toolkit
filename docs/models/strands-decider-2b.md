@@ -1,6 +1,5 @@
 # Strands Decider 2B
 
-- **Status:** `m0` (ONNX export verified end-to-end)
 - **Adapter:** `strands-decider` — Qwen3.5-2B torso + pointer head
 - **License:** Apache-2.0
 - **Parameters:** 2B · **Architecture:** Qwen3.5-2B-Base + LoRA + pointer head
