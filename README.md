@@ -21,7 +21,7 @@ and CLI. `dtk --help` and every subcommand help also include runnable examples.
 ## Installation
 
 ```bash
-uv pip install decision-toolkit              # library + CLI (0.3.1 on PyPI)
+uv pip install decision-toolkit              # library + CLI (0.4.0 on PyPI)
 uv pip install "decision-toolkit[onnx]"      # + onnxruntime, tokenizers (the model runtime)
 uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 ```
@@ -29,7 +29,7 @@ uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 The project is managed with [uv](https://docs.astral.sh/uv/) and ships a committed `uv.lock`. Published
 wheels remain compatible with `pip` for environments that do not use uv.
 
-PyPI: <https://pypi.org/project/decision-toolkit/0.3.1/>. See
+PyPI: <https://pypi.org/project/decision-toolkit/0.4.0/>. See
 [docs/RELEASE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/RELEASE.md)
 for the Trusted Publishing flow and clean-install checks.
 
@@ -210,12 +210,11 @@ dtk models current --json          # {"current": "...", "variant": "fp32"}
 dtk decide --model gliner2.5-multi --variant fp16 --state "..." --q 'cat=choice:a|b'
 ```
 
-From Python: `DecisionModel("gliner2.5-multi", variant="fp32")`. The public
-TypeSafe and OpenAI REST APIs select a **model**, not a quantization; standard
-REST clients must not send a `variant` field. The local server chooses the
-quantization from its `--variant` setting or the persisted `dtk models use`
-selection, and reports it under the namespaced `x_decision_toolkit.variant`
-extension. The variant must already be downloaded.
+From Python: `DecisionModel("gliner2.5-multi", variant="fp32")`. In REST,
+quantizations are **model aliases**: use `"model": "gliner2.5-multi@fp32"` in the
+standard `model` field. The base id uses the server/persisted default. There is
+no `variant` field in the request body; `/v1/models` lists both the base model
+and every alias, and two aliases can be loaded concurrently.
 
 A variant becomes default only after passing the parity gate (top-1 ≥ 99%,
 mean |Δp| ≤ 0.02, accuracy delta ≤ 1 pp against the fp32 build on a fixed

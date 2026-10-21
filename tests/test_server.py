@@ -140,7 +140,7 @@ def test_rest_default_request_uses_persisted_variant(
     assert seen == [("gliner2.5-multi", "fp32")]
 
 
-def test_rest_explicit_variant_is_passed_to_the_model(monkeypatch, home):
+def test_rest_model_alias_selects_a_variant(monkeypatch, home):
     from decision_toolkit import registry as registry_module
 
     seen: list[tuple[str | None, str | None]] = []
@@ -152,7 +152,8 @@ def test_rest_explicit_variant_is_passed_to_the_model(monkeypatch, home):
     monkeypatch.setattr(registry_module, "DecisionModel", fake_model)
     app = create_app(model_id="gliner2.5-multi", home=str(home))
     response = TestClient(app).post(
-        "/v1/systemone", json=_systemone_body(variant="fp32")
+        "/v1/systemone",
+        json=_systemone_body(model="gliner2.5-multi@fp32"),
     )
     assert response.status_code == 200
     assert response.json()["x_decision_toolkit"]["variant"] == "fp32"
@@ -174,7 +175,7 @@ def test_rest_openai_request_passes_variant(monkeypatch, home):
         "/v1/decisions",
         json={
             "input": "Customer wants a refund.",
-            "variant": "fp32",
+            "model": "gliner2.5-multi@fp32",
             "questions": [
                 {
                     "type": "choice",
@@ -215,12 +216,42 @@ def test_rest_catalog_exposes_current_variant(home, fake_snapshot):
     assert ready.json()["variant"] == "fp32"
 
 
-def test_fixed_model_rejects_a_different_variant(client):
+def test_rest_loads_two_variants_of_one_model_in_separate_slots(
+    monkeypatch, home
+):
+    from decision_toolkit import registry as registry_module
+
+    seen: list[tuple[str | None, str | None]] = []
+
+    def fake_model(identifier=None, **kwargs):
+        seen.append((identifier, kwargs.get("variant")))
+        return _VariantModel(kwargs.get("variant") or "fp16")
+
+    monkeypatch.setattr(registry_module, "DecisionModel", fake_model)
+    app = create_app(model_id="gliner2.5-multi", home=str(home))
+    client = TestClient(app)
+    for alias in ("gliner2.5-multi@fp16", "gliner2.5-multi@fp32"):
+        response = client.post(
+            "/v1/systemone", json=_systemone_body(model=alias)
+        )
+        assert response.status_code == 200
+    assert seen == [
+        ("gliner2.5-multi", "fp16"),
+        ("gliner2.5-multi", "fp32"),
+    ]
+    loaded = app.state.registry.describe()["loaded"]
+    assert {item["key"] for item in loaded} == {
+        "gliner2.5-multi@fp16",
+        "gliner2.5-multi@fp32",
+    }
+
+
+def test_rest_rejects_the_nonstandard_variant_body_field(client):
     response = client.post(
         "/v1/systemone", json=_systemone_body(variant="fp16")
     )
-    assert response.status_code == 404
-    assert "bound" in response.json()["error"]["message"]
+    assert response.status_code == 422
+    assert response.json()["detail"]
 
 
 # ----------------------------------------------------------------- system one
@@ -655,6 +686,19 @@ def test_models_detail_and_rich_catalog(client):
     assert entry["capabilities"]["max_options"] == 255
 
 
+def test_models_endpoint_lists_variant_aliases(client):
+    payload = client.get("/v1/models").json()
+    by_id = {item["id"]: item for item in payload["data"]}
+    assert "gliner2.5-multi" in by_id
+    assert "gliner2.5-multi@fp16" in by_id
+    assert "gliner2.5-multi@fp32" in by_id
+    alias = by_id["gliner2.5-multi@fp32"]
+    assert alias["x_decision_toolkit"]["selected_variant"] == "fp32"
+    detail = client.get("/v1/models/gliner2.5-multi@fp32").json()
+    assert detail["id"] == "gliner2.5-multi@fp32"
+    assert detail["x_decision_toolkit"]["selected_variant"] == "fp32"
+
+
 def test_openai_sdk_can_list_models(client):
     openai = pytest.importorskip("openai")
 
@@ -723,9 +767,9 @@ def test_per_request_model_selection_uses_the_registry(monkeypatch, home):
         "/v1/systemone", json=_systemone_body(model="alpha")
     ).status_code == 200
     assert client.post(
-        "/v1/systemone", json=_systemone_body(model="beta", variant="q8")
+        "/v1/systemone", json=_systemone_body(model="gliner2.5-multi@fp32")
     ).status_code == 200
     loaded = app.state.registry.describe()["loaded"]
     keys = {item["key"] for item in loaded}
     assert "alpha@" in keys
-    assert "beta@q8" in keys
+    assert "gliner2.5-multi@fp32" in keys

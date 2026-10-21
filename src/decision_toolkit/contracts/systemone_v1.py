@@ -117,7 +117,6 @@ class SystemOneRequest(BaseModel):
     files: list[str] | None = None
     images: list[str] | None = None
     model: str | None = None
-    variant: str | None = None
 
     @model_validator(mode="after")
     def _validate_state(self) -> SystemOneRequest:

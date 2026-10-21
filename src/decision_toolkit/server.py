@@ -378,6 +378,7 @@ def _rich_model_payload(
     *,
     current: str | None,
     current_variant: str | None = None,
+    selected_variant: catalog.Variant | None = None,
 ) -> dict[str, Any]:
     payload = model.info.to_dict()
     payload["cached_variants"] = [
@@ -385,9 +386,35 @@ def _rich_model_payload(
     ]
     payload["current"] = model.id == current
     payload["current_variant"] = current_variant if model.id == current else None
+    payload["base_model"] = model.id
+    if selected_variant is not None:
+        payload["selected_variant"] = selected_variant.name
+        payload["selected_quant"] = selected_variant.quant
     payload["object"] = "model"
     payload["owned_by"] = "decision-toolkit"
     payload["created"] = 0
+    return payload
+
+
+def _alias_payload(
+    model: catalog.CatalogModel,
+    variant: catalog.Variant,
+    cached: set[tuple[str, str]],
+    *,
+    current: str | None,
+    current_variant: str | None,
+) -> dict[str, Any]:
+    """OpenAI-shaped entry for the standard ``model`` alias ``id@variant``."""
+    payload = _rich_model_payload(
+        model,
+        cached,
+        current=current,
+        current_variant=current_variant,
+        selected_variant=variant,
+    )
+    payload["id"] = f"{model.id}@{variant.name}"
+    payload["name"] = f"{model.name} [{variant.name}]"
+    payload["alias"] = True
     return payload
 
 
@@ -689,21 +716,35 @@ def create_app(
     @app.get("/v1/models", tags=["models"], dependencies=protected)
     def models() -> dict[str, Any]:
         _store, cached, current, current_variant = catalog_state()
-        data = [
-            {
-                "id": model.id,
+        data = []
+        for catalog_model in catalog.CATALOG:
+            data.append({
+                "id": catalog_model.id,
                 "object": "model",
                 "created": 0,
                 "owned_by": "decision-toolkit",
                 "x_decision_toolkit": _rich_model_payload(
-                    model,
+                    catalog_model,
                     cached,
                     current=current,
                     current_variant=current_variant,
                 ),
-            }
-            for model in catalog.CATALOG
-        ]
+            })
+            for catalog_variant in catalog_model.variants:
+                rich = _alias_payload(
+                    catalog_model,
+                    catalog_variant,
+                    cached,
+                    current=current,
+                    current_variant=current_variant,
+                )
+                data.append({
+                    "id": rich["id"],
+                    "object": "model",
+                    "created": 0,
+                    "owned_by": "decision-toolkit",
+                    "x_decision_toolkit": rich,
+                })
         known = {model.id for model in catalog.CATALOG}
         for entry in _store.entries():
             if entry.identifier not in known:
@@ -714,16 +755,28 @@ def create_app(
     @app.get("/v1/models/{model_name:path}", tags=["models"], dependencies=protected)
     def model_detail(model_name: str) -> dict[str, Any]:
         _store, cached, current, current_variant = catalog_state()
-        model = catalog.get(model_name)
+        base_name, alias_variant = catalog.parse_alias(model_name)
+        model = catalog.get(base_name)
         if model is not None:
-            rich = _rich_model_payload(
-                model,
-                cached,
-                current=current,
-                current_variant=current_variant,
+            selected = catalog.select_variant(model, alias_variant) if alias_variant else None
+            rich = (
+                _alias_payload(
+                    model,
+                    selected,
+                    cached,
+                    current=current,
+                    current_variant=current_variant,
+                )
+                if selected is not None
+                else _rich_model_payload(
+                    model,
+                    cached,
+                    current=current,
+                    current_variant=current_variant,
+                )
             )
             return {
-                "id": model.id,
+                "id": rich["id"],
                 "object": "model",
                 "created": 0,
                 "owned_by": "decision-toolkit",
@@ -782,7 +835,7 @@ def create_app(
                 "in this catalog"
             )
         questions = systemone_questions(payload.questions)
-        with registry.acquire(payload.model, payload.variant) as selected:
+        with registry.acquire(payload.model) as selected:
             decision = await run_decision(
                 selected,
                 payload.state,
@@ -826,7 +879,7 @@ def create_app(
         if len(set(names)) != len(names):
             raise InvalidRequestError("question names must be unique")
         state_text, core_questions, names = openai_to_systemone(payload.input, wire_questions)
-        with registry.acquire(payload.model, payload.variant) as selected:
+        with registry.acquire(payload.model) as selected:
             decision = await run_decision(
                 selected,
                 state_text,

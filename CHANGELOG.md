@@ -1,7 +1,24 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.3.1` is
+All notable changes to this project are documented here. Version `0.4.0` is
 published on PyPI.
+
+## [0.4.0] — 2026-10-21
+
+REST variant-selection correction. Quantizations are selected through standard
+model aliases (`id@variant`), not a non-standard `variant` body field. The same
+REST process can load two variants of one base model in separate registry slots.
+
+### Fixed
+
+- Removed `variant` from System One and OpenAI request bodies; standard clients
+  now see only the public request fields.
+- Added `catalog-id@variant` model aliases to `/v1/models` and
+  `/v1/models/{id}`. The standard `model` field selects the alias.
+- Registry keys and slots are per alias, so `laya-multilingual@fp16` and
+  `laya-multilingual@fp32` load independently and concurrently.
+- Updated README, REST, variants, examples and CLI help so REST never shows a
+  variant field in a standard request body.
 
 ## [0.3.1] — 2026-10-21
 
@@ -192,6 +209,7 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
+[0.4.0]: https://pypi.org/project/decision-toolkit/0.4.0/
 [0.3.1]: https://pypi.org/project/decision-toolkit/0.3.1/
 [0.3.0]: https://pypi.org/project/decision-toolkit/0.3.0/
 [0.2.1]: https://pypi.org/project/decision-toolkit/0.2.1/

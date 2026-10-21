@@ -703,6 +703,23 @@ def get(model_id: str) -> CatalogModel | None:
     return CATALOG_BY_ID.get(model_id)
 
 
+def parse_alias(model_id: str) -> tuple[str, str | None]:
+    """Split a REST model alias ``catalog-id@variant``.
+
+    Plain ids and non-catalog paths are returned unchanged. This is the
+    standard-compatible way to select a quantization: the OpenAI/TypeSafe
+    ``model`` field remains a single string; no non-standard ``variant`` body
+    field is needed.
+    """
+    if "@" not in model_id:
+        return model_id, None
+    base, variant_name = model_id.rsplit("@", 1)
+    model = get(base)
+    if model is not None and any(variant.name == variant_name for variant in model.variants):
+        return base, variant_name
+    return model_id, None
+
+
 def select_variant(model: CatalogModel, name: str | None = None) -> Variant:
     """Choose a variant by name, or the model's default."""
     if name is None:
@@ -732,5 +749,6 @@ __all__ = [
     "ModelInfo",
     "Variant",
     "get",
+    "parse_alias",
     "select_variant",
 ]

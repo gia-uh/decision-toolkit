@@ -54,7 +54,7 @@ precedence is:
 | --- | --- | --- |
 | Library | `DecisionModel("gliner2.5-multi", variant="fp32")` | persisted variant for the current model, else catalog default |
 | CLI | `--variant fp32` | variant selected by `dtk models use`, else catalog default |
-| REST | not a public API field | server `--variant`/persisted selection; standard clients select only `model` |
+| REST | `"model": "gliner2.5-multi@fp32"` (model alias) | base model id; server `--variant`/persisted default |
 
 `DecisionModel.variant` and the CLI report the selected variant (`id@variant` in
 `dtk models current`). REST responses expose it under the namespaced
@@ -65,7 +65,7 @@ not send it. They select only `model`; the local server chooses the quantization
 from `--variant` or the persisted default. A server started with
 `--model`/`--variant` reports that default in `/v1/info` and `/ready`.
 
-The variant must have been downloaded before a library call or REST request
+The variant must have been downloaded before a library call or REST alias
 loads it. An unknown variant returns a model-not-found error; a known but
 missing cache entry returns a model-not-downloaded error.
 
@@ -163,10 +163,17 @@ from decision_toolkit import DecisionModel
 model = DecisionModel("gliner2.5-multi", variant="fp32")
 ```
 
-For REST, start the server with the desired quantization
-(`dtk serve --model gliner2.5-multi --variant fp32`) or select it persistently
-with `dtk models use`. Do not add a quantization field to a standard TypeSafe or
-OpenAI request; those APIs select only a model.
+For REST, select a quantization through the standard `model` field using the
+alias `id@variant`:
+
+```json
+{"model": "gliner2.5-multi@fp32", "state": "...", "questions": {}}
+```
+
+The base id (`gliner2.5-multi`) uses the server `--variant`/persisted default.
+`/v1/models` lists base models and every alias, and the registry can hold two
+aliases of the same base model in separate slots. Do not add a `variant` field
+to the request body.
 
 The variant must already be downloaded. If you name an unknown variant, the
 error lists the catalogued choices, for example:

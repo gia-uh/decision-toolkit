@@ -49,27 +49,25 @@ limitations listed below.
 Toolkit-only metadata is under `x_decision_toolkit`, never mixed into standard
 fields. `/v1/decision-models` is the rich, non-standard catalog endpoint.
 
-## Variants (local extension)
+## Variants as model aliases
 
-Neither TypeSafe nor OpenAI has a `variant` request field: the public APIs select
-a model by name. Standard clients must not send one. The local server has a
-non-standard internal routing extension for development, but it is deliberately
-kept out of standard examples and compatibility claims:
+Neither TypeSafe nor OpenAI has a `variant` request field. The toolkit therefore
+publishes each quantization as a **model alias**:
 
-- A server started with `dtk serve --variant` uses that default.
-- Otherwise, the variant selected with `dtk models use` is used when the server
-  is serving the current model.
-- Otherwise, the catalog default (the `*` variant in `dtk models list`) is used.
-- Standard clients select only `model`; they do not send a variant field.
+```json
+{"model": "gliner2.5-multi@fp32", "state": "...", "questions": {...}}
+```
 
-Standard clients should omit `variant`; they work with the server default. A
-standard-only integration can run one server per variant, or use the server's
-`--variant` setting. The selected variant is exposed in the namespaced
-`x_decision_toolkit.variant` extension, never in a standard field.
-`/v1/models`, `/v1/models/{id}`, `/v1/decision-models`, `/v1/info` and `/ready`
-expose the configured catalog variants, the default, cached variants, and the
-current selection. See [Variants and quantization](VARIANTS.md) for the catalog
-and download/select commands.
+The `model` field is the standard field. `gliner2.5-multi` uses the server's
+default (or the persisted `dtk models use` selection); `gliner2.5-multi@fp32`
+selects that exact variant. Both aliases are listed by `/v1/models`, and the
+registry loads them in separate slots, so two variants of one base model can be
+used by the same server process.
+
+`/v1/models/gliner2.5-multi@fp32`, `/v1/decision-models`, `/v1/info` and `/ready`
+expose the alias, variant, default, cached state and current selection. The
+response metadata under `x_decision_toolkit.variant` is an extension; the
+request body remains standard. See [Variants and quantization](VARIANTS.md).
 
 ## System One (TypeSafe API schema 0.2.0)
 

@@ -165,6 +165,14 @@ class ModelRegistry:
             raise ModelNotFoundError(
                 "no model configured; pass `model` or set one with `dtk models use`"
             )
+        base_identifier, alias_variant = catalog.parse_alias(identifier)
+        if alias_variant is not None:
+            identifier = base_identifier
+            if variant is not None and variant != alias_variant:
+                raise ModelNotFoundError(
+                    f"model alias selects variant {alias_variant!r}, not {variant!r}"
+                )
+            variant = alias_variant
         effective_variant = variant
         if effective_variant is None and identifier == self.default_identifier:
             effective_variant = self.default_variant

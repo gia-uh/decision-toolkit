@@ -72,7 +72,7 @@ class OpenAIDecisionsRequest(BaseModel):
         min_length=1, max_length=MAX_QUESTIONS
     )
     model: str | None = None
-    variant: str | None = None
+
     @model_validator(mode="after")
     def _validate_input(self) -> OpenAIDecisionsRequest:
         if self.input is None:
