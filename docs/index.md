@@ -4,6 +4,8 @@ Local-first toolkit for **open-weights decision models** on CPU: typed choice /
 yes-no / score questions with calibrated probabilities, one ONNX engine and one
 adapter per model contract.
 
+Co-developed by [GIA-UH](https://github.com/gia-uh) and [Syalia S.R.L.](https://github.com/syalia-srl).
+
 ```bash
 uv pip install decision-toolkit
 uv pip install "decision-toolkit[onnx]"     # model runtime

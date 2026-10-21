@@ -12,7 +12,7 @@ One **ONNX engine** (`onnxruntime`), in-process, on CPU. One **adapter per model
 contract** (how a model is fed and read). Three thin surfaces over the same API:
 **library**, **CLI** and **REST**.
 
-Co-developed by [GIA-UH](https://github.com/gia-uh) and [Syalia S.R.L.](https://github.com/syalia-srl).
+**Co-developed by [GIA-UH](https://github.com/gia-uh) and [Syalia S.R.L.](https://github.com/syalia-srl).**
 
 **Documentation:** <https://gia-uh.github.io/decision-toolkit/>. Start with
 [Examples](https://gia-uh.github.io/decision-toolkit/EXAMPLES/) for the library, REST
