@@ -1,8 +1,9 @@
 # Catalog proposal: three ONNX decision models
 
 **Date:** 2026-10-21  
-**Status:** implemented and verified in the working tree  
-**Scope:** add Laya multilingual, Open-Jev DeBERTa v3 large and Strands Decider 2B
+**Status:** published in `0.3.0`  
+**Scope:** add Laya multilingual, Open-Jev DeBERTa v3 large and Strands Decider 2B  
+**Release:** <https://pypi.org/project/decision-toolkit/0.3.0/>
 
 ## Executive summary
 
