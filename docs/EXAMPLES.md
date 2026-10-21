@@ -1,12 +1,22 @@
 # Examples
 
-Runnable examples for the three surfaces. Models must already be cached:
+Runnable examples for the three surfaces. Models must already be cached; none
+of these examples downloads a model. For the shortest path from a fresh
+install, start with [Quickstart](QUICKSTART.md).
+
+The repository ships one small script that exercises the library end to end:
+
+| Script | What it shows |
+| --- | --- |
+| [`examples/quickstart.py`](https://github.com/gia-uh/decision-toolkit/blob/main/examples/quickstart.py) | Load a cached model, ask choice/yes-no/score questions and print probabilities. |
 
 ```bash
 dtk models download gliner2.5-multi
-# or from a source checkout managed with uv:
-uv run dtk models download gliner2.5-multi
+python examples/quickstart.py gliner2.5-multi
 ```
+
+The code blocks below cover the same surfaces and are the reference examples
+for the library, CLI and REST APIs.
 
 ## Library
 

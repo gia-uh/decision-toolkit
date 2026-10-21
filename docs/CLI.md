@@ -5,6 +5,31 @@ standard** to comply with: it is consistent with itself, script-friendly, and a
 thin adapter over the programmatic core. Inference logic never lives in the
 CLI.
 
+## Invocation
+
+```text
+dtk [global options] <command> [command options]
+```
+
+Global options must come **before** the command. This matters for `--home`:
+
+```bash
+dtk --home /data/dtk-home models list
+```
+
+| Global option | Meaning |
+| --- | --- |
+| `--home DIR` | Toolkit home (models cache + config). Default: `~/.local/share/decision-toolkit`. |
+| `-q, --quiet` | Suppress informational output. |
+| `-v, --verbose` | Debug logs and tracebacks on stderr. |
+| `--log-level LEVEL` | `DEBUG`, `INFO`, `WARNING` or `ERROR`. |
+| `--log-format FORMAT` | `text` or `json`. |
+| `--no-color` | Disable colors (accepted for scripts). |
+| `--version` | Print the toolkit version. |
+
+Only `dtk models download` uses the network. The model must already be cached
+for inference.
+
 ## Command map
 
 | Command | Purpose |
@@ -25,6 +50,95 @@ CLI.
 | `dtk doctor` | Environment and cache diagnostics. |
 | `dtk version` | Version information. |
 | `dtk completion` | Bash/zsh/fish completion snippet. |
+
+## Command options
+
+### Models
+
+`dtk models` without a subcommand lists the cached entries. `dtk models list`
+shows the catalog even when the cache is empty.
+
+| Command | Important options |
+| --- | --- |
+| `dtk models list` | `--quant`, `--adapter`, `--license`, `--json` |
+| `dtk models variants <id>` | `--json` |
+| `dtk models download <id>` | `--variant NAME`, `--revision REV`, `--force`, `--dry-run`, `--json` |
+| `dtk models use <id>` | `--variant NAME`, `--json` |
+| `dtk models current` | `--json` |
+| `dtk models delete <id>` | `--variant NAME`, `--all-variants`, `--yes`, `--json` |
+| `dtk models verify [id]` | `--variant NAME`, `--all`, `--json` |
+| `dtk models import <path>` | `--name NAME`, `--adapter NAME`, `--files ROLE=PATH`, `--json` |
+
+`download` does not activate a variant; `use` persists the selection.
+`--variant` on `decide`, `classify` or `serve` overrides it for one command.
+
+### Decide
+
+| Option | Meaning |
+| --- | --- |
+| `--model ID` | Catalog id or cached model path (default: current model). |
+| `--variant NAME` | Variant/quantization for this command. |
+| `-s, --state TEXT` | State as text. |
+| `--state-file FILE` | Read the state from a file (`-` for stdin; JSON files are sent as JSON). |
+| `--input-jsonl FILE` | Batch input, one state per line (`-` for stdin). |
+| `--q NAME=SPEC` | Repeatable shorthand question. |
+| `--questions-file FILE` | JSON/YAML question mapping. |
+| `--output-jsonl FILE` | Batch output (`-` for stdout). |
+| `--batch-size N` | JSONL chunk size (default 32). |
+| `--strict` | Fail instead of returning truncated answers. |
+| `--json` | Print JSON (the default output). |
+| `--pretty` | Indent JSON output. |
+
+### Classify
+
+| Option | Meaning |
+| --- | --- |
+| `--model ID` | Catalog id or cached model path. |
+| `--variant NAME` | Variant for this command. |
+| `-t, --text TEXT` | Text to classify. |
+| `--text-file FILE` | Read text from a file (`-` for stdin). |
+| `--labels L1,L2,...` | Comma-separated labels. |
+| `--labels-file FILE` | YAML `labels: {name: description}` mapping. |
+| `--instructions TEXT` | Custom question text. |
+| `--threshold FLOAT` | Flag results below it (default 0.5). |
+| `--top-k N` | Number of ranked labels to show (default 3). |
+| `--json` | Machine-readable output. |
+
+### Serve
+
+| Option | Meaning |
+| --- | --- |
+| `--model ID`, `--variant NAME` | Default model for the process. |
+| `--host HOST`, `--port PORT` | Bind address and port (default `127.0.0.1:8000`). |
+| `--workers N` | Uvicorn worker processes. |
+| `--reload` | Development reload; cannot combine with `--workers > 1`. |
+| `--api-key KEY` | Require `Authorization: Bearer <key>`. |
+| `--cors-origin ORIGIN` | Allow a browser origin; repeatable. |
+| `--max-body-mb N`, `--timeout SECONDS` | Request limits. |
+| `--max-models N` | Idle models kept loaded (LRU). |
+| `--max-concurrent N` | Bounded inference concurrency. |
+| `--rate-limit N`, `--rate-window SECONDS`, `--rate-burst N` | Per-key rate limit. |
+| `--no-metrics` | Disable `/metrics`. |
+| `--tracing` | Enable optional OpenTelemetry spans. |
+| `--warmup` | Warm the default model at startup. |
+| `--log-level`, `--log-format` | Server logging overrides. |
+
+See [Operations](OPERATIONS.md) for the semantics of these limits.
+
+### Config, doctor and completion
+
+```bash
+dtk config list --json
+dtk config get device
+dtk config set device cpu
+dtk config set cache_dir /data/dtk-models
+dtk doctor
+dtk doctor --json
+dtk completion bash
+```
+
+Writable config keys are `cache_dir`, `current`, `current_variant` and `device`.
+`home` is read-only; use `--home`.
 
 ## Exit codes
 

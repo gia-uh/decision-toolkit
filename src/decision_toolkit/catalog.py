@@ -112,7 +112,7 @@ class CatalogModel:
             params=self.params,
             architecture=self.architecture,
             languages=self.languages,
-            status=self.status,
+            status="available",
             capabilities=self.capabilities,
             variants=self.variants,
             notes=self.notes,

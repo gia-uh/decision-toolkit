@@ -96,7 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # ----------------------------------------------------------------- models
     models = _with_examples(
-        sub.add_parser("models", help="Model cache and curated catalog."),
+        sub.add_parser("models", help="Model cache and model catalog."),
         "dtk models",
         "dtk models list --quant",
         "dtk models variants gliner2.5-multi",
@@ -678,7 +678,13 @@ def _cmd_models(args: argparse.Namespace) -> int:
             _json_out([_entry_payload(entry) for entry in entries])
             return EXIT_OK
         if not entries:
-            _info(args, "The toolkit cache is empty. `dtk models list` shows the catalog.")
+            _info(
+                args,
+                "The toolkit cache is empty. Download and select a model:\n"
+                "  dtk models download gliner2.5-multi\n"
+                "  dtk models use gliner2.5-multi\n"
+                "Run `dtk models list` to see every catalogued variant.",
+            )
             return EXIT_OK
         current = store.current()
         current_variant = store.current_variant()
@@ -710,7 +716,7 @@ def _cmd_models(args: argparse.Namespace) -> int:
         if as_json:
             _json_out(payloads)
             return EXIT_OK
-        headers = ["", "id", "variant", "alias", "quant", "role", "size", "cached"]
+        headers = ["current", "id", "variant", "alias", "quant", "role", "size", "cached"]
         if args.show_adapter:
             headers.insert(2, "adapter")
         if args.show_license:
@@ -745,7 +751,7 @@ def _cmd_models(args: argparse.Namespace) -> int:
                     row.insert(3, model.license)
                 rows.append(row)
         _print_table(headers, rows)
-        print("\n* default variant.")
+        print("\n* default variant.  ★ current selection.  ✓ downloaded.")
         print("download: dtk models download <id> --variant <name>")
         print("select:   dtk models use <id> --variant <name>")
         return EXIT_OK
@@ -758,7 +764,7 @@ def _cmd_models(args: argparse.Namespace) -> int:
         payload = {
             "id": model.id,
             "adapter": model.adapter,
-            "status": model.status,
+            "status": model.info.status,
             "default_variant": model.default_variant.name if model.default_variant else None,
             "capabilities": model.capabilities.to_dict(),
             "variants": [
@@ -768,7 +774,7 @@ def _cmd_models(args: argparse.Namespace) -> int:
         if as_json:
             _json_out(payload)
             return EXIT_OK
-        print(f"{model.id} · adapter={model.adapter} · status={model.status}")
+        print(f"{model.id} · adapter={model.adapter} · status={model.info.status}")
         for variant in model.variants:
             cached_mark = " ✓" if (model.id, variant.name) in cached else ""
             label = f"{variant.name}*" if variant is model.default_variant else variant.name
@@ -1259,10 +1265,9 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         "current_variant": store.current_variant(),
         "device": store.config.device,
         "cached_models": [f"{entry.identifier}@{entry.variant}" for entry in entries],
-        "catalog": {
-            status: sum(1 for model in catalog.CATALOG if model.status == status)
-            for status in ("m0", "m1", "planned", "phase2", "waitlist")
-        },
+        "catalog_models": len(catalog.CATALOG),
+        "catalog_variants": sum(len(model.variants) for model in catalog.CATALOG),
+        "cached_variants": len(entries),
         "adapters": sorted(ADAPTERS),
         "runtimes": {
             "onnxruntime": probe("onnxruntime"),
@@ -1283,7 +1288,10 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
             print()
         print(f"device:     {report['device']}")
         print(f"cached:     {', '.join(report['cached_models']) or '(empty)'}")
-        print("catalog:    " + ", ".join(f"{k}={v}" for k, v in report["catalog"].items()))
+        print(
+            f"catalog:    {report['catalog_models']} models, "
+            f"{report['catalog_variants']} variants"
+        )
         print(f"adapters:   {', '.join(report['adapters'])}")
         print("runtimes:")
         for label, ok in report["runtimes"].items():

@@ -32,15 +32,14 @@ theme:
 
 nav:
   - Home: index.md
+  - Quickstart: QUICKSTART.md
+  - Installation: INSTALLATION.md
   - Examples: EXAMPLES.md
-  - Core API: CORE.md
-  - REST: REST.md
-  - CLI: CLI.md
-  - Operations: OPERATIONS.md
-  - Benchmarks: BENCH.md
-  - Variants and quantization: VARIANTS.md
+  - Recipes: RECIPES.md
   - Models:
-      - Overview: models/README.md
+      - Models and the cache: MODELS.md
+      - Variants and quantization: VARIANTS.md
+      - Model cards: models/README.md
       - GLiNER2.5 multi: models/gliner2.5-multi.md
       - GLiNER2.5-Decide: models/gliner2.5-decide.md
       - Laya: models/laya.md
@@ -49,6 +48,15 @@ nav:
       - Laya multilingual: models/laya-multilingual.md
       - Open-Jev DeBERTa v3 large: models/open-jev-deberta-v3-large.md
       - Strands Decider 2B: models/strands-decider-2b.md
+  - Library guide: LIBRARY.md
+  - Core API: CORE.md
+  - CLI: CLI.md
+  - REST: REST.md
+  - Operations: OPERATIONS.md
+  - Benchmarks: BENCH.md
+  - Troubleshooting: TROUBLESHOOTING.md
+  - FAQ: FAQ.md
+  - Glossary: GLOSSARY.md
   - Release: RELEASE.md
 
 markdown_extensions:

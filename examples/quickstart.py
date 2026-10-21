@@ -4,9 +4,9 @@ Run with any runnable model, for example::
 
     python examples/quickstart.py laya-multilingual
 
-It needs the model's runtime (``pip install "decision-toolkit[laya]"``) and,
-the first time, its checkpoint download. See ``dtk models list`` for what is
-runnable today.
+It needs the model runtime (``pip install "decision-toolkit[onnx]"``) and, the
+first time, its checkpoint download (``dtk models download laya-multilingual``).
+See ``dtk models list`` for what is runnable today.
 """
 
 from __future__ import annotations
@@ -33,7 +33,8 @@ def main(argv: list[str]) -> int:
         },
     )
 
-    for key in answer.keys():
+    keys = answer.keys()
+    for key in keys:
         item = answer[key]
         if item.type == "choice":
             print(f"{key:10s} choice={item.choice!r} confidence={item.confidence:.2f}")

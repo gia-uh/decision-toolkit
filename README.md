@@ -15,21 +15,24 @@ contract** (how a model is fed and read). Three thin surfaces over the same API:
 **Co-developed by [GIA-UH](https://github.com/gia-uh) and [Syalia S.R.L.](https://github.com/syalia-srl).**
 
 **Documentation:** <https://gia-uh.github.io/decision-toolkit/>. Start with
-[Examples](https://gia-uh.github.io/decision-toolkit/EXAMPLES/) for the library, REST
+[Quickstart](https://gia-uh.github.io/decision-toolkit/QUICKSTART/) for the library, REST
 and CLI. `dtk --help` and every subcommand help also include runnable examples.
+See [Models](https://gia-uh.github.io/decision-toolkit/MODELS/) for the cache and
+variants, and [Troubleshooting](https://gia-uh.github.io/decision-toolkit/TROUBLESHOOTING/)
+when a command fails.
 
 ## Installation
 
 ```bash
-uv pip install decision-toolkit              # library + CLI (0.4.2 on PyPI)
+uv pip install decision-toolkit              # library + CLI; add [onnx] to run models
 uv pip install "decision-toolkit[onnx]"      # + onnxruntime, tokenizers (the model runtime)
-uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
+uv pip install "decision-toolkit[onnx,server]" # + REST server (FastAPI)
 ```
 
 The project is managed with [uv](https://docs.astral.sh/uv/) and ships a committed `uv.lock`. Published
 wheels remain compatible with `pip` for environments that do not use uv.
 
-PyPI: <https://pypi.org/project/decision-toolkit/0.4.2/>. See
+PyPI: <https://pypi.org/project/decision-toolkit/0.4.3/>. See
 [docs/RELEASE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/RELEASE.md)
 for the Trusted Publishing flow and clean-install checks.
 
@@ -129,7 +132,7 @@ batch, custom `--adapter/--files`, config and completion.
 **3. As a REST service (optional extra)**
 
 ```bash
-uv pip install "decision-toolkit[server]"
+uv pip install "decision-toolkit[onnx,server]"
 dtk serve --model gliner2.5-multi --warmup \
   --api-key "$DECISION_TOOLKIT_API_KEY" \
   --log-format json
@@ -138,8 +141,9 @@ dtk serve --model gliner2.5-multi --warmup \
 Endpoints: `POST /v1/systemone` (TypeSafe System One), `POST /v1/decisions`
 (OpenAI Decisions beta), `GET /v1/models` (OpenAI shape),
 `GET /v1/decision-models` (rich catalog), `GET /v1/info`, `GET /health`,
-`GET /ready`. Requests select `model`; `variant` is a documented local extension,
-not part of either public API. System One request validation uses the TypeSafe
+`GET /ready`. Requests select `model`; quantization is selected with the model
+alias `id@variant` (for example `gliner2.5-multi@fp32`). There is no `variant`
+field in either public request body. System One request validation uses the TypeSafe
 `422 {"detail": [...]}` shape; OpenAI Decisions uses its
 `{"error": {...}}` envelope. Every response carries `x-request-id`.
 A standard System One client that sends `model`, `state` and `questions` can
@@ -179,7 +183,7 @@ own repo files, size and role. A `*` in the table above marks the default.
 
 ```bash
 dtk models list                      # one row per variant; * = default
-dtk models list --quant              # add the quantization labels
+dtk models list --quant              # accepted for compatibility; quant is always shown
 dtk models variants gliner2.5-multi  # full details for one model
 ```
 
@@ -274,7 +278,7 @@ register_adapter("my-layout", MyAdapter)
 ```
 
 Custom models do not appear in `dtk models list`; the toolkit never guesses a
-layout. If a model deserves support, it goes through curation.
+layout. If a model deserves support, it goes through catalog review.
 
 ## Development
 

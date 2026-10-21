@@ -252,6 +252,7 @@ def test_models_variants_text_and_json(home, capsys):
     ) == 0
     payload = json.loads(_out(capsys))
     assert payload["adapter"] == "gliner2"
+    assert payload["status"] == "available"
     assert payload["default_variant"] == "fp16"
     assert payload["variants"][0]["alias"] == "gliner2.5-multi@fp16"
     assert {variant["name"] for variant in payload["variants"]} == {"fp16", "fp32"}
@@ -261,7 +262,10 @@ def test_models_variants_text_and_json(home, capsys):
 
 def test_models_empty_cache_message(home, capsys):
     assert cli.main(["--home", str(home), "models"]) == 0
-    assert "empty" in _out(capsys)
+    output = _out(capsys)
+    assert "empty" in output
+    assert "dtk models download gliner2.5-multi" in output
+    assert "dtk models use gliner2.5-multi" in output
     assert cli.main(["--home", str(home), "models", "--json"]) == 0
     assert json.loads(_out(capsys)) == []
 
@@ -637,7 +641,9 @@ def test_doctor_json(home, capsys):
         "opendecider",
         "strands-decider",
     ]
-    assert report["catalog"]["m0"] == 8
+    assert report["catalog_models"] == 8
+    assert report["catalog_variants"] == 15
+    assert report["cached_variants"] == 0
     assert "current_variant" in report
 
 

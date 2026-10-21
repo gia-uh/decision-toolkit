@@ -13,6 +13,9 @@ without deleting the default.
 Only catalogued and verified builds are selectable. Community conversions that
 have not passed the catalog checks are not exposed as variants.
 
+For the cache layout, model selection and offline workflow, see
+[Models and the model cache](MODELS.md).
+
 ## Available variants
 
 A `*` marks the default variant. It is used when `--variant` is omitted and no
@@ -75,8 +78,8 @@ missing cache entry returns a model-not-downloaded error.
 # every model, every variant, default (*) and what is already cached
 dtk models list
 
-# add the quantization label and other catalog columns
-dtk models list --quant --adapter --license
+# add adapter and license columns (`--quant` is accepted for compatibility)
+dtk models list --adapter --license
 
 # full details for one model, including the exact install command
 dtk models variants gliner2.5-multi
@@ -88,13 +91,13 @@ dtk models variants opendecider-nano --json
 Example:
 
 ```text
-id                variant  quant    role     size       cached
-gliner2.5-multi   fp16*    fp16     default  577.1 MB   ✓
-gliner2.5-multi   fp32     fp32     quality  1131.9 MB  ✓
-gliner2.5-decide  q4f16*   q4/fp16  default  523.5 MB   ✓
-laya              q8*      int8     default  527.9 MB   ✓
+current id                variant  alias                              quant    role     size       cached
+        gliner2.5-multi   fp16*    gliner2.5-multi@fp16               fp16     default  577.1 MB   ✓
+        gliner2.5-multi   fp32     gliner2.5-multi@fp32               fp32     quality  1131.9 MB  ✓
+        gliner2.5-decide  q4f16*   gliner2.5-decide@q4f16             q4/fp16  default  523.5 MB   ✓
+        laya              q8*      laya@q8                            int8     default  527.9 MB   ✓
 
-* default variant.
+* default variant.  ★ current selection.  ✓ downloaded.
 download: dtk models download <id> --variant <name>
 select:   dtk models use <id> --variant <name>
 ```

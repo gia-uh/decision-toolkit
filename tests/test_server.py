@@ -679,6 +679,7 @@ def test_models_detail_and_rich_catalog(client):
 
     rich = client.get("/v1/decision-models").json()
     entry = next(item for item in rich["data"] if item["id"] == "gliner2.5-multi")
+    assert entry["status"] == "available"
     assert {variant["name"] for variant in entry["variants"]} == {"fp16", "fp32"}
     default = next(v for v in entry["variants"] if v["role"] == "default")
     assert default["latency_ms_p50"] == 353.0

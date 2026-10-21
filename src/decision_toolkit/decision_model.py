@@ -255,14 +255,12 @@ class DecisionModel:
             files = self._files_override or dict(resolved.files)
             if resolved.path is None:
                 if resolved.origin == "catalog":
-                    model = resolved.catalog
                     variant = resolved.variant
                     hint = f"dtk models download {resolved.identifier}"
                     if variant is not None:
                         hint += f" --variant {variant.name}"
                     raise ModelNotDownloadedError(
-                        f"{resolved.identifier!r} is not downloaded yet; run `{hint}` "
-                        f"(status: {model.status if model else 'custom'})"
+                        f"{resolved.identifier!r} is not downloaded yet; run `{hint}`"
                     )
                 raise AdapterNotAvailableError(
                     "custom ONNX models need a local directory plus adapter and files="

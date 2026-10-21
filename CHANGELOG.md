@@ -1,7 +1,19 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.4.2` is
+All notable changes to this project are documented here. Version `0.4.3` is
 published on PyPI.
+
+## [0.4.3] — 2026-10-21
+
+Documentation and help UX improvements. Added a Quickstart, Installation guide,
+Models/cache guide, Library guide, Troubleshooting, FAQ, Glossary and Recipes;
+reorganized the documentation navigation around user tasks; added CLI option
+tables and examples; corrected the README REST alias text; clarified that the
+server extra is installed as `[onnx,server]`. The CLI now suggests the exact
+download/use commands for an empty cache, marks current/cached catalog rows, and
+reports user-facing catalog counts in `dtk doctor`. Public model metadata uses
+`available` instead of an internal status label. No inference, model, or catalog
+content changes.
 
 ## [0.4.2] — 2026-10-21
 
@@ -223,6 +235,7 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
+[0.4.3]: https://pypi.org/project/decision-toolkit/0.4.3/
 [0.4.2]: https://pypi.org/project/decision-toolkit/0.4.2/
 [0.4.1]: https://pypi.org/project/decision-toolkit/0.4.1/
 [0.4.0]: https://pypi.org/project/decision-toolkit/0.4.0/

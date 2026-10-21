@@ -17,6 +17,8 @@ known limitations.
 
 A `*` marks the default. To inspect sizes, hashes and exact commands, run
 `dtk models variants <id>` or read [Variants and quantization](../VARIANTS.md).
+For cache locations, offline installs and model selection, see
+[Models and the model cache](../MODELS.md).
 
 Latencies above are CPU measurements. Reproducible post-warmup measurements
 and the exact command are in [BENCH.md](../BENCH.md).
