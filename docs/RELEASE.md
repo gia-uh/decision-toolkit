@@ -10,7 +10,7 @@ and selection in the CLI and documentation; `0.1.7` aligned variant selection
 across the library, CLI and REST API; `0.2.0` corrected the REST conformance
 claims and wire shapes to the published TypeSafe and OpenAI schemas; `0.2.1`
 changed the public documentation URLs to this repository's Pages site; `0.3.0`
-added the Laya multilingual, Open-Jev and Strands Decider ONNX models.
+added the Laya multilingual, Open-Jev DeBERTa v3 large and Strands Decider ONNX models.
 
 ## Local build and verification
 

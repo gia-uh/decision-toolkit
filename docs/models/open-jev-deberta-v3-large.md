@@ -65,7 +65,7 @@ and re-check thresholds. See [Variants and quantization](../VARIANTS.md).
   (upstream in-domain 0.85 vs OOD 0.69).
 - Score on unseen level sets is weak in the upstream evaluation.
 - It chooses among supplied options; it cannot generate explanations.
-- This is an independent open-jev reproduction, not an official TypeSafe model.
+- This is an independent Open-Jev DeBERTa v3 large reproduction, not an official TypeSafe model.
 
 ## Usage
 

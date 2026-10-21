@@ -57,14 +57,14 @@ ONNX Runtime 1.31.0, CPU):
 |---|---|---:|
 | Laya multilingual | fp16 | 37.4 ms |
 | Laya multilingual | fp32 | 34.1 ms |
-| Open-Jev | fp16 | 241.2 ms |
-| Open-Jev | fp32 | 78.2 ms |
-| Open-Jev | q4 | 56.0 ms |
-| Open-Jev | q4f16 | 219.4 ms |
+| Open-Jev DeBERTa v3 large | fp16 | 241.2 ms |
+| Open-Jev DeBERTa v3 large | fp32 | 78.2 ms |
+| Open-Jev DeBERTa v3 large | q4 | 56.0 ms |
+| Open-Jev DeBERTa v3 large | q4f16 | 219.4 ms |
 | Strands Decider 2B | q4f16 | 719.3 ms |
 | Strands Decider 2B | q8 | 1467.2 ms |
 
-The Open-Jev 4-bit paths are size/edge choices; they are not assumed to be
+The Open-Jev DeBERTa v3 large 4-bit paths are size/edge choices; they are not assumed to be
 faster or more accurate. Strands is a 2B model and is intentionally slower
 than the other catalog entries.
 
@@ -72,7 +72,7 @@ than the other catalog entries.
 
 - **Laya multilingual:** upstream conversion reports fp32 max |Δp| 1e-4 and
   fp16 0.035 against PyTorch; local fp16/fp32 agree on the audit answers.
-- **Open-Jev:** upstream reports 0.854 in-domain and 0.690 OOD accuracy, plus
+- **Open-Jev DeBERTa v3 large:** upstream reports 0.854 in-domain and 0.690 OOD accuracy, plus
   0.022 in-domain ECE. Local fp16/fp32 agree on the published example; q4
   variants are explicitly edge builds.
 - **Strands Decider 2B:** reference fixture matches within 0.018 max
@@ -84,7 +84,7 @@ independent reproduction of the full upstream training evaluation.
 ## Quantization policy
 
 - Default variants are chosen for a balance of quality, size and CPU latency:
-  Laya fp16, Open-Jev fp16, Strands q4f16.
+  Laya fp16, Open-Jev DeBERTa v3 large fp16, Strands q4f16.
 - `fp32` remains a quality variant where published.
 - `q4`/`q4f16`/`q8` are exposed, but their thresholds must be validated on the
   user's data; no silent fallback exists.
@@ -98,10 +98,11 @@ independent reproduction of the full upstream training evaluation.
    runtime checks. A larger acceptance run is still desirable.
 2. **Strands CPU cost.** q8 takes ~1.5 s per simple question; this is suitable
    for local/agentic workflows, not high-throughput serving.
-3. **Quantization drift.** Open-Jev q4 and Strands q4f16 can move near-ties;
+3. **Quantization drift.** Open-Jev DeBERTa v3 large q4 and Strands q4f16 can move near-ties;
    the model cards call this out.
-4. **Coverage.** Laya multilingual is weak on low-resource languages; Open-Jev
-   is English-only and weak on unseen score scales; Strands is a 2B model with
+4. **Coverage.** Laya multilingual is weak on low-resource languages;
+   Open-Jev DeBERTa v3 large is English-only and weak on unseen score scales;
+   Strands is a 2B model with
    its own upstream limitations.
 5. **No image/box support.** The catalog remains text-only.
 

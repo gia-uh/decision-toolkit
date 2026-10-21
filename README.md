@@ -170,7 +170,7 @@ adapters (there is no generic "any ONNX" adapter).
 | `julia-1` | `julia` | **m0** — verified: 100/100 argmax parity, 329 ms | `fp32`* (618 MB) |
 | `opendecider-nano` | `opendecider` | **m0** — official build; prompt ported from pinned code (530 ms) | `q8f16`* (469 MB); `fp16` (792 MB) |
 | `laya-multilingual` | `laya` | **m0** — fused ONNX; upstream parity (37 ms) | `fp16`* (682 MB); `fp32` (1326 MB) |
-| `open-jev-deberta-v3-large` | `open-jev` | **m0** — open Jev repro; 0.854 in-domain (241 ms) | `fp16`* (884 MB); `fp32` (1758 MB); `q4` (487 MB); `q4f16` (357 MB) |
+| `open-jev-deberta-v3-large` | `open-jev` | **m0** — Open-Jev DeBERTa v3 large repro; 0.854 in-domain (241 ms) | `fp16`* (884 MB); `fp32` (1758 MB); `q4` (487 MB); `q4f16` (357 MB) |
 | `strands-decider-2b` | `strands-decider` | **m0** — reference fixture match (719 ms) | `q4f16`* (1114 MB); `q8` (1821 MB) |
 
 **Only `m0` models are in the catalog.** Researched-but-unavailable models
