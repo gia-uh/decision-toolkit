@@ -1,7 +1,14 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.2.0` is
+All notable changes to this project are documented here. Version `0.2.1` is
 published on PyPI.
+
+## [0.2.1] — 2026-10-20
+
+Metadata-only release: this project's documentation and project URLs now point
+to `https://gia-uh.github.io/decision-toolkit/` instead of using the
+`uhgia.org` custom domain owned by the `gia-uh/gia-uh.github.io` repository.
+No runtime, model, CLI or REST behavior changed.
 
 ## [0.2.0] — 2026-10-20
 
@@ -161,6 +168,7 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
+[0.2.1]: https://pypi.org/project/decision-toolkit/0.2.1/
 [0.2.0]: https://pypi.org/project/decision-toolkit/0.2.0/
 [0.1.7]: https://pypi.org/project/decision-toolkit/0.1.7/
 [0.1.6]: https://pypi.org/project/decision-toolkit/0.1.6/

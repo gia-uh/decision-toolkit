@@ -2,7 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/decision-toolkit?style=flat-square)](https://pypi.org/project/decision-toolkit/)
 [![CI](https://github.com/gia-uh/decision-toolkit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gia-uh/decision-toolkit/actions/workflows/ci.yml)
-[![Docs](https://img.shields.io/badge/docs-online-blue?style=flat-square)](https://uhgia.org/decision-toolkit/)
+[![Docs](https://img.shields.io/badge/docs-online-blue?style=flat-square)](https://gia-uh.github.io/decision-toolkit/)
 
 Local-first toolkit around **open-weights decision models**: typed **choice /
 yes-no (`noul`) / score** questions over a state (text or JSON), answered with a
@@ -14,14 +14,14 @@ contract** (how a model is fed and read). Three thin surfaces over the same API:
 
 Co-developed by [GIA-UH](https://github.com/gia-uh) and [Syalia S.R.L.](https://github.com/syalia-srl).
 
-**Documentation:** <https://uhgia.org/decision-toolkit/>. Start with
-[Examples](https://uhgia.org/decision-toolkit/EXAMPLES/) for the library, REST
+**Documentation:** <https://gia-uh.github.io/decision-toolkit/>. Start with
+[Examples](https://gia-uh.github.io/decision-toolkit/EXAMPLES/) for the library, REST
 and CLI. `dtk --help` and every subcommand help also include runnable examples.
 
 ## Installation
 
 ```bash
-uv pip install decision-toolkit              # library + CLI (0.2.0 on PyPI)
+uv pip install decision-toolkit              # library + CLI (0.2.1 on PyPI)
 uv pip install "decision-toolkit[onnx]"      # + onnxruntime, tokenizers (the model runtime)
 uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 ```
@@ -29,7 +29,7 @@ uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 The project is managed with [uv](https://docs.astral.sh/uv/) and ships a committed `uv.lock`. Published
 wheels remain compatible with `pip` for environments that do not use uv.
 
-PyPI: <https://pypi.org/project/decision-toolkit/0.2.0/>. See
+PyPI: <https://pypi.org/project/decision-toolkit/0.2.1/>. See
 [docs/RELEASE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/RELEASE.md)
 for the Trusted Publishing flow and clean-install checks.
 
@@ -216,7 +216,7 @@ another one.
 A variant becomes default only after passing the parity gate (top-1 ≥ 99%,
 mean |Δp| ≤ 0.02, accuracy delta ≤ 1 pp against the fp32 build on a fixed
 sample) and measuring latency on CPU. Unverified conversions are not catalogued
-and never become a silent fallback. See [Variants and quantization](https://uhgia.org/decision-toolkit/VARIANTS/)
+and never become a silent fallback. See [Variants and quantization](https://gia-uh.github.io/decision-toolkit/VARIANTS/)
 for the complete table, cache behavior and commands.
 
 ## Operations

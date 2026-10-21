@@ -1,6 +1,6 @@
 site_name: decision-toolkit
 site_description: Local-first toolkit for open-weights decision models on CPU.
-site_url: https://uhgia.org/decision-toolkit/
+site_url: https://gia-uh.github.io/decision-toolkit/
 repo_url: https://github.com/gia-uh/decision-toolkit
 repo_name: gia-uh/decision-toolkit
 edit_uri: edit/main/docs/
