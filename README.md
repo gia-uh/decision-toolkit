@@ -210,11 +210,12 @@ dtk models current --json          # {"current": "...", "variant": "fp32"}
 dtk decide --model gliner2.5-multi --variant fp16 --state "..." --q 'cat=choice:a|b'
 ```
 
-From Python: `DecisionModel("gliner2.5-multi", variant="fp32")`. REST selects
-the same way with `"variant": "fp32"` in the request body and returns the choice
-under `x_decision_toolkit.variant`. The variant must already be downloaded. If a
-variant is omitted, the catalog default is used unless `dtk models use` selected
-another one.
+From Python: `DecisionModel("gliner2.5-multi", variant="fp32")`. The public
+TypeSafe and OpenAI REST APIs select a **model**, not a quantization; standard
+REST clients must not send a `variant` field. The local server chooses the
+quantization from its `--variant` setting or the persisted `dtk models use`
+selection, and reports it under the namespaced `x_decision_toolkit.variant`
+extension. The variant must already be downloaded.
 
 A variant becomes default only after passing the parity gate (top-1 ≥ 99%,
 mean |Δp| ≤ 0.02, accuracy delta ≤ 1 pp against the fp32 build on a fixed

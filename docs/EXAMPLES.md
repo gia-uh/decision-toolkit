@@ -165,7 +165,9 @@ curl -s http://127.0.0.1:8000/v1/decisions \
   }' | jq
 ```
 
-`variant` is a decision-toolkit extension; omit it for a standard client.
+The local server uses its `--variant`/persisted selection; standard REST clients
+do not send a `variant` field. The namespaced response extension reports which
+one was used.
 
 ### Model per request and auth
 
@@ -177,7 +179,6 @@ curl -s http://127.0.0.1:8000/v1/systemone \
   -H "Content-Type: application/json" \
   -d '{
     "model": "gliner2.5-decide",
-    "variant": "q4f16",
     "state": "I want my money back.",
     "questions": {
       "intent": {"type": "choice", "instructions": "What is the request?",

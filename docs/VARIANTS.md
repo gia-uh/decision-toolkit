@@ -45,8 +45,8 @@ the parity, hash and license gates for this catalog.
 The same catalog variant is used by the library, CLI and REST API. Selection
 precedence is:
 
-1. an explicit per-call/per-request variant (`DecisionModel(..., variant=...)`,
-   `--variant`, or `"variant"` in a REST body);
+1. an explicit per-call variant in the library or CLI
+   (`DecisionModel(..., variant=...)`, `--variant`);
 2. the CLI/server configuration (`dtk models use`, or `dtk serve --variant`);
 3. the catalog default marked with `*`.
 
@@ -54,14 +54,15 @@ precedence is:
 | --- | --- | --- |
 | Library | `DecisionModel("gliner2.5-multi", variant="fp32")` | persisted variant for the current model, else catalog default |
 | CLI | `--variant fp32` | variant selected by `dtk models use`, else catalog default |
-| REST (local extension) | `"variant": "fp32"` in the request body | server `--variant`, else persisted variant for the current model, else catalog default |
+| REST | not a public API field | server `--variant`/persisted selection; standard clients select only `model` |
 
 `DecisionModel.variant` and the CLI report the selected variant (`id@variant` in
 `dtk models current`). REST responses expose it under the namespaced
 `x_decision_toolkit.variant` extension; `/v1/decision-models` includes
 `current` and `current_variant`, plus all `variants` and `cached_variants`.
-`variant` is **not** part of TypeSafe or OpenAI; standard clients should omit it
-and rely on the server's `--variant`/persisted default. A server started with
+`variant` is **not** part of TypeSafe or OpenAI, and standard REST clients must
+not send it. They select only `model`; the local server chooses the quantization
+from `--variant` or the persisted default. A server started with
 `--model`/`--variant` reports that default in `/v1/info` and `/ready`.
 
 The variant must have been downloaded before a library call or REST request
@@ -162,13 +163,10 @@ from decision_toolkit import DecisionModel
 model = DecisionModel("gliner2.5-multi", variant="fp32")
 ```
 
-From REST, send the variant in the request body:
-
-```json
-{"model": "gliner2.5-multi", "variant": "fp32", "state": "...",
- "questions": {"cat": {"type": "choice", "instructions": "What kind?",
-                       "criteria": {"meeting": null, "other": null}}}}
-```
+For REST, start the server with the desired quantization
+(`dtk serve --model gliner2.5-multi --variant fp32`) or select it persistently
+with `dtk models use`. Do not add a quantization field to a standard TypeSafe or
+OpenAI request; those APIs select only a model.
 
 The variant must already be downloaded. If you name an unknown variant, the
 error lists the catalogued choices, for example:

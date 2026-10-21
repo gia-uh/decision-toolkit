@@ -52,13 +52,15 @@ fields. `/v1/decision-models` is the rich, non-standard catalog endpoint.
 ## Variants (local extension)
 
 Neither TypeSafe nor OpenAI has a `variant` request field: the public APIs select
-a model by name. Quantization is a **decision-toolkit extension**:
+a model by name. Standard clients must not send one. The local server has a
+non-standard internal routing extension for development, but it is deliberately
+kept out of standard examples and compatibility claims:
 
-- Request `variant` wins when a local client sends it.
-- Otherwise, a server started with `dtk serve --variant` uses that default.
+- A server started with `dtk serve --variant` uses that default.
 - Otherwise, the variant selected with `dtk models use` is used when the server
   is serving the current model.
 - Otherwise, the catalog default (the `*` variant in `dtk models list`) is used.
+- Standard clients select only `model`; they do not send a variant field.
 
 Standard clients should omit `variant`; they work with the server default. A
 standard-only integration can run one server per variant, or use the server's
