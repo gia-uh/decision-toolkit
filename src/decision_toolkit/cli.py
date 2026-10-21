@@ -709,35 +709,43 @@ def _cmd_models(args: argparse.Namespace) -> int:
         if as_json:
             _json_out(payloads)
             return EXIT_OK
-        headers = ["", "id", "variants"]
+        headers = ["", "id", "variant", "quant", "role", "size", "cached"]
         if args.show_adapter:
-            headers.append("adapter")
+            headers.insert(2, "adapter")
         if args.show_license:
-            headers.append("license")
-        if args.show_quant:
-            headers.append("quant")
-        headers.append("cached")
+            headers.insert(3, "license")
         rows = []
         for model, payload in zip(catalog.CATALOG, payloads):
             default = model.default_variant
-            variants = ", ".join(
-                f"{variant.name}*" if variant is default else variant.name
-                for variant in model.variants
-            ) or "—"
-            row: list[Any] = ["★" if model.id == current else " ", model.id, variants]
-            if args.show_adapter:
-                row.append(model.adapter)
-            if args.show_license:
-                row.append(model.license)
-            if args.show_quant:
-                row.append(
-                    ", ".join(variant.quant for variant in model.variants) or "—"
+            cached_variants = set(payload["cached_variants"])
+            if not model.variants:
+                rows.append(["", model.id, "—", "—", "—", "—", "—"])
+                continue
+            for variant in model.variants:
+                is_current = model.id == current and (
+                    current_variant == variant.name
+                    if current_variant is not None
+                    else variant is default
                 )
-            cached_label = ", ".join(payload["cached_variants"]) or "—"
-            row.append(cached_label)
-            rows.append(row)
+                label = f"{variant.name}*" if variant is default else variant.name
+                row: list[Any] = [
+                    "★" if is_current else "",
+                    model.id,
+                    label,
+                    variant.quant,
+                    variant.role,
+                    f"{variant.size_mb:.1f} MB",
+                    "✓" if variant.name in cached_variants else "",
+                ]
+                if args.show_adapter:
+                    row.insert(2, model.adapter)
+                if args.show_license:
+                    row.insert(3, model.license)
+                rows.append(row)
         _print_table(headers, rows)
-        print("\n* default variant. Use `dtk models variants <id>` for details and install commands.")
+        print("\n* default variant.")
+        print("download: dtk models download <id> --variant <name>")
+        print("select:   dtk models use <id> --variant <name>")
         return EXIT_OK
 
     if command == "variants":
@@ -775,6 +783,10 @@ def _cmd_models(args: argparse.Namespace) -> int:
                 print(f"           parity: {summary}")
             print(
                 f"           download: dtk models download {model.id} "
+                f"--variant {variant.name}"
+            )
+            print(
+                f"           use:      dtk models use {model.id} "
                 f"--variant {variant.name}"
             )
         if not model.variants:

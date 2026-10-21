@@ -21,7 +21,7 @@ and CLI. `dtk --help` and every subcommand help also include runnable examples.
 ## Installation
 
 ```bash
-uv pip install decision-toolkit              # library + CLI (0.3.0 on PyPI)
+uv pip install decision-toolkit              # library + CLI (0.3.1 on PyPI)
 uv pip install "decision-toolkit[onnx]"      # + onnxruntime, tokenizers (the model runtime)
 uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 ```
@@ -29,7 +29,7 @@ uv pip install "decision-toolkit[server]"    # + REST server (FastAPI)
 The project is managed with [uv](https://docs.astral.sh/uv/) and ships a committed `uv.lock`. Published
 wheels remain compatible with `pip` for environments that do not use uv.
 
-PyPI: <https://pypi.org/project/decision-toolkit/0.3.0/>. See
+PyPI: <https://pypi.org/project/decision-toolkit/0.3.1/>. See
 [docs/RELEASE.md](https://github.com/gia-uh/decision-toolkit/blob/main/docs/RELEASE.md)
 for the Trusted Publishing flow and clean-install checks.
 
@@ -187,7 +187,7 @@ own repo files, size and role. A `*` in the table above marks the default.
 `dtk models list` always shows every catalogued variant and what is cached:
 
 ```bash
-dtk models list                      # all variants; * = default
+dtk models list                      # one row per variant; * = default
 dtk models list --quant              # add the quantization labels
 dtk models variants gliner2.5-multi  # full details for one model
 ```

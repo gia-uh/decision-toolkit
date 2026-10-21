@@ -184,10 +184,12 @@ classification or serve command overrides it for that command. If `--variant`
 is omitted, the catalog default is used unless `dtk models use` selected another
 one.
 
-`models list --json` always includes license, quant, adapter, capabilities, all
-variants, the default variant, cached variants, `current` and `current_variant`.
-The text table always shows variants and cached variants; `--license`, `--quant`
-and `--adapter` add their columns.
+`models list` text output has **one row per variant**, with `id`, `variant`,
+`quant`, `role`, `size` and `cached`, followed by the exact download/select
+commands. `--license` and `--adapter` add catalog columns; `--quant` is accepted
+for compatibility because quantization is always shown. `--json` returns the
+nested model tree: one object per model, each with its `variants` and
+`cached_variants`.
 
 See [Variants and quantization](VARIANTS.md) for the full table and cache
 layout.

@@ -1,7 +1,14 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.3.0` is
+All notable changes to this project are documented here. Version `0.3.1` is
 published on PyPI.
+
+## [0.3.1] — 2026-10-21
+
+Catalog UX patch: `dtk models list` now prints one row per variant, with
+`variant`, quantization, role, size, cache state and the exact download/select
+commands. `dtk models variants` prints both commands for every variant. No
+model, adapter or REST contract changes.
 
 ## [0.3.0] — 2026-10-21
 
@@ -185,6 +192,7 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
+[0.3.1]: https://pypi.org/project/decision-toolkit/0.3.1/
 [0.3.0]: https://pypi.org/project/decision-toolkit/0.3.0/
 [0.2.1]: https://pypi.org/project/decision-toolkit/0.2.1/
 [0.2.0]: https://pypi.org/project/decision-toolkit/0.2.0/

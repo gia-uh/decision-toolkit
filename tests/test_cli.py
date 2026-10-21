@@ -192,9 +192,12 @@ def test_models_list_shows_all_cached_variants(home, fake_snapshot, capsys):
     store.download("gliner2.5-multi", variant="fp32")
     assert cli.main(["--home", str(home), "models", "list"]) == 0
     output = _out(capsys)
-    row = next(line for line in output.splitlines() if "gliner2.5-multi" in line)
-    assert "fp16*, fp32" in row
-    assert "fp16, fp32" in row
+    rows = [line for line in output.splitlines() if "gliner2.5-multi" in line]
+    assert len(rows) == 2
+    assert any("fp16*" in row and "✓" in row for row in rows)
+    assert any("fp32" in row and "✓" in row for row in rows)
+    assert "download: dtk models download <id> --variant <name>" in output
+    assert "select:   dtk models use <id> --variant <name>" in output
 
 
 def test_models_list_json_and_columns(home, capsys):
@@ -226,8 +229,10 @@ def test_models_list_json_and_columns(home, capsys):
     assert "license" in text
     assert "quant" in text
     assert "adapter" in text
-    assert "fp16*, fp32" in text
-    assert "fp16, fp32" in text
+    assert "fp16*" in text
+    assert "fp32" in text
+    assert "laya-multilingual" in text
+    assert "open-jev-deberta-v3-large" in text
 
 
 def test_models_variants_text_and_json(home, capsys):
