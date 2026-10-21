@@ -429,12 +429,273 @@ CATALOG: tuple[CatalogModel, ...] = (
             ),
         ),
     ),
+    CatalogModel(
+        id="laya-multilingual",
+        name="Laya multilingual",
+        adapter="laya",
+        license="apache-2.0",
+        params="322M",
+        architecture="mmBERT-base",
+        languages="multi",
+        status="m0",
+        capabilities=Capabilities(languages=("multi",), max_context_tokens=1024),
+        notes="Multilingual Laya decision model (100+ languages) exported as one fused "
+              "ONNX graph by onnx-community; the graph contains encoder and decision head.",
+        variants=(
+            Variant(
+                name="fp16",
+                repo="onnx-community/laya-multilingual-ONNX",
+                files={
+                    "model": "onnx/model_fp16.onnx",
+                    "tokenizer": "tokenizer.json",
+                    "config": "config.json",
+                },
+                quant="fp16",
+                size_mb=681.8,
+                role="default",
+                revision="46b77bbf5642fec5f14e540570228a8cbe8ab81f",
+                extra_files=("onnx/model_fp16.onnx_data",),
+                sha256={
+                    "model": "81f641e21289ddb2cd8ac774c1cddebfdb0fa7e4b183e49ad476d2faee46d98a",
+                    "tokenizer": "609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f",
+                    "config": "cc32109b1fded91ec6734127ffb1827f80cdcf8ffdd4eeda75a1b0f4d3687dcc",
+                },
+                extra_sha256={
+                    "onnx/model_fp16.onnx_data": "3c9eb52f5f795f76d7a681197228131fac7e92c3e5a4c90b68ec4065699ee4cf",
+                },
+                verified_at="2026-10-21",
+                latency_ms_p50=37.4,
+                parity={
+                    "baseline": "upstream ONNX vs PyTorch (model card)",
+                    "max_probability_delta": 0.035,
+                    "note": "upstream reports fp32 max |dp| 1e-4 and fp16 0.035; local fp16/fp32 agree on answers",
+                },
+            ),
+            Variant(
+                name="fp32",
+                repo="onnx-community/laya-multilingual-ONNX",
+                files={
+                    "model": "onnx/model.onnx",
+                    "tokenizer": "tokenizer.json",
+                    "config": "config.json",
+                },
+                quant="fp32",
+                size_mb=1325.6,
+                role="quality",
+                revision="46b77bbf5642fec5f14e540570228a8cbe8ab81f",
+                extra_files=("onnx/model.onnx_data",),
+                sha256={
+                    "model": "22461d988f675dd6c2b89ff8feb9ed7ffcf7e37854e5ed512f8b275178cf2f9f",
+                    "tokenizer": "609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f",
+                    "config": "cc32109b1fded91ec6734127ffb1827f80cdcf8ffdd4eeda75a1b0f4d3687dcc",
+                },
+                extra_sha256={
+                    "onnx/model.onnx_data": "f01238e183ace77661282e4eb2dd9b872c7044cb9678f904cf409e6cc1146d09",
+                },
+                verified_at="2026-10-21",
+                latency_ms_p50=34.1,
+            ),
+        ),
+    ),
+    CatalogModel(
+        id="open-jev-deberta-v3-large",
+        name="Open-Jev DeBERTa v3 large",
+        adapter="open-jev",
+        license="apache-2.0",
+        params="435M",
+        architecture="DeBERTa-v3-large + span head",
+        languages="en",
+        status="m0",
+        capabilities=Capabilities(languages=("en",), max_context_tokens=512),
+        notes="Open, Jev-shaped typed-decision model: one state plus typed questions in "
+              "one DeBERTa sequence, with a calibrated span-pooling readout.",
+        variants=(
+            Variant(
+                name="q4f16",
+                repo="onnx-community/open-jev-deberta-v3-large-ONNX",
+                files={
+                    "model": "onnx/model_q4f16.onnx",
+                    "tokenizer": "tokenizer.json",
+                    "config": "config.json",
+                },
+                quant="q4/fp16",
+                size_mb=357.0,
+                role="edge",
+                revision="7c79f25b5ac496089f448a969c801872ad59d31c",
+                extra_files=("onnx/model_q4f16.onnx_data",),
+                sha256={
+                    "model": "f9f014e96682fa0a9ac3c7b3b41786f58a2996dbff890b8ed18eed3869cc495d",
+                    "tokenizer": "cd119378b0160677b7a1e561ba29ada83918c1d420b326516a585382e83d9d39",
+                    "config": "2ec35432332ee6b5880509eefe44e6279fd9d3543f6ba96098119ffe0b0c2d5e",
+                },
+                extra_sha256={
+                    "onnx/model_q4f16.onnx_data": "89bd9c644c621e3d79fbd1de6bb03e622c38e1dd42e11ab8acece8a236c3481f",
+                },
+                verified_at="2026-10-21",
+                latency_ms_p50=219.4,
+                parity={
+                    "baseline": "upstream public validation + local variant check",
+                    "in_domain_accuracy": 0.854,
+                    "ood_accuracy": 0.690,
+                    "note": "upstream measured; local fp16/fp32 agree on published example",
+                },
+            ),
+            Variant(
+                name="fp16",
+                repo="onnx-community/open-jev-deberta-v3-large-ONNX",
+                files={
+                    "model": "onnx/model_fp16.onnx",
+                    "tokenizer": "tokenizer.json",
+                    "config": "config.json",
+                },
+                quant="fp16",
+                size_mb=883.5,
+                role="default",
+                revision="7c79f25b5ac496089f448a969c801872ad59d31c",
+                extra_files=("onnx/model_fp16.onnx_data",),
+                sha256={
+                    "model": "2fd22c68fef1c74ac8d4541ea4cbcfbd38553c15552a7bd0a09280c196662e9b",
+                    "tokenizer": "cd119378b0160677b7a1e561ba29ada83918c1d420b326516a585382e83d9d39",
+                    "config": "2ec35432332ee6b5880509eefe44e6279fd9d3543f6ba96098119ffe0b0c2d5e",
+                },
+                extra_sha256={
+                    "onnx/model_fp16.onnx_data": "f5cc34a4e6cc82483fbaa8bac85f38b008758b13c4dfbb2ac1b637a92da3fd14",
+                },
+                verified_at="2026-10-21",
+                latency_ms_p50=241.2,
+                parity={
+                    "baseline": "upstream open-jev validation (public gold labels)",
+                    "in_domain_accuracy": 0.854,
+                    "ood_accuracy": 0.690,
+                    "note": "local fp16 matches fp32 on the published example; q4 variants are edge builds",
+                },
+            ),
+            Variant(
+                name="q4",
+                repo="onnx-community/open-jev-deberta-v3-large-ONNX",
+                files={
+                    "model": "onnx/model_q4.onnx",
+                    "tokenizer": "tokenizer.json",
+                    "config": "config.json",
+                },
+                quant="q4",
+                size_mb=486.7,
+                role="edge",
+                revision="7c79f25b5ac496089f448a969c801872ad59d31c",
+                extra_files=("onnx/model_q4.onnx_data",),
+                sha256={
+                    "model": "5be15f8076cc2c16d76fb2e9c8703a0d7d355950422ce47e8dae072ce9ca3b8e",
+                    "tokenizer": "cd119378b0160677b7a1e561ba29ada83918c1d420b326516a585382e83d9d39",
+                    "config": "2ec35432332ee6b5880509eefe44e6279fd9d3543f6ba96098119ffe0b0c2d5e",
+                },
+                extra_sha256={
+                    "onnx/model_q4.onnx_data": "886cf56af0dd14b6938415af724eb48e5a5d5db3c728c05b50702585c0ea29ab",
+                },
+                verified_at="2026-10-21",
+                latency_ms_p50=56.0,
+            ),
+            Variant(
+                name="fp32",
+                repo="onnx-community/open-jev-deberta-v3-large-ONNX",
+                files={
+                    "model": "onnx/model.onnx",
+                    "tokenizer": "tokenizer.json",
+                    "config": "config.json",
+                },
+                quant="fp32",
+                size_mb=1757.9,
+                role="quality",
+                revision="7c79f25b5ac496089f448a969c801872ad59d31c",
+                extra_files=("onnx/model.onnx_data", "onnx/model.onnx_data_1"),
+                sha256={
+                    "model": "ceaa072f23425cbc6ed0234453499f4de4bd7beee43499ea984db4eb67409621",
+                    "tokenizer": "cd119378b0160677b7a1e561ba29ada83918c1d420b326516a585382e83d9d39",
+                    "config": "2ec35432332ee6b5880509eefe44e6279fd9d3543f6ba96098119ffe0b0c2d5e",
+                },
+                extra_sha256={
+                    "onnx/model.onnx_data": "73b7b54307a768c9b2afaf1da70b7be3ff7b9da72cbbdfc1d2d32b27f08d4f55",
+                    "onnx/model.onnx_data_1": "a15119f55a8e90de0194a23675817fc63605bbfa209a6f1175e0368e396c97a2",
+                },
+                verified_at="2026-10-21",
+                latency_ms_p50=78.2,
+            ),
+        ),
+    ),
+    CatalogModel(
+        id="strands-decider-2b",
+        name="Strands Decider 2B",
+        adapter="strands-decider",
+        license="apache-2.0",
+        params="2B",
+        architecture="Qwen3.5-2B + pointer head",
+        languages="multi",
+        status="m0",
+        capabilities=Capabilities(languages=("multi",), max_context_tokens=4096),
+        notes="Qwen3.5-2B decision model with a pointer readout: state once, one prompt "
+              "per typed question, logits over the numbered options.",
+        variants=(
+            Variant(
+                name="q4f16",
+                repo="onnx-community/strands-decider-2B-hobson-v19-ONNX",
+                files={
+                    "model": "onnx/model_q4f16.onnx",
+                    "tokenizer": "tokenizer.json",
+                    "config": "config.json",
+                },
+                quant="q4/fp16",
+                size_mb=1113.6,
+                role="default",
+                revision="31a83e0244b26d939ae33f87189d6c8204003e53",
+                extra_files=("onnx/model_q4f16.onnx_data",),
+                sha256={
+                    "model": "8ee20666f274ebb3774bc98e0026f3bab9cffd3796440c73d7700169e756b68a",
+                    "tokenizer": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86",
+                    "config": "707931b0fef6a8581964f6dc5f6ae97ba8cab078cfb5c9cfff958272e8146343",
+                },
+                extra_sha256={
+                    "onnx/model_q4f16.onnx_data": "d442842f1c5db3dd5b84ac35f683b408a1330075dae6f8f51dcdc5154b64f920",
+                },
+                verified_at="2026-10-21",
+                latency_ms_p50=719.3,
+                parity={
+                    "baseline": "v19 reference fixture (upstream)",
+                    "cases": 3,
+                    "max_probability_delta": 0.018,
+                    "note": "local q4f16 matches the published fixture answers; q8 is closer in some probabilities",
+                },
+            ),
+            Variant(
+                name="q8",
+                repo="onnx-community/strands-decider-2B-hobson-v19-ONNX",
+                files={
+                    "model": "onnx/model_quantized.onnx",
+                    "tokenizer": "tokenizer.json",
+                    "config": "config.json",
+                },
+                quant="int8",
+                size_mb=1821.4,
+                role="quality",
+                revision="31a83e0244b26d939ae33f87189d6c8204003e53",
+                extra_files=("onnx/model_quantized.onnx_data",),
+                sha256={
+                    "model": "d156ecf442aaceccd891864b709a7acbea558e382fb1253a7eb8e53c48f46b23",
+                    "tokenizer": "a2cdd2e108566b09079afa8d266e9e65e7c280f27b771218237a06de5ba9cd86",
+                    "config": "707931b0fef6a8581964f6dc5f6ae97ba8cab078cfb5c9cfff958272e8146343",
+                },
+                extra_sha256={
+                    "onnx/model_quantized.onnx_data": "0b92e9b7ff19b21c478ae056af397addd0f674180637b4850967fbe8849b21cf",
+                },
+                verified_at="2026-10-21",
+                latency_ms_p50=1467.2,
+            ),
+        ),
+    ),
 )
 
 CATALOG_BY_ID: dict[str, CatalogModel] = {model.id: model for model in CATALOG}
 
 #: Adapters that ship with the toolkit today.
-IMPLEMENTED_ADAPTERS = frozenset({"gliner2", "gliner2-decide", "julia", "laya", "opendecider"})
+IMPLEMENTED_ADAPTERS = frozenset({"gliner2", "gliner2-decide", "julia", "laya", "opendecider", "open-jev", "strands-decider"})
 
 
 def get(model_id: str) -> CatalogModel | None:

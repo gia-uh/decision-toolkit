@@ -27,6 +27,14 @@ other variant was selected with `dtk models use`.
 | `julia-1` | `fp32` * | fp32 | 618.2 MB | default |
 | `opendecider-nano` | `q8f16` * | int8/fp16 | 468.8 MB | default |
 | `opendecider-nano` | `fp16` | fp16 | 791.9 MB | quality |
+| `laya-multilingual` | `fp16` * | fp16 | 681.8 MB | default |
+| `laya-multilingual` | `fp32` | fp32 | 1325.6 MB | quality |
+| `open-jev-deberta-v3-large` | `fp16` * | fp16 | 883.5 MB | default |
+| `open-jev-deberta-v3-large` | `fp32` | fp32 | 1757.9 MB | quality |
+| `open-jev-deberta-v3-large` | `q4` | q4 | 486.7 MB | edge |
+| `open-jev-deberta-v3-large` | `q4f16` | q4/fp16 | 357.0 MB | edge |
+| `strands-decider-2b` | `q4f16` * | q4/fp16 | 1113.6 MB | default |
+| `strands-decider-2b` | `q8` | int8 | 1821.4 MB | quality |
 
 Models with a single row have only one catalogued, verified build. That does
 not mean other conversions do not exist upstream; it means they have not passed

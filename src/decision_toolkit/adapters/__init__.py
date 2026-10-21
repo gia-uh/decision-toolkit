@@ -24,6 +24,8 @@ from .gliner2_decide import Gliner2DecideAdapter
 from .julia import JuliaAdapter
 from .laya import LayaAdapter
 from .opendecider import OpendeciderAdapter
+from .openjev import OpenJevAdapter
+from .strands_decider import StrandsDeciderAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,8 @@ ADAPTERS: dict[str, Any] = {
     "julia": JuliaAdapter,
     "laya": LayaAdapter,
     "opendecider": OpendeciderAdapter,
+    "open-jev": OpenJevAdapter,
+    "strands-decider": StrandsDeciderAdapter,
 }
 
 #: Fixed role requirements for the adapters that ship with the toolkit.
@@ -41,8 +45,10 @@ ADAPTERS: dict[str, Any] = {
 _REQUIRED_ROLES: dict[str, frozenset[str]] = {
     "gliner2-decide": frozenset({"model", "tokenizer"}),
     "julia": frozenset({"model", "tokenizer"}),
-    "laya": frozenset({"encoder", "head", "tokenizer", "config"}),
+    "laya": frozenset({"tokenizer", "config"}),
     "opendecider": frozenset({"model", "tokenizer", "config"}),
+    "open-jev": frozenset({"model", "tokenizer", "config"}),
+    "strands-decider": frozenset({"model", "tokenizer", "config"}),
 }
 
 _ENTRY_POINTS_LOADED = False
@@ -144,6 +150,17 @@ def validate_adapter_files(name: str, files: Any) -> None:
             raise AdapterNotAvailableError(
                 "adapter 'gliner2' needs either a fused 'model' file or 'encoder' + "
                 "'classifier' files"
+            )
+        return
+    if name == "laya":
+        missing = {"tokenizer", "config"} - roles
+        if missing:
+            raise AdapterNotAvailableError(
+                f"adapter 'laya' needs roles {sorted(missing)}; got {sorted(roles)}"
+            )
+        if "model" not in roles and not {"encoder", "head"} <= roles:
+            raise AdapterNotAvailableError(
+                "adapter 'laya' needs either a fused 'model' file or 'encoder' + 'head' files"
             )
         return
 

@@ -36,9 +36,12 @@ QTYPE_NAMES = ["choice", "score", "noul"]
 
 
 class LayaAdapter:
-    """System One over a Laya split export (encoder + head + rl_agent_config)."""
+    """System One over Laya split (encoder + head) or fused decision exports."""
 
     name = "laya"
+    # Either a split export or a fused ``model`` graph; validated by the
+    # adapter registry because the role set is conditional.
+    required_roles = frozenset({"tokenizer", "config"})
 
     # ------------------------------------------------------------------ setup
     @staticmethod
@@ -149,6 +152,9 @@ class LayaAdapter:
         import numpy as np
 
         config = engine.read_json("config")
+        if isinstance(config.get("laya"), Mapping):
+            # The multilingual Transformers.js export nests the runtime section.
+            config = config["laya"]
         tokenizer = engine.tokenizer
         state_text = state_to_text(state)
         answers: dict[str, dict[str, Any]] = {}
@@ -167,32 +173,48 @@ class LayaAdapter:
 
             input_ids = np.asarray([ids], dtype=np.int64)
             attention = np.ones_like(input_ids)
-            hidden = engine.session("encoder").run(
-                None, {"input_ids": input_ids, "attention_mask": attention}
-            )[0]
+            marker_pos = np.asarray([markers], dtype=np.int64)
+            marker_mask = np.ones((1, len(markers)), dtype=bool)
+            qtype_value = np.asarray([qtype], dtype=np.int64)
 
-            head = engine.session("head")
-            inputs = {item.name: item for item in head.get_inputs()}
-            hidden_name = next(
-                (name for name in ("hidden_states", "hidden", "last_hidden_state") if name in inputs),
-                None,
-            )
-            if hidden_name is None:
-                raise AdapterError(
-                    f"the head exposes no hidden-state input; inputs: {sorted(inputs)}"
+            if "model" in getattr(engine, "files", {}):
+                # Fused multilingual export: one graph returns both the option
+                # logits and the action head.
+                outputs = engine.session("model").run(None, {
+                    "input_ids": input_ids,
+                    "attention_mask": attention,
+                    "marker_pos": marker_pos,
+                    "marker_mask": marker_mask,
+                    "qtype": qtype_value,
+                })
+                logits, act_logits = outputs[0], outputs[1]
+            else:
+                hidden = engine.session("encoder").run(
+                    None, {"input_ids": input_ids, "attention_mask": attention}
+                )[0]
+
+                head = engine.session("head")
+                inputs = {item.name: item for item in head.get_inputs()}
+                hidden_name = next(
+                    (name for name in ("hidden_states", "hidden", "last_hidden_state") if name in inputs),
+                    None,
                 )
-            qtype_value = (
-                np.asarray([qtype], dtype=np.int64)
-                if len(inputs["qtype"].shape) == 1
-                else np.asarray([[qtype]], dtype=np.int64)
-            )
-            logits, act_logits = head.run(None, {
-                hidden_name: hidden,
-                "attention_mask": attention,
-                "marker_pos": np.asarray([markers], dtype=np.int64),
-                "marker_mask": np.ones((1, len(markers)), dtype=bool),
-                "qtype": qtype_value,
-            })
+                if hidden_name is None:
+                    raise AdapterError(
+                        f"the head exposes no hidden-state input; inputs: {sorted(inputs)}"
+                    )
+                qtype_value = (
+                    np.asarray([qtype], dtype=np.int64)
+                    if len(inputs["qtype"].shape) == 1
+                    else np.asarray([[qtype]], dtype=np.int64)
+                )
+                logits, act_logits = head.run(None, {
+                    hidden_name: hidden,
+                    "attention_mask": attention,
+                    "marker_pos": marker_pos,
+                    "marker_mask": marker_mask,
+                    "qtype": qtype_value,
+                })
 
             raw = np.asarray(logits)[0][: len(markers)]
             scaled = (raw / self._temperature(config, qtype, len(markers))).tolist()

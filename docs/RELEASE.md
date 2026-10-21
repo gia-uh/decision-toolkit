@@ -9,7 +9,8 @@ fixed TestPyPI verification for uv; `0.1.6` added complete variant visibility
 and selection in the CLI and documentation; `0.1.7` aligned variant selection
 across the library, CLI and REST API; `0.2.0` corrected the REST conformance
 claims and wire shapes to the published TypeSafe and OpenAI schemas; `0.2.1`
-changed the public documentation URLs to this repository's Pages site.
+changed the public documentation URLs to this repository's Pages site; `0.3.0`
+added the Laya multilingual, Open-Jev and Strands Decider ONNX models.
 
 ## Local build and verification
 
@@ -36,7 +37,7 @@ Clean install test (no `PYTHONPATH`):
 ```bash
 uv venv --python 3.12 /tmp/dtk-wheel
 uv pip install --python /tmp/dtk-wheel/bin/python \
-  dist/decision_toolkit-0.2.1-py3-none-any.whl
+  dist/decision_toolkit-0.3.0-py3-none-any.whl
 uv pip check --python /tmp/dtk-wheel/bin/python
 /tmp/dtk-wheel/bin/dtk --version
 /tmp/dtk-wheel/bin/dtk models list --json
@@ -47,7 +48,7 @@ With inference and server extras:
 
 ```bash
 uv pip install --python /tmp/dtk-wheel/bin/python \
-  "dist/decision_toolkit-0.2.1-py3-none-any.whl[onnx,server,tracing]"
+  "dist/decision_toolkit-0.3.0-py3-none-any.whl[onnx,server,tracing]"
 /tmp/dtk-wheel/bin/dtk decide --model gliner2.5-decide ...
 /tmp/dtk-wheel/bin/dtk serve --model gliner2.5-decide --warmup --port 8016
 curl -s http://127.0.0.1:8016/health
@@ -81,8 +82,8 @@ No long-lived PyPI token is needed; the workflow uses GitHub OIDC
 4. Create and push an annotated tag:
 
    ```bash
-   git tag -a v0.2.1 -m "decision-toolkit 0.2.1"
-   git push origin v0.2.1
+   git tag -a v0.3.0 -m "decision-toolkit 0.3.0"
+   git push origin v0.3.0
    ```
 
 5. `.github/workflows/release.yml` builds once, publishes to **TestPyPI**, then
@@ -131,9 +132,9 @@ to TestPyPI without publishing to PyPI or creating a GitHub release.
 
 ## Published release
 
-`0.2.1` is published through Trusted Publishing on 2026-10-20:
+`0.3.0` is published through Trusted Publishing on 2026-10-21:
 
-<https://pypi.org/project/decision-toolkit/0.2.1/>
+<https://pypi.org/project/decision-toolkit/0.3.0/>
 
 `0.1.0` was the first release; `0.1.1` refreshed the PyPI description; `0.1.2`
 validated the OIDC TestPyPI → PyPI flow; `0.1.3` added post-publish install
@@ -142,7 +143,8 @@ development, build, CI, release and documentation environments to uv but was
 published to TestPyPI only; `0.1.5` fixed TestPyPI resolution; `0.1.6` added
 complete variant/quantization visibility and CLI selection; `0.1.7` aligned
 selection across library, CLI and REST; `0.2.0` corrected the REST conformance
-claims and wire shapes; `0.2.1` changed the public documentation URLs.
+claims and wire shapes; `0.2.1` changed the public documentation URLs; `0.3.0`
+added the three new ONNX decision models.
 
 The tag-triggered workflow remains the preferred path for future releases once
 the TestPyPI/PyPI trusted publishers and protected environments are configured.

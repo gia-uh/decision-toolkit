@@ -39,6 +39,7 @@ nav:
   - Operations: OPERATIONS.md
   - Benchmarks: BENCH.md
   - Variants and quantization: VARIANTS.md
+  - Catalog proposal: CATALOG_PROPOSAL.md
   - Models:
       - Overview: models/README.md
       - GLiNER2.5 multi: models/gliner2.5-multi.md
@@ -46,6 +47,9 @@ nav:
       - Laya: models/laya.md
       - Julia 1: models/julia-1.md
       - OpenDecider nano: models/opendecider-nano.md
+      - Laya multilingual: models/laya-multilingual.md
+      - Open-Jev DeBERTa v3 large: models/open-jev-deberta-v3-large.md
+      - Strands Decider 2B: models/strands-decider-2b.md
   - Release: RELEASE.md
   - Roadmap: ROADMAP.md
 

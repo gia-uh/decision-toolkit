@@ -174,6 +174,9 @@ def test_models_list_text(home, capsys):
         "laya",
         "julia-1",
         "opendecider-nano",
+        "laya-multilingual",
+        "open-jev-deberta-v3-large",
+        "strands-decider-2b",
     ):
         assert model_id in output
     assert "d3-lite" not in output
@@ -622,9 +625,11 @@ def test_doctor_json(home, capsys):
         "gliner2-decide",
         "julia",
         "laya",
+        "open-jev",
         "opendecider",
+        "strands-decider",
     ]
-    assert report["catalog"]["m0"] == 5
+    assert report["catalog"]["m0"] == 8
     assert "current_variant" in report
 
 

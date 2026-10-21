@@ -1,7 +1,24 @@
 # Changelog
 
-All notable changes to this project are documented here. Version `0.2.1` is
+All notable changes to this project are documented here. Version `0.3.0` is
 published on PyPI.
+
+## [0.3.0] — 2026-10-21
+
+Catalog expansion: three verified ONNX decision models and eight variants.
+Laya multilingual, Open-Jev DeBERTa v3 large and Strands Decider 2B are now
+available through the library, CLI and REST projection.
+
+### Added
+
+- `laya-multilingual` with fused Laya ONNX support (`fp16` default, `fp32`).
+- `open-jev-deberta-v3-large` with a span-pooling adapter (`fp16` default,
+  `fp32`, `q4`, `q4f16`).
+- `strands-decider-2b` with a pointer-head adapter (`q4f16` default, `q8`).
+- New `open-jev` and `strands-decider` adapters and a fused branch in `laya`.
+- Model cards, benchmark cases, a catalog proposal and documentation for every
+  added variant.
+- All 15 catalogued variants verified for SHA256, files and ONNX sessions.
 
 ## [0.2.1] — 2026-10-20
 
@@ -168,6 +185,7 @@ README correction. No code or model behavior changed.
 - Typed `DecisionModel` API with lifecycle, batching, async, usage, warnings,
   normalized confidence, capabilities, structured events and atomic model store.
 
+[0.3.0]: https://pypi.org/project/decision-toolkit/0.3.0/
 [0.2.1]: https://pypi.org/project/decision-toolkit/0.2.1/
 [0.2.0]: https://pypi.org/project/decision-toolkit/0.2.0/
 [0.1.7]: https://pypi.org/project/decision-toolkit/0.1.7/

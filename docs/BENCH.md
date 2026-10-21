@@ -47,6 +47,15 @@ Environment: Python 3.12.7, ONNX Runtime 1.23.2, tokenizers 0.22.1, numpy
 Calibration smoke (`gliner2.5-multi`, 10 synthetic routing cases): accuracy
 `0.60`, Brier `0.173`, ECE `0.247`.
 
+2026-10-21 audit of the three added models (Python 3.13.2, ONNX Runtime
+1.31.0, post-warmup, one smoke case):
+
+| Model | Variant | p50 ms | Parity |
+|---|---|---:|---:|
+| `laya-multilingual` | fp16 | 37.4 | 1/1 |
+| `open-jev-deberta-v3-large` | fp16 | 241.2 | 1/1 |
+| `strands-decider-2b` | q4f16 | 719.3 | 1/1 |
+
 Full evidence, per-case answers and environment metadata:
 [`bench/results/2026-10-20-smoke.json`](https://github.com/gia-uh/decision-toolkit/blob/main/bench/results/2026-10-20-smoke.json)
 and

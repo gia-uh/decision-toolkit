@@ -147,6 +147,9 @@ are already downloaded.
 | `laya` | `q8`* | int8 | 527.9 MB |
 | `julia-1` | `fp32`* | fp32 | 618.2 MB |
 | `opendecider-nano` | `q8f16`*, `fp16` | int8/fp16 / fp16 | 468.8 / 791.9 MB |
+| `laya-multilingual` | `fp16`*, `fp32` | fp16 / fp32 | 681.8 / 1325.6 MB |
+| `open-jev-deberta-v3-large` | `fp16`*, `fp32`, `q4`, `q4f16` | fp16 / fp32 / q4 / q4-fp16 | 883.5 / 1757.9 / 486.7 / 357.0 MB |
+| `strands-decider-2b` | `q4f16`*, `q8` | q4-fp16 / int8 | 1113.6 / 1821.4 MB |
 
 ```bash
 # inspect, including the exact download command for each variant

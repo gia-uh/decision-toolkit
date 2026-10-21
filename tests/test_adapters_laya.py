@@ -184,3 +184,43 @@ def test_english_tokenizer_convention_is_supported():
     answers = LayaAdapter().system_one(engine, "state", {"team": CHOICE_Q})
     assert answers["team"]["choice"] == "billing"
     assert engine.head.feeds["qtype"][0][0] == 0
+
+
+class FakeFusedSession:
+    def __init__(self, logits):
+        self.logits = list(logits)
+        self.feeds = None
+
+    def run(self, output_names, feeds):
+        numpy = pytest.importorskip("numpy")
+        self.feeds = feeds
+        return [
+            numpy.asarray([self.logits], dtype=numpy.float32),
+            numpy.asarray([[1.0, 0.0]], dtype=numpy.float32),
+        ]
+
+
+class FakeFusedEngine:
+    def __init__(self, logits):
+        self.tokenizer = FakeTokenizer()
+        self.model = FakeFusedSession(logits)
+        self.files = {"model": "model.onnx", "tokenizer": "tokenizer.json", "config": "config.json"}
+        self._config = {"laya": CONFIG}
+
+    def read_json(self, role):
+        assert role == "config"
+        return self._config
+
+    def session(self, role):
+        assert role == "model"
+        return self.model
+
+
+def test_fused_multilingual_export_uses_one_graph():
+    pytest.importorskip("numpy")
+    engine = FakeFusedEngine([2.0, 0.0])
+    answers = LayaAdapter().system_one(engine, "the state", {"team": CHOICE_Q})
+    assert answers["team"]["choice"] == "billing"
+    assert answers["team"]["answer_confidence"] == pytest.approx(0.880797, abs=1e-5)
+    assert engine.model.feeds["qtype"].shape == (1,)
+    assert len(engine.model.feeds["marker_pos"][0]) == 2

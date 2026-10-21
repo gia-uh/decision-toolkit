@@ -24,6 +24,7 @@ PyPI: <https://pypi.org/project/decision-toolkit/>
 - [Operations](OPERATIONS.md) — rate limits, metrics, tracing and runbook.
 - [Benchmarks](BENCH.md) — reproducible latency/parity/calibration.
 - [Models](models/README.md) — the curated catalog.
+- [Catalog proposal](CATALOG_PROPOSAL.md) — analysis and evidence for the latest model additions.
 - [Release](RELEASE.md) — build, TestPyPI/PyPI and Trusted Publishing.
 
 ## One example

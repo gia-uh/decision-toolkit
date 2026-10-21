@@ -7,19 +7,17 @@ They are deliberately absent from `CATALOG`, `dtk models list` and `/v1/models`.
 
 | id | status | reason |
 |---|---|---|
-| `gliner2.5-multi-decide` | planned | No compatible export of the fine-tune; only the base multi-v1 export is verified |
-| `laya-multilingual` | planned | No split multilingual ONNX export published (existing ones are fused single-file layouts) |
-| `intern-decision-0.8b` | planned | Split embed/decoder/projection export; needs the upstream prompt compiler; `parityVerified: false` |
-| `d3-lite` | phase2 | No ONNX published; conversion from the original weights planned |
-| `kev-0.8b` | phase2 | No ONNX published; conversion planned |
+| `gliner2.5-multi-decide` | planned | ONNX split export exists (`DanKau/gliner2.5-multi-decide-onnx`), but the `[L]` prompt layout needs an adapter |
+| `intern-decision-0.8b` | planned | ONNX exists (`Wortou/Intern-Decision-0.8B-ONNX-FP16`), but it is split and needs the upstream prompt compiler; `parityVerified: false` |
+| `d3-lite` | phase2 | Web ONNX torso/readout files exist, but the repo declares no license/README; not eligible |
+| `kev-0.8b` | phase2 | ONNX exists (`midudev/kev-0.8b-ONNX`) but external data is missing and it uses custom ops |
 | `sieve-0.8b` | phase2 | No ONNX published; conversion planned |
-| `strands-decider-2b` | phase2 | No ONNX published; conversion planned |
 | `thx-01` | phase2 | No ONNX published; conversion planned |
 | `jevk5-lite` | waitlist | Export references external `.onnx.data` files that are not published |
 | `bosun-0.6b` | waitlist | No ONNX yet |
-| `d3-edge` | waitlist | No ONNX yet |
-| `tev1-0.8b` | waitlist | License not declared on the model card |
-| `d1-omni-600m` | waitlist | LFM Open License; needs review |
+| `d3-edge` | waitlist | Web ONNX files exist, but no license/README; not eligible |
+| `tev1-0.8b` | waitlist | ONNX exists, but the upstream licence is `other` and needs review |
+| `d1-omni-600m` | waitlist | ONNX exists, but the LFM Open License needs review and it is multimodal |
 | `bekko-400m` | waitlist | License pending |
 
 ## How a model moves into the catalog

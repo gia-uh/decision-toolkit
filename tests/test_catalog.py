@@ -9,7 +9,16 @@ import pytest
 from decision_toolkit import catalog
 from decision_toolkit.errors import ModelNotFoundError
 
-EXPECTED_IDS = {"gliner2.5-multi", "gliner2.5-decide", "laya", "julia-1", "opendecider-nano"}
+EXPECTED_IDS = {
+    "gliner2.5-multi",
+    "gliner2.5-decide",
+    "laya",
+    "julia-1",
+    "opendecider-nano",
+    "laya-multilingual",
+    "open-jev-deberta-v3-large",
+    "strands-decider-2b",
+}
 
 
 def test_catalog_contains_only_available_models():
